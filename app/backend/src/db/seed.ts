@@ -1,0 +1,275 @@
+/**
+ * Seed dữ liệu mẫu đầy đủ để test toàn bộ FR.
+ * Chạy sau migrate. Mật khẩu mặc định cho mọi tài khoản: "123456".
+ */
+import bcrypt from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
+import { initDb, run, persist, all } from './database';
+
+const now = () => new Date().toISOString();
+function daysFromNow(d: number): string {
+  const t = new Date();
+  t.setDate(t.getDate() + d);
+  return t.toISOString();
+}
+function hoursFromNow(h: number): string {
+  const t = new Date();
+  t.setHours(t.getHours() + h);
+  return t.toISOString();
+}
+
+async function seed() {
+  await initDb();
+  const pass = bcrypt.hashSync('123456', 8);
+
+  // ---------- Showrooms ----------
+  const shrThuDuc = uuid();
+  const shrQ1 = uuid();
+  const shrHanoi = uuid();
+  const showrooms = [
+    [shrThuDuc, 'TNT CAR Thủ Đức', 'Số 1 Võ Văn Ngân, TP Thủ Đức, TP.HCM'],
+    [shrQ1, 'TNT CAR Quận 1', '123 Nguyễn Huệ, Quận 1, TP.HCM'],
+    [shrHanoi, 'TNT CAR Hà Nội', '88 Phạm Hùng, Nam Từ Liêm, Hà Nội'],
+  ];
+  for (const s of showrooms) run('INSERT INTO showrooms (id,name,address) VALUES (?,?,?)', s);
+
+  // ---------- Users: 1 Admin, 2 Manager, 5 Sales ----------
+  const admin = uuid();
+  const mgr1 = uuid();
+  const mgr2 = uuid();
+  const sale1 = uuid();
+  const sale2 = uuid();
+  const sale3 = uuid();
+  const sale4 = uuid();
+  const sale5 = uuid();
+
+  const users: any[] = [
+    [admin, 'Nguyễn Quản Trị', 'admin@tntcar.vn', '0900000001', pass, 'Admin', null, null, 1],
+    [mgr1, 'Trần Quản Lý HCM', 'manager.hcm@tntcar.vn', '0900000002', pass, 'Manager', shrThuDuc, null, 1],
+    [mgr2, 'Lê Quản Lý HN', 'manager.hn@tntcar.vn', '0900000003', pass, 'Manager', shrHanoi, null, 1],
+    [sale1, 'Phạm Văn Sơn', 'son.sales@tntcar.vn', '0911111111', pass, 'Sales', shrThuDuc, mgr1, 1],
+    [sale2, 'Võ Thị Hoa', 'hoa.sales@tntcar.vn', '0911111112', pass, 'Sales', shrThuDuc, mgr1, 1],
+    [sale3, 'Đặng Minh Tuấn', 'tuan.sales@tntcar.vn', '0911111113', pass, 'Sales', shrQ1, mgr1, 0],
+    [sale4, 'Bùi Thu Trang', 'trang.sales@tntcar.vn', '0911111114', pass, 'Sales', shrHanoi, mgr2, 1],
+    [sale5, 'Hoàng Văn Nghỉ', 'nghi.sales@tntcar.vn', '0911111115', pass, 'Sales', shrHanoi, mgr2, 1],
+  ];
+  for (const u of users) {
+    run(
+      `INSERT INTO users (id,full_name,email,phone,password_hash,role,showroom_id,manager_id,onboarded,status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [...u, 'Hoạt động', now()]
+    );
+  }
+  // Sale5 bị tạm khóa để test BR-09
+  run("UPDATE users SET status='Tạm khóa' WHERE id=?", [sale5]);
+
+  // ---------- Car models ----------
+  const cars: any[] = [
+    // id, name, brand, price, fuel, segment, year, transmission, color, image, promotion, status
+    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', '', 'Giảm 20 triệu + BHVC', 'Available'],
+    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', '', 'Tặng phụ kiện 30 triệu', 'Available'],
+    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', '', '', 'Available'],
+    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', '', 'Hỗ trợ 50% trước bạ', 'In-transit'],
+    [uuid(), 'VF 8 Plus', 'VinFast', 1219000000, 'Điện', 'SUV hạng D', 2025, 'Số tự động', 'Xanh', '', 'Miễn phí sạc 1 năm', 'Available'],
+    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', '', '', 'Available'],
+    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', '', 'Giảm 15 triệu', 'Available'],
+    [uuid(), 'Santa Fe', 'Hyundai', 1069000000, 'Dầu', 'SUV hạng D', 2025, 'Số tự động', 'Trắng', '', '', 'OutOfStock'],
+    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', '', 'Tặng camera 360', 'Available'],
+    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', '', '', 'In-transit'],
+  ];
+  for (const c of cars) {
+    run(
+      `INSERT INTO car_models (id,name,brand,price,fuel_type,segment,year,transmission,color,image_url,promotion,status,last_synced_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [...c, now()]
+    );
+  }
+  const carIds = cars.map((c) => c[0]);
+
+  // Tồn kho theo showroom
+  for (const cid of carIds) {
+    for (const sid of [shrThuDuc, shrQ1, shrHanoi]) {
+      run('INSERT INTO car_inventory (id,car_model_id,showroom_id,quantity) VALUES (?,?,?,?)', [
+        uuid(), cid, sid, Math.floor(Math.random() * 6),
+      ]);
+    }
+  }
+
+  // ---------- Lost reasons ----------
+  const lrGiaCao = uuid();
+  const lrDoiThu = uuid();
+  const lrNganHang = uuid();
+  const lrKhac = uuid();
+  const lostReasons = [
+    [lrGiaCao, 'Giá cao', 0, 1],
+    [lrDoiThu, 'Chọn đối thủ', 0, 1],
+    [lrNganHang, 'Vướng ngân hàng', 0, 1],
+    [lrKhac, 'Khác', 1, 1],
+  ];
+  for (const l of lostReasons) run('INSERT INTO lost_reasons (id,label,requires_note,active) VALUES (?,?,?,?)', l);
+
+  // ---------- Loan rates (tham khảo) ----------
+  const loanRates = [
+    ['Techcombank', 8.0, 10.5],
+    ['Agribank', 8.5, 10.5],
+    ['HDBank', 8.5, 11.0],
+    ['Sacombank', 9.0, 11.0],
+    ['Vietcombank', 8.0, 10.5],
+  ];
+  for (const [bank, promo, std] of loanRates) {
+    run('INSERT INTO loan_rates (id,bank_name,promo_rate,standard_rate,note) VALUES (?,?,?,?,?)', [
+      uuid(), bank, promo, std, 'Số tham khảo, cần xác nhận biểu lãi suất chính thức',
+    ]);
+  }
+
+  // ---------- Leads (đa dạng trạng thái, nguồn, Sales) ----------
+  const statuses = ['Đang tìm hiểu', 'Không liên lạc được', 'Tương tác chưa thành công', 'Có nhu cầu ngay', 'Không có nhu cầu'];
+  const sources = ['Sale tự nhập', 'Facebook Ads', 'Website', 'Hotline', 'Giới thiệu', 'TikTok Ads', 'Zalo', 'Showroom/Sự kiện'];
+  const names = ['Nguyễn Văn An','Trần Thị Bình','Lê Hoàng Cường','Phạm Thị Dung','Vũ Đức Em','Đỗ Thị Phương','Ngô Văn Giang','Hồ Thị Hạnh','Đinh Văn Ích','Lý Thị Kim','Mai Văn Long','Chu Thị Mai','Tô Văn Nam','Dương Thị Oanh','Phan Văn Phúc'];
+  const salesList = [sale1, sale2, sale3, sale4];
+
+  const leadIds: string[] = [];
+  const wonLeadIds: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    const id = uuid();
+    leadIds.push(id);
+    const sales = salesList[i % salesList.length];
+    let status = statuses[i % statuses.length];
+    // 6 lead Won, 3 lead Lost
+    let lostReasonId: string | null = null;
+    let lostNote: string | null = null;
+    if (i < 6) { status = 'Thành công'; wonLeadIds.push(id); }
+    else if (i < 9) {
+      status = 'Lead thất bại';
+      const lr = [lrGiaCao, lrDoiThu, lrKhac][i % 3];
+      lostReasonId = lr;
+      if (lr === lrKhac) lostNote = 'Khách hàng dời sang năm sau';
+    }
+    const createdAt = daysFromNow(-(30 - i));
+    run(
+      `INSERT INTO leads (id,full_name,phone,car_model_id,source,status_detail,lost_reason_id,lost_reason_note,
+        flag_duplicate_phone,is_archived,assigned_sales_id,created_by,sync_status,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        id, names[i % names.length], '0987' + String(100000 + i),
+        carIds[i % carIds.length], sources[i % sources.length], status,
+        lostReasonId, lostNote, 0, 0, sales, sales, 'SYNCED', createdAt, createdAt,
+      ]
+    );
+  }
+  // Một cặp Lead trùng SĐT của cùng sale1 để test gộp (US-01.7, BR-01)
+  const dupPhone = '0987222333';
+  const dupA = uuid();
+  const dupB = uuid();
+  for (const [id, name] of [[dupA, 'Khách Trùng A'], [dupB, 'Khách Trùng B']]) {
+    run(
+      `INSERT INTO leads (id,full_name,phone,car_model_id,source,status_detail,flag_duplicate_phone,assigned_sales_id,created_by,sync_status,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, name, dupPhone, carIds[0], 'Facebook Ads', 'Đang tìm hiểu', 1, sale1, sale1, 'SYNCED', now(), now()]
+    );
+  }
+  leadIds.push(dupA, dupB);
+
+  // ---------- Interactions (nhật ký chăm sóc) ----------
+  const actTypes = ['Gọi điện', 'Nhắn tin/Zalo', 'Gặp trực tiếp', 'Lịch hẹn', 'Khác'];
+  const notes = ['Khách quan tâm bản cao cấp', 'Đã gửi báo giá qua Zalo', 'Hẹn ghé showroom cuối tuần', 'Khách đang so sánh với đối thủ', ''];
+  for (let i = 0; i < 60; i++) {
+    const lead = leadIds[i % leadIds.length];
+    run(
+      `INSERT INTO interactions (id,lead_id,type,note,created_by,sync_status,created_at)
+       VALUES (?,?,?,?,?,?,?)`,
+      [uuid(), lead, actTypes[i % actTypes.length], notes[i % notes.length], salesList[i % salesList.length], 'SYNCED', daysFromNow(-(20 - (i % 20)))]
+    );
+  }
+
+  // ---------- Reminders (lịch hẹn tương lai) ----------
+  const purposes = ['Lái thử', 'Tư vấn lại', 'Khác'];
+  for (let i = 0; i < 8; i++) {
+    run(
+      `INSERT INTO reminders (id,lead_id,remind_at,purpose,location,notify_before_minutes,created_by,sync_status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [uuid(), leadIds[i], hoursFromNow((i + 1) * 6), purposes[i % 3], 'Showroom Thủ Đức', 30, salesList[i % salesList.length], 'SYNCED', now()]
+    );
+  }
+
+  // ---------- Slots lái thử (khung giờ hôm nay + vài ngày tới) ----------
+  const slotIds: string[] = [];
+  for (let d = 0; d < 3; d++) {
+    for (const hour of [9, 11, 14, 16]) {
+      const start = new Date();
+      start.setDate(start.getDate() + d);
+      start.setHours(hour, 0, 0, 0);
+      const end = new Date(start);
+      end.setHours(hour + 1);
+      const sid = uuid();
+      slotIds.push(sid);
+      run(
+        `INSERT INTO slots (id,showroom_id,car_model_id,start_time,end_time,is_available,is_holiday) VALUES (?,?,?,?,?,?,?)`,
+        [sid, shrThuDuc, carIds[0], start.toISOString(), end.toISOString(), 1, 0]
+      );
+    }
+  }
+
+  // ---------- Test drive bookings ----------
+  run(
+    `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    [uuid(), 'TD' + Date.now().toString().slice(-6), carIds[0], shrThuDuc, slotIds[0], 'Nguyễn Văn An', '0987100000', leadIds[0], 'Đã xác nhận', now()]
+  );
+  run('UPDATE slots SET is_available=0 WHERE id=?', [slotIds[0]]);
+
+  // ---------- Contracts + Payments (cho lead Won) ----------
+  for (let i = 0; i < wonLeadIds.length; i++) {
+    const cid = uuid();
+    const val = cars[i % cars.length][3];
+    const signed = daysFromNow(-(i * 3));
+    run(
+      `INSERT INTO contracts (id,contract_code,lead_id,car_model_id,value,signed_date,status,note,created_by,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [cid, 'HD' + (1000 + i), wonLeadIds[i], carIds[i % carIds.length], val, signed, 'Hiệu lực', 'Hợp đồng mẫu', salesList[i % salesList.length], signed]
+    );
+    const method = ['Đặt cọc', 'Trả góp', 'Trả thẳng'][i % 3];
+    const deposit = method === 'Trả thẳng' ? null : Math.round(val * 0.2);
+    run(
+      `INSERT INTO payments (id,contract_id,method,amount,deposit_amount,paid_at,is_cancelled) VALUES (?,?,?,?,?,?,?)`,
+      [uuid(), cid, method, method === 'Trả thẳng' ? val : (deposit || 0), deposit, signed, 0]
+    );
+    // 1 hợp đồng bị hủy cọc để test KPI hủy cọc
+    if (i === wonLeadIds.length - 1) {
+      run("UPDATE contracts SET status='Đã hủy cọc' WHERE id=?", [cid]);
+      run("UPDATE payments SET is_cancelled=1, cancel_reason='Khách đổi ý', cancelled_at=? WHERE contract_id=?", [now(), cid]);
+    }
+  }
+
+  // ---------- Website contents ----------
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'banner', 'Ưu đãi tháng 9 - Giảm đến 50 triệu', 'Áp dụng cho các dòng xe chọn lọc', '', 1, now()]);
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'contact', 'Thông tin liên hệ', 'Hotline: 1900 1234 - Email: info@tntcar.vn', '', 1, now()]);
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'brand', 'Về TNT CAR', 'TNT CAR - Đại lý ô tô uy tín hàng đầu', '', 1, now()]);
+
+  persist();
+
+  const counts = {
+    users: all('SELECT COUNT(*) c FROM users')[0],
+    showrooms: all('SELECT COUNT(*) c FROM showrooms')[0],
+    car_models: all('SELECT COUNT(*) c FROM car_models')[0],
+    leads: all('SELECT COUNT(*) c FROM leads')[0],
+    interactions: all('SELECT COUNT(*) c FROM interactions')[0],
+    reminders: all('SELECT COUNT(*) c FROM reminders')[0],
+    contracts: all('SELECT COUNT(*) c FROM contracts')[0],
+    slots: all('SELECT COUNT(*) c FROM slots')[0],
+  };
+  console.log('Seed hoàn tất. Thống kê:', JSON.stringify(counts));
+  console.log('\nTài khoản đăng nhập (mật khẩu: 123456):');
+  console.log('  Admin:    admin@tntcar.vn');
+  console.log('  Manager:  manager.hcm@tntcar.vn / manager.hn@tntcar.vn');
+  console.log('  Sales:    son.sales@tntcar.vn / hoa.sales@tntcar.vn / trang.sales@tntcar.vn');
+  process.exit(0);
+}
+
+seed().catch((e) => {
+  console.error('Seed lỗi:', e);
+  process.exit(1);
+});

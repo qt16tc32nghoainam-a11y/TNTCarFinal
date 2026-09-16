@@ -1,0 +1,77 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="TO-BE Flow" id="tobe-tntcar-1">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="QUY TRÌNH TO-BE — HỆ THỐNG TNT CAR" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="450" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n1" value="Khách liên hệ&#10;(Hotline / Facebook / Website / Showroom)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="300" y="70" width="250" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d1" value="Nguồn Lead?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="335" y="150" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n2a" value="Website tự tạo Lead&#10;→ gán Sales NGẪU NHIÊN&#10;→ push notification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="80" y="260" width="230" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n2b" value="Sales tạo Lead trực tiếp&#10;(&lt;3 phút, hoạt động OFFLINE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="260" width="230" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n3" value="Sales chăm sóc Lead&#10;Ghi hoạt động (timeline) · Đặt lịch hẹn · Hệ thống tự NHẮC VIỆC (push)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="275" y="360" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n4" value="Tra cứu kho xe &amp; Đặt lịch lái thử&#10;(tự tạo Lead nếu đặt từ web)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="275" y="450" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d2" value="Kết quả chốt?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="335" y="550" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n5a" value="WON&#10;→ Tạo hợp đồng bán xe&#10;→ Ghi nhận thanh toán / đặt cọc (FR-11)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="70" y="670" width="250" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n5b" value="LOST&#10;→ Ghi lý do (bắt buộc)&#10;→ Lưu audit trail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="540" y="670" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n6" value="Đồng bộ dữ liệu OFFLINE → ONLINE&#10;tự động khi có mạng (Last-Write-Wins)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="275" y="780" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n7" value="Admin / Manager / Sales theo dõi Dashboard KPI&#10;(phân quyền 3 mức) · Khóa số liệu theo Tháng/Quý/Năm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="255" y="870" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n8" value="KẾT QUẢ: Không sót Lead · Chăm sóc kịp thời · Đo lường được hiệu quả · Tăng chuyển đổi &amp; doanh thu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="235" y="960" width="380" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n1" target="d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="Website" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="d1" target="n2a"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="Trực tiếp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="d1" target="n2b"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n2a" target="n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n2b" target="n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n3" target="n4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n4" target="d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="Won" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="d2" target="n5a"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="Lost" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="d2" target="n5b"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n5a" target="n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n5b" target="n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n6" target="n7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n7" target="n8"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

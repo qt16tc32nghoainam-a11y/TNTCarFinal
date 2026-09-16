@@ -1,0 +1,1584 @@
+HỆ THỐNG …..(TNT CAR)
+SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
+Tên hệ thống
+
+Mã tài liệu
+
+Phiên bản
+
+Ngày
+
+Người biên soạn
+
+
+	•	GIỚI THIỆU TÀI LIỆU
+	•	Tổng quan hệ thống
+
+	•	Quy ước trong tài liệu
+	•	TỔNG QUAN HỆ THỐNG
+	•	Bối cảnh - khó khăn hiện tại
+
+
+	•	ACTORS (USER ROLES)
+Actor
+Loại
+Vai trò trong hệ thống
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	•	SƠ ĐỒ PHÂN RÃ CHỨC NĂNG
+
+	•	BUSINESS PROCESS CURRENT (AS-IS)
+
+
+	•	BUSINESS PROCESS PROPOSE (TO-BE)
+
+	•	BUSINESS RULES TABLE
+Mã BR
+Rules
+FR liên quan
+BR-01
+Trùng SĐT chỉ được coi là lỗi khi xảy ra trong phạm vi Lead của cùng một Sales; trùng SĐT giữa các Sales khác nhau là hành vi hợp lệ, không cảnh báo, không gộp.
+FR-01
+BR-02
+Chốt Lost bắt buộc phải có lý do; nếu chọn lý do "Khác" bắt buộc nhập lý do cụ thể dạng text.
+FR-01
+BR-03
+Sales được tự sửa lại kết quả Won/Lost đã chốt bất kỳ lúc nào (đổi Won ↔ Lost, hoặc quay lại 1 trong 5 trạng thái xử lý), không cần qua Admin — nhưng bắt buộc nhập lý do thay đổi mỗi lần sửa; hệ thống lưu đầy đủ audit trail (trạng thái cũ/mới, lý do, người sửa, thời điểm).
+FR-01
+BR-04
+Xóa Lead là soft-delete (chuyển trạng thái Lưu trữ), không xóa vĩnh viễn dữ liệu.
+FR-01
+BR-05
+Việc theo dõi Lead lâu không có tương tác do Sales tự chủ động quản lý; hệ thống không tự động gắn cờ/cảnh báo (đã cân nhắc và quyết định không làm).-> bỏ
+FR-02
+BR-06
+Ghi chú chăm sóc bắt buộc phải có nội dung, không được để trống. -> ghi chú -> bỏ
+FR-02
+BR-07
+Sửa/xóa ghi chú chăm sóc chỉ được phép trong một khung thời gian nhất định sau khi tạo. -> không cho sửa xoá ghi chú đã nhập
+FR-02
+BR-08
+Thời gian nhắc việc/lịch hẹn phải là một thời điểm trong tương lai, không chấp nhận thời gian quá khứ.
+FR-02
+BR-09
+Push notification chỉ đảm bảo hoạt động nếu Sales đã hoàn tất Onboarding
+FR-02, FR-10
+BR-10
+Phải hoàn tất ký biên bản lái thử trước khi bắt đầu cho khách lái thử.
+biên bản tình trạng xe
+phiếu ra cửa
+bằng lái
+cam kết của khách hàng….
+FR-03
+BR-11
+OCR bằng lái thất bại (ảnh mờ/không đọc được) thì yêu cầu chụp lại hoặc cho phép nhập tay. -> bỏ
+FR-03
+BR-12
+Tài khoản Sale bị Suspend thì không đăng nhập được, nhưng toàn bộ dữ liệu Lead/lịch sử cũ vẫn được giữ nguyên.
+FR-04
+BR-13
+Email/SĐT dùng để tạo tài khoản sale phải duy nhất trong hệ thống, không được trùng.
+FR-04
+BR-14
+Mọi thao tác tạo/sửa dữ liệu (Lead, ghi chú chăm sóc) phải hoạt động được ở chế độ Offline.
+FR-01, FR-02, FR-06
+BR-15
+Dữ liệu Offline tự động đồng bộ lên hệ thống trung tâm ngay khi có mạng, không cần thao tác thủ công.
+FR-06
+BR-16
+Xung đột dữ liệu khi đồng bộ được giải quyết theo nguyên tắc Last-Write-Wins (bản ghi sửa gần nhất được giữ lại).
+FR-06
+BR-17
+Đồng bộ thất bại thì hệ thống tự động thử lại, không được làm mất dữ liệu đang ở trạng thái "Chờ sync".
+FR-06
+BR-18
+Không xây dựng chức năng quản trị (CRUD) danh mục xe — chỉ hiển thị Read-only; dữ liệu xe lấy từ hệ thống quản lý kho xe hiện có của TNT CAR (nguồn ngoài phạm vi dự án).
+FR-07
+BR-19
+Cơ chế lấy dữ liệu xe từ hệ thống kho xe ngoài là real-time (API) hay đồng bộ theo lô (batch) định kỳ.
+FR-07
+BR-20
+Khi hệ thống kho xe ngoài không phản hồi, hiển thị dữ liệu cache gần nhất kèm cảnh báo "có thể chưa cập nhật".-> bỏ
+FR-07
+BR-21
+Form đăng ký lái thử/tư vấn trên Website thiếu SĐT thì không được tạo Lead. -> bắt buộc trường sdt trên form nhập trên web
+FR-09
+BR-22
+Lead tạo từ Website tự động gán cho Sale ngẫu nhiên.
+FR-09
+BR-23
+Sales phải hoàn tất cài đặt PWA + cấp quyền Thông báo ngay từ lần đăng nhập đầu tiên trước khi được dùng đầy đủ các tính năng liên quan Nhắc việc.
+FR-10
+
+
+	•	USER STORY
+STT
+ID
+FR liên quan
+User Story (tóm tắt)
+Actor
+Priority
+1
+US-01.1
+FR-01
+Tạo Lead nhanh
+Sales
+Cao
+2
+US-01.2
+FR-01
+Xem & Lọc danh sách Lead
+Sales
+Cao
+3
+US-01.3
+FR-01
+Xem chi tiết & Cập nhật trạng thái xử lý Lead
+Sales
+Cao
+4
+US-01.4
+FR-01
+Xóa/lưu trữ Lead
+Sales
+Trung bình
+5
+US-01.5
+FR-01
+Admin gán/chuyển Lead
+Admin
+Cao
+6
+US-01.6
+FR-01
+Chốt & sửa kết quả giao dịch (Won/Lost)
+Sales
+Cao
+7
+US-02.1
+FR-02
+Ghi hoạt động chăm sóc
+Sales
+Cao
+8
+US-02.2
+FR-02
+Tạo lịch hẹn & Nhận thông báo nhắc việc
+Sales
+Cao
+9
+US-02.3
+FR-02
+Nhận Lead mới từ Website & phân bổ tự động
+Sales
+Cao
+10
+US-02.4
+FR-02
+Admin xem lịch sử chăm sóc
+Admin
+Trung bình
+12
+US-03.1
+FR-03
+Tìm kiếm & lọc xe (tra cứu để tư vấn)
+Sales
+Cao (Must)
+12
+US-03.2
+FR-03
+Xem chi tiết xe & tồn kho theo showroom
+Sales, Admin
+Cao (Must)
+13
+US-03.3
+FR-03
+So sánh xe (để tư vấn)
+Sales
+Thấp (Could)
+14
+US-03.4
+FR-03
+Đặt lịch lái thử (Sales sắp xếp)
+Sales
+Cao (Must)
+15
+US-03.5
+FR-03
+Xác nhận/từ chối lịch lái thử
+Sales, Admin
+Cao (Must)
+16
+US-03.6
+FR-03
+Hủy/đổi lịch lái thử
+Sales
+Cao (Must)
+17
+US-03.7
+FR-03
+Nhắc lịch & ghi nhận kết quả lái thử
+Sales, Hệ thống
+Trung bình (Should)
+18
+US-03.8
+FR-03
+Cấu hình slot lái thử
+Admin
+Trung bình (Should)
+19
+US-04.1
+FR-04
+Tạo tài khoản Sale
+Admin
+Cao
+20
+US-04.2
+FR-04
+Tạm khóa tài khoản
+Admin
+Trung bình
+21
+US-04.3
+FR-04
+Gán Showroom & phân quyền
+Admin
+Cao
+22
+US-05.1
+FR-05
+Xem KPI & Bảng xếp hạng Sales/Showroom
+Admin
+Trung bình
+23
+US-05.2
+FR-05
+Xuất báo cáo
+Admin
+Trung bình
+24
+US-06.1
+FR-06
+Thao tác khi offline
+Sales
+Cao
+25
+US-06.2
+FR-06
+Tự động đồng bộ (kèm Last-Write-Wins)
+Sales
+Cao
+26
+US-07.1
+FR-07
+Xem danh sách xe trên Landing Page
+Công khai
+Cao
+27
+US-07.2
+FR-07
+Xem chi tiết xe trên Landing Page
+Công khai
+Cao
+28
+US-07.3
+FR-07
+So sánh xe trên Landing Page
+Công khai
+Trung bình
+29
+US-08.1
+FR-08
+Quản lý nội dung Website (banner, liên hệ, thương hiệu)
+Admin
+Trung bình
+30
+US-08.2
+FR-08
+Khách xem trang chủ
+Khách
+Trung bình
+31
+US-09.1
+FR-09
+Khách gửi yêu cầu qua Website & Sales nhận thông báo
+Khách, Sales
+Cao
+
+FR-01: Quản lý Lead
+US-01.1 — Tạo Lead nhanh
+Là Sales, tôi muốn tạo nhanh một Lead mới với thông tin tối thiểu, để tôi không bỏ lỡ khách hàng khi đang tư vấn trực tiếp.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-01
+Acceptance Criteria:
+	•	Given tôi ở màn hình chính, When tôi nhập Họ tên, SĐT, Dòng xe, chọn Nguồn Lead (bắt buộc, từ danh sách 12 giá trị cố định: Sale tự nhập, Facebook Ads, Website, CSKH nhập, TikTok Ads, Zalo, Google Ads, Hotline, Giới thiệu, Showroom/Sự kiện, Import hệ thống cũ, Khác) và nhấn Lưu, Then Lead được tạo với trạng thái mặc định "Đang tìm hiểu".
+	•	Given tôi bỏ trống SĐT hoặc chưa chọn Nguồn Lead, When tôi nhấn Lưu, Then hệ thống báo lỗi tương ứng và không cho lưu.
+	•	Given SĐT tôi nhập đã tồn tại (không phân biệt Sales nào tạo), When tôi nhấn Lưu, Then hệ thống cảnh báo trùng lặp nhưng vẫn cho phép tôi xác nhận tạo mới nếu chắc chắn, đồng thời gắn cờ flag_duplicate_phone để Admin rà soát sau.
+	•	Given thiết bị offline, When tôi lưu Lead mới, Then Lead lưu cục bộ với trạng thái đồng bộ "PENDING", đồng bộ khi có mạng.
+
+US-01.2 — Xem & Lọc danh sách Lead
+Là Sales, tôi muốn xem, lọc và tìm kiếm danh sách Lead của mình theo mức độ tiềm năng, để tôi ưu tiên chăm sóc đúng khách hàng quan trọng trước.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-01
+Acceptance Criteria:
+	•	Given danh sách Lead, When tôi lọc theo Trạng thái, Nguồn Lead, hoặc trạng thái đồng bộ (có thể kết hợp), Then danh sách cập nhật đúng theo điều kiện.
+	•	Given tôi tìm kiếm, When gõ xong, Then kết quả trả về dưới 1 giây.
+	•	Given tôi là Sales, When tôi mở danh sách, Then hệ thống chỉ hiển thị Lead do tôi tạo hoặc được gán — không thấy Lead của Sales khác.
+
+US-01.3 — Xem chi tiết & Cập nhật trạng thái xử lý Lead
+Là Sales, tôi muốn xem chi tiết Lead và cập nhật trạng thái xử lý, để phản ánh đúng tiến độ chăm sóc.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-01
+Acceptance Criteria:
+	•	Given tôi mở chi tiết một Lead, Then hệ thống hiển thị đầy đủ thông tin kèm lịch sử chăm sóc (liên kết FR-02).
+	•	Given tôi cập nhật trạng thái, When tôi chọn 1 trong 5 trạng thái xử lý (Không liên lạc được / Tương tác chưa thành công / Đang tìm hiểu / Có nhu cầu ngay / Không có nhu cầu), Then hệ thống lưu thay đổi kèm audit trail (người đổi, thời điểm, trạng thái trước/sau).
+	•	Given Lead đang ở trạng thái "Thành công" (Won) hoặc "Lead thất bại" (Lost), When tôi xem tại màn hình này, Then 2 trạng thái này hiển thị cùng danh sách nhưng đã bị khóa — không sửa lại được tại đây (xem US-01.7 cho quyền sửa của Admin).
+
+US-01.4 — Xóa/lưu trữ Lead
+Là Sales, tôi muốn xóa/lưu trữ một Lead tạo nhầm hoặc trùng, để danh sách của tôi không bị nhiễu bởi dữ liệu rác.
+Actor: Sales   |   Priority: Trung bình   |   Liên quan: FR-01
+Acceptance Criteria:
+	•	Given tôi chọn một Lead, When tôi nhấn Xóa, Then hệ thống hiển thị hộp thoại xác nhận trước khi thực hiện.
+	•	Given tôi xác nhận xóa, When thao tác hoàn tất, Then Lead chuyển trạng thái Lưu trữ và biến mất khỏi danh sách chính (không xóa vĩnh viễn).
+	•	Given tôi hủy hộp thoại xác nhận, When tôi bấm Hủy, Then Lead không bị thay đổi trạng thái.
+
+US-01.5 — Admin gán/chuyển Lead
+Là Admin, tôi muốn xem toàn bộ Lead của hệ thống và gán/chuyển Lead giữa các Sale, để không Lead nào bị bỏ trống người phụ trách.
+Actor: Admin   |   Priority: Cao   |   Liên quan: FR-01
+Acceptance Criteria:
+	•	Given có Lead chưa được gán Sale, When Admin chọn một Sale và xác nhận gán, Then Lead xuất hiện trong danh sách của Sale đó và Sale nhận thông báo.
+	•	Given Admin muốn chuyển một Lead đang thuộc Sale A sang Sale B, When Admin xác nhận chuyển, Then Lead biến mất khỏi danh sách Sale A và xuất hiện ở danh sách Sale B, lịch sử chăm sóc cũ vẫn được giữ nguyên.
+
+US-01.6 — Chốt & sửa kết quả giao dịch (Won/Lost)
+Là Sales, tôi muốn chọn kết quả Won hoặc Lost trực tiếp trên Lead, để ghi nhận giao dịch thành công hay không thành công.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-01
+Acceptance Criteria:
+	•	Given Lead đang ở 1 trong 5 trạng thái xử lý (chưa Won/Lost), When tôi chọn "Won" từ màn hình cập nhật trạng thái (US-01.3), Then hệ thống cập nhật trạng thái Lead thành "Thành công" và đồng bộ lên CRM ngay khi có mạng.
+	•	Given tôi chọn "Lost" (lần đầu hoặc khi sửa lại), When tôi xác nhận, Then hệ thống bắt buộc yêu cầu chọn lý do trước khi lưu; nếu chọn lý do "Khác" mà để trống ô text thì báo lỗi yêu cầu nhập cụ thể.
+	•	Given Lead đã ở trạng thái Won hoặc Lost, When tôi muốn sửa lại kết quả (đổi Won ↔ Lost, hoặc quay lại 1 trong 5 trạng thái xử lý), Then hệ thống cho phép sửa tự do, không cần qua Admin, nhưng bắt buộc nhập lý do thay đổi trước khi lưu.
+	•	Given tôi vừa sửa lại kết quả, Then hệ thống lưu audit trail đầy đủ (trạng thái cũ, trạng thái mới, lý do thay đổi, người sửa, thời điểm) để phục vụ truy vết sau này
+
+
+FR-02: Chăm sóc & Theo dõi Lead
+US-02.1 — Ghi hoạt động chăm sóc
+Là Sales, tôi muốn ghi lại nội dung mỗi lần gọi điện/gặp khách, để tôi (và người tiếp quản sau này) nắm được lịch sử trao đổi.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-02
+Acceptance Criteria:
+	•	Given tôi ghi hoạt động, When tôi chọn Loại hoạt động (Gọi điện / Nhắn tin-Zalo / Gặp trực tiếp / Lịch hẹn / Khác) và nhập ghi chú, Then bản ghi lưu vào Timeline, mới nhất hiển thị trước.
+	•	Given tôi đang ghi hoạt động, When tôi tùy chọn đổi trạng thái Lead (trong 5 trạng thái xử lý) cùng lúc, Then hệ thống lưu cả trạng thái trước/sau vào cùng bản ghi (audit trail) — không bắt buộc phải đổi trạng thái mỗi lần ghi chú.
+	•	Given Admin xem lịch sử của một Sales bất kỳ, Then chỉ ở chế độ read-only.
+
+US-02.2 — Tạo lịch hẹn & Nhận thông báo nhắc việc
+Là Sales, tôi muốn tạo lịch hẹn ngay trong lúc ghi hoạt động, để không phải chuyển màn hình và không bỏ lỡ cuộc hẹn.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-02
+Acceptance Criteria:
+	•	Given tôi đang ghi hoạt động, When tôi chọn "Tạo lịch hẹn" và nhập Ngày giờ, Mục đích (lái thử/tư vấn lại/khác), Địa điểm, Then hệ thống lưu lịch hẹn gắn với Lead.
+	•	Given tôi chọn thời gian nhắc ở quá khứ, When tôi Lưu, Then hệ thống báo lỗi "Thời gian nhắc việc phải ở tương lai."
+	•	Given tôi mở màn hình riêng, Then tôi xem được danh sách lịch hẹn sắp tới của mình.
+	•	Given lịch hẹn đã tạo, Then hệ thống tự đặt nhắc nhở trước giờ hẹn (mặc định 30 phút, có thể cấu hình).
+	•	Given tôi CHƯA hoàn tất Onboarding cài đặt PWA và cấp quyền Thông báo (xem US-10.1/FR-10), When tôi cố tạo lịch hẹn, Then hệ thống yêu cầu hoàn tất cài đặt/cấp quyền trước khi cho tiếp tục.
+	•	Given tôi đã cài PWA và cấp quyền Thông báo, When đến đúng giờ đã đặt dù đang không mở trình duyệt/tắt app, Then thiết bị vẫn nhận được push notification lên màn hình khóa.
+	•	Given tôi từ chối cấp quyền Thông báo, When tôi cố tạo lịch hẹn, Then hệ thống cảnh báo "Bạn sẽ không nhận được thông báo nhắc việc nếu không cấp quyền" và cho phép vào lại Cài đặt để cấp quyền sau.
+
+US-02.3 — Nhận Lead mới từ Website & phân bổ tự động
+Là Sales, tôi muốn được tự động gán và nhận thông báo khi có Lead mới từ Website, để phản hồi kịp thời.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-02
+Acceptance Criteria:
+	•	Given một Lead mới có Nguồn = Website, When hệ thống phát hiện, Then tự động gán cho một Sales theo bất kì random.
+	•	Given Lead được gán, Then Sales đó nhận push notification ngay lập tức.
+
+US-02.4 — Admin xem lịch sử chăm sóc
+Là Admin, tôi muốn xem lịch sử chăm sóc của tất cả Lead theo từng Sale, để tôi giám sát chất lượng tư vấn của đội ngũ.
+Actor: Admin   |   Priority: Trung bình   |   Liên quan: FR-02
+Acceptance Criteria:
+	•	Given Admin mở báo cáo chăm sóc theo Sale, When chọn một Sale cụ thể, Then hệ thống hiển thị toàn bộ lịch sử tương tác của Sale đó, chỉ ở chế độ xem (không sửa được).
+
+
+FR-03: Tra cứu kho xe & Đặt lịch lái thử
+US-03.1 — Tìm kiếm & lọc xe
+Là Khách hàng/Sales, tôi muốn tìm và lọc xe theo nhiều tiêu chí, để nhanh chóng tìm xe phù hợp.
+Actor: Khách hàng, Sales   |   Priority: Cao (Must)   |   Liên quan: FR-04 (FR-INV-01, FR-INV-02)
+Acceptance Criteria:
+	•	Given tôi nhập từ khóa (≥2 ký tự), Then hệ thống gợi ý autocomplete.
+	•	Given tôi lọc theo hãng/giá/nhiên liệu/showroom..., Then danh sách cập nhật kèm chip bộ lọc đang áp dụng.
+	•	Given không có kết quả, Then hệ thống gợi ý nới lỏng tiêu chí.
+	•	Given danh sách hiển thị, Then chỉ hiển thị xe trạng thái Available/In-transit (BR-01 của FR-04).
+
+US-03.2 — Xem chi tiết xe & tồn kho theo showroom
+Là Khách hàng/Sales, tôi muốn xem chi tiết xe và tồn kho từng showroom, để biết xe có sẵn ở đâu.
+Actor: Khách hàng, Sales, Admin   |   Priority: Cao (Must)   |   Liên quan: FR-04 (FR-INV-03, FR-INV-04)
+Acceptance Criteria:
+	•	Given tôi chọn 1 xe, Then thấy hình ảnh/thông số/giá/khuyến mãi + tồn kho theo showroom (cập nhật ≤5 phút).
+	•	Given xe hết hàng tại mọi showroom, Then hệ thống ẩn nút lái thử, hiện "Đăng ký nhận thông báo khi có hàng".
+
+US-03.3 — So sánh xe
+Là Khách hàng, tôi muốn so sánh tối đa 3 xe cạnh nhau theo thông số, để dễ dàng cân nhắc trước khi quyết định.
+Actor: Khách hàng   |   Priority: Thấp (Could)   |   Liên quan: FR-04 (FR-INV-05)
+Acceptance Criteria:
+	•	Given tôi đang xem danh sách hoặc chi tiết xe, When tôi chọn thêm một xe vào so sánh, Then xe đó được thêm vào danh sách so sánh (tối đa 3 xe cùng lúc).
+	•	Given tôi đã chọn 2-3 xe để so sánh, When tôi mở màn hình so sánh, Then hệ thống hiển thị bảng thông số kỹ thuật đặt cạnh nhau (thông số, giá, khuyến mãi...).
+	•	Given tôi đã có 3 xe trong danh sách so sánh, When tôi cố thêm xe thứ 4, Then hệ thống chặn hoặc yêu cầu bỏ bớt một xe trước.
+	•	Given tôi đang xem bảng so sánh, When tôi bỏ một xe khỏi danh sách, Then bảng cập nhật lại chỉ còn các xe còn lại.
+
+US-03.4 — Đặt lịch lái thử
+Là Khách hàng, tôi muốn đặt lịch lái thử ngay trên trang chi tiết xe, để trải nghiệm xe trước khi mua.
+Actor: Khách hàng   |   Priority: Cao (Must)   |   Liên quan: FR-04 (FR-TD-01 → 04)
+Acceptance Criteria:
+	•	Given xe khả dụng tại ≥1 showroom, When tôi chọn showroom/ngày/slot còn trống, nhập Họ tên + SĐT (bắt buộc), Then hệ thống tạo booking "Chờ xác nhận", khóa slot, sinh mã đặt lịch, tự động tạo Lead cho Sales.
+	•	Given tôi đã có 3 lịch lái thử active, When tôi đặt thêm, Then hệ thống chặn.
+	•	Given slot cách hiện tại <2 giờ, When tôi chọn, Then slot đó không hiển thị.
+	•	Given slot vừa bị người khác giữ, When tôi xác nhận, Then hệ thống báo lỗi, yêu cầu chọn lại.
+
+US-03.5 — Xác nhận/từ chối lịch lái thử
+Là Sales/Admin, tôi muốn xác nhận hoặc từ chối lịch lái thử, để chủ động điều phối buổi hẹn.
+Actor: Sales, Admin   |   Priority: Cao (Must)   |   Liên quan: FR-04 (FR-TD-05)
+Acceptance Criteria:
+	•	Given danh sách booking "Chờ xác nhận", When tôi Xác nhận, Then trạng thái chuyển "Đã xác nhận", khách nhận thông báo.
+	•	Given tôi Từ chối, When tôi nêu lý do, Then hệ thống giải phóng slot, thông báo khách.
+
+US-03.6 — Hủy/đổi lịch lái thử
+Là Khách hàng/Sales, tôi muốn hủy hoặc đổi lịch lái thử, để linh hoạt khi có thay đổi.
+Actor: Khách hàng, Sales   |   Priority: Cao (Must)   |   Liên quan: FR-04 (FR-TD-06)
+Acceptance Criteria:
+	•	Given còn ≥4 giờ trước hẹn, When tôi hủy/đổi, Then hệ thống cho phép và cập nhật slot (giải phóng slot cũ, khóa slot mới nếu đổi).
+	•	Given còn <4 giờ trước hẹn, When tôi cố hủy/đổi online, Then hệ thống chặn, hướng dẫn liên hệ showroom trực tiếp.
+
+US-03.7 — Nhắc lịch & ghi nhận kết quả lái thử
+Là Sales, tôi muốn ghi nhận kết quả sau buổi lái thử, để có dữ liệu theo dõi.
+Actor: Sales, Hệ thống   |   Priority: Trung bình (Should)   |   Liên quan: FR-04 (FR-TD-07)
+Acceptance Criteria:
+	•	Given đến trước giờ hẹn 24h và 2h, Then hệ thống tự động gửi nhắc.
+	•	Given buổi hẹn đã diễn ra, When Sales cập nhật "Hoàn thành"/"No-show" kèm ghi chú, Then hệ thống lưu kết quả.
+
+US-03.8 — Cấu hình slot lái thử
+Là Admin, tôi muốn cấu hình khung giờ (slot), số xe phục vụ lái thử và ngày nghỉ theo showroom, để khách chỉ đặt được slot hợp lệ.
+Actor: Admin   |   Priority: Trung bình (Should)   |   Liên quan: FR-04 (FR-A05)
+Acceptance Criteria:
+	•	Given tôi mở màn hình cấu hình slot của một showroom, When tôi thiết lập khung giờ hoạt động, số xe demo phục vụ lái thử, và ngày nghỉ, Then hệ thống lưu cấu hình cho showroom đó.
+	•	Given cấu hình slot đã được thiết lập, When Khách hàng/Sales đặt lịch lái thử (Us-03.4), Then chỉ các slot hợp lệ (còn trống, đúng cấu hình, không rơi vào ngày nghỉ) được hiển thị.
+	•	Given một xe demo đã đủ số lượng khách đặt trong 1 khung giờ, Then hệ thống ràng buộc 1 slot / 1 xe / 1 khách, không cho đặt trùng.
+
+
+FR-04: Quản lý người dùng và phân quyền
+US-04.1 — Tạo tài khoản Sale
+Là Admin, tôi muốn tạo tài khoản mới cho nhân viên Sales, để họ có thể đăng nhập và sử dụng ứng dụng.
+Actor: Admin   |   Priority: Cao   |   Liên quan: FR-04
+Acceptance Criteria:
+	•	Given Admin nhập đầy đủ thông tin nhân viên mới, When Admin nhấn Tạo tài khoản, Then tài khoản được tạo và thông tin đăng nhập gửi tới nhân viên.
+	•	Given Admin nhập email/SĐT đã tồn tại, When Admin nhấn Tạo, Then hệ thống báo lỗi trùng tài khoản.
+ 
+US-04.2 — Tạm khóa tài khoản
+Là Admin, tôi muốn tạm khóa (suspend) tài khoản Sale đã nghỉ việc, để ngăn truy cập trái phép vào dữ liệu khách hàng.
+Actor: Admin   |   Priority: Trung bình   |   Liên quan: FR-04
+Acceptance Criteria:
+	•	Given một Sale đã nghỉ việc, When Admin chọn "Suspend" tài khoản đó, Then tài khoản không thể đăng nhập nhưng dữ liệu Lead cũ vẫn được giữ nguyên.
+	•	Given tài khoản đang bị suspend, When Admin chọn "Kích hoạt lại", Then tài khoản có thể đăng nhập bình thường trở lại.
+
+US-04.3 — Gán Showroom & phân quyền
+Là Admin, tôi muốn gán Sale vào đúng Showroom và phân quyền phù hợp, để mỗi người chỉ thấy đúng phạm vi dữ liệu được phép.
+Actor: Admin   |   Priority: Cao   |   Liên quan: FR-04
+Acceptance Criteria:
+	•	Given Admin chọn một Sale, When Admin gán vào một Showroom cụ thể và chọn vai trò, Then Sale chỉ nhìn thấy dữ liệu thuộc phạm vi Showroom/vai trò được gán.
+
+FR-05: Dashboard KPI & Báo cáo 
+US-05.1 — Xem KPI & Bảng xếp hạng Sales/Showroom
+Là Admin, tôi muốn xem KPI real-time và bảng xếp hạng hiệu suất Sales/Showroom, để đánh giá hiệu suất kinh doanh và khen thưởng/hỗ trợ đúng người đúng lúc.
+Actor: Admin   |   Priority: Trung bình   |   Liên quan: FR-05
+Acceptance Criteria:
+	•	Given Admin mở Dashboard, When trang tải xong, Then số liệu Lead mới, tỷ lệ chốt Won/Lost hiển thị đúng với dữ liệu tại thời điểm hiện tại.
+	•	Given Admin chọn khoảng thời gian (tuần/tháng), When dữ liệu được tải, Then bảng xếp hạng Sales/Showroom hiển thị đúng thứ tự theo số liệu Won trong khoảng thời gian đó.
+
+US-05.2 — Xuất báo cáo
+Là Admin, tôi muốn xuất báo cáo ra file, để tôi trình bày trong cuộc họp ban giám đốc.
+Actor: Admin   |   Priority: Trung bình   |   Liên quan: FR-06
+Acceptance Criteria:
+	•	Given Admin chọn "Xuất báo cáo", When Admin chọn định dạng (Excel/PDF) và xác nhận, Then hệ thống tạo file chứa đúng dữ liệu đang hiển thị trên Dashboard.
+
+
+FR-06: Cơ chế Offline & Đồng bộ hóa (nền tảng dùng chung)  
+US-06.1 — Thao tác khi offline
+Là Sales, tôi muốn thao tác bình thường (tạo Lead, ghi chú, chốt Won/Lost) ngay cả khi không có mạng, để tôi không bị gián đoạn công việc.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-06
+Acceptance Criteria:
+	•	Given thiết bị đang offline, When tôi tạo/sửa Lead hoặc ghi chú chăm sóc, Then dữ liệu được lưu cục bộ, gắn nhãn "PENDING", không có lỗi mất kết nối.
+
+US-06.2 — Tự động đồng bộ
+Là Sales, tôi muốn dữ liệu tự động đồng bộ ngay khi có mạng trở lại, để tôi không phải nhớ bấm nút đồng bộ thủ công.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-06
+Acceptance Criteria:
+	•	Given thiết bị vừa có mạng trở lại, When hệ thống phát hiện kết nối, Then toàn bộ bản ghi "PENDING" tự động đẩy lên hệ thống trung tâm.
+	•	Given đồng bộ thất bại, When lỗi xảy ra, Then hệ thống tự động thử lại, không làm mất dữ liệu.
+	•	Given cùng một bản ghi bị sửa cả trên thiết bị offline và trên hệ thống trung tâm, When đồng bộ diễn ra, Then bản ghi có timestamp mới nhất được giữ lại (Last-Write-Wins).
+
+
+FR-07: Landing Page & Danh mục xe (Read-only, công khai)
+US-07.1 — Xem danh sách xe trên Landing Page
+Là người truy cập Website (khách, hoặc bất kỳ ai), tôi muốn xem danh sách xe kèm giá, ảnh, trạng thái và tìm kiếm/lọc, để tôi tìm được xe phù hợp trước khi liên hệ showroom.
+Actor: Công khai (Khách/Sales/Admin)   |   Priority: Cao   |   Liên quan: FR-07
+Acceptance Criteria:
+	•	Given tôi mở trang Danh mục xe, When tôi áp dụng bộ lọc (hãng/phân khúc/giá), Then danh sách xe hiển thị đúng theo điều kiện lọc.
+	•	Given tôi tìm kiếm theo từ khóa, When không có xe khớp, Then hệ thống hiển thị "Không tìm thấy xe phù hợp."
+
+US-07.2 — So sánh xe
+Là người truy cập Website, tôi muốn so sánh tối đa 3 xe cạnh nhau kèm ước tính trả góp, để tự cân nhắc trước khi liên hệ showroom.
+Actor: Công khai (Khách/Sales/Admin)   |   Priority: Trung bình   |   Liên quan: FR-07 (FR-INV-05)
+Acceptance Criteria:
+	•	Given tôi đang xem danh sách hoặc chi tiết xe, When tôi chọn thêm một xe vào so sánh, Then xe đó được thêm vào danh sách so sánh (tối đa 3 xe cùng lúc).
+	•	Given tôi đã chọn 2-3 xe để so sánh, When tôi mở bảng so sánh, Then hệ thống hiển thị thông số kỹ thuật song song, kèm ước tính trả góp cho từng xe.
+
+FR-08: Quản lý nội dung Website (Trang chủ/Thương hiệu)  
+US-08.1 — Cập nhật banner khuyến mãi
+Là Admin, tôi muốn cập nhật banner xe nổi bật/khuyến mãi trên trang chủ, để chiến dịch marketing luôn hiển thị nội dung mới nhất.
+Actor: Admin   |   Priority: Trung bình   |   Liên quan: FR-08
+Acceptance Criteria:
+	•	Given Admin tải lên banner mới, When Admin nhấn Xuất bản, Then banner hiển thị ngay trên trang chủ Website.
+
+US-08.2 — Sửa thông tin liên hệ/thương hiệu
+Là Admin, tôi muốn chỉnh sửa thông tin liên hệ và giới thiệu thương hiệu, để thông tin công ty luôn chính xác trên website.
+Actor: Admin   |   Priority: Thấp   |   Liên quan: FR-08
+Acceptance Criteria:
+	•	Given Admin chỉnh sửa số điện thoại liên hệ, When Admin Lưu, Then thông tin mới hiển thị ngay trên trang Website.
+
+US-08.3 — Khách xem trang chủ
+Là Khách truy cập Website, tôi muốn xem trang chủ với xe nổi bật và thông tin thương hiệu, để tôi có ấn tượng ban đầu tốt về TNT CAR.
+Actor: Khách   |   Priority: Trung bình   |   Liên quan: FR-08
+Acceptance Criteria:
+	•	Given khách truy cập Website, When trang chủ tải xong, Then hiển thị đúng banner, xe nổi bật và thông tin thương hiệu mới nhất.
+
+
+FR-09: Tiếp nhận yêu cầu từ Website (Đăng ký lái thử / Tư vấn / CSKH) 
+US-09.1 — Khách gửi yêu cầu qua Website
+Là Khách truy cập Website, tôi muốn gửi yêu cầu Đăng ký lái thử / Tư vấn / CSKH, để được TNT Car liên hệ lại.
+Actor: Khách   |   Priority: Cao   |   Liên quan: FR-09
+Acceptance Criteria:
+	•	Given khách điền form với đầy đủ thông tin bắt buộc, When khách nhấn Gửi, Then hệ thống tạo Lead mới với nguồn "Website" và gửi email xác nhận cho khách.
+	•	Given khách để trống thông tin bắt buộc, When khách nhấn Gửi, Then hệ thống báo lỗi và không tạo Lead.
+
+US-09.2 — Sales nhận thông báo Lead mới từ Website
+Là Sales, tôi muốn nhận email thông báo ngay khi có yêu cầu Lái thử/Tư vấn mới từ Website, để tôi phản hồi khách kịp thời.
+Actor: Sales   |   Priority: Cao   |   Liên quan: FR-09
+Acceptance Criteria:
+	•	Given một Lead mới được tạo từ Website (loại Lái thử hoặc Tư vấn), When Lead được tạo thành công, Then Sales phụ trách nhận được email thông báo.
+	•	Given yêu cầu loại CSKH, When Lead được tạo, email về yêu cầu CSKH được gửi cho Sales.
+
+
+	•	FUNCTIONAL REQUIREMENTS
+9.1. Đặc tả FR01: Quản lý Lead
+9.1.1.  Mô tả và Ưu tiên & Đánh giá độ ưu tiên 
+
+Chức năng 
+Mô tả
+Đánh giá 
+Độ ưu tiên 
+FR01: Quản lý Lead
+Cung cấp các chức năng để nhân viên Sales tạo mới hồ sơ, xem danh sách, lọc (filter) và xem chi tiết thông tin khách hàng (Lead) trên ứng dụng di động
+Chức năng là nền tảng cốt lõi để thu thập và quản lý dữ liệu đầu vào cho toàn bộ quy trình bán hàng. Đây cũng là chức năng giải quyết trực tiếp pain-point cốt lõi trong BRD: rút thời gian nhập liệu từ 20-25 phút xuống dưới 3 phút
+
+Cao
+
+9.1.2. Tương tác & Phản hồi hệ thống 
+STT
+Tương Tác
+Phản hồi hệ thống
+1
+Sales nhập thông tin Lead (Họ tên, SĐT, Dòng xe, Nguồn Lead) và nhấn "Lưu"
+Hệ thống validate dữ liệu → Kiểm tra trùng SĐT → Nếu hợp lệ, lưu vào IndexedDB với status="PENDING" → Hiển thị thông báo "Đã lưu cục bộ, sẽ đồng bộ khi có Internet"
+2
+Sales mở màn hình "Danh sách Lead"
+Hệ thống truy vấn Lead thuộc quyền Sales đó, hiển thị kèm nhãn Trạng thái, Nguồn Lead và icon trạng thái đồng bộ
+3
+Sales áp bộ lọc (Trạng thái/Nguồn/Đồng bộ) hoặc nhập từ khóa tìm kiếm
+Hệ thống trả kết quả lọc/tìm kiếm trong thời gian dưới 1 giây; nếu không có kết quả, hiển thị empty-state
+4
+Sales chọn 1 Lead để xem chi tiết
+Hệ thống hiển thị đầy đủ thông tin Lead kèm lịch sử chăm sóc (liên kết FR02)
+5
+Sales cập nhật trạng thái Lead (trong 5 trạng thái xử lý được phép)
+Hệ thống lưu thay đổi kèm timestamp, ghi lịch sử thay đổi (audit trail); 2 trạng thái kết quả cuối ("Thành công"/"Lead thất bại") chỉ hiển thị read-only, được FR04 tự động cập nhật
+6
+Service Worker tự động scan mỗi 30 phút (theo cơ chế FR07)
+Nếu có Lead status="PENDING" và thiết bị có Internet, hệ thống gửi batch qua POST /api/sync, xử lý dedup theo UUID & timestamp, cập nhật status="SYNCED"
+ 
+
+
+Hình 1: Sequence Diagram chức năng FR01
+9.1.3/ Yêu cầu chức năng
+FR01.1 - Tạo Lead
+●   Hệ thống phải cho phép tạo Lead mới cả khi thiết bị không có kết nối Internet, lưu tạm vào IndexedDB với status="PENDING" (liên kết cơ chế FR07)
+●   Hệ thống phải yêu cầu bắt buộc trường Nguồn Lead khi tạo mới, chọn từ danh sách cố định: Sale tự nhập, Facebook Ads, Website, CSKH nhập, TikTok Ads, Zalo, Google Ads, Hotline, Giới thiệu, Showroom/Sự kiện, Import hệ thống cũ, Khác
+●    Hệ thống phải kiểm tra và cảnh báo trùng số điện thoại trước khi lưu; cho phép Sales xác nhận tạo mới nếu chắc chắn (gắn cờ flag_duplicate_phone để Admin rà soát)
+●    Hệ thống phải tự động gán Trạng thái Lead = "Đang tìm hiểu" khi Lead được tạo mới
+FR01.2 - Xem Danh sách & Lọc Lead
+●    Hệ thống phải hiển thị danh sách Lead có khả năng lọc kết hợp theo Trạng thái Lead, Nguồn Lead và trạng thái đồng bộ
+●     Hệ thống phải trả kết quả lọc/tìm kiếm trong thời gian dưới 1 giây
+●    Hệ thống phải giới hạn phạm vi hiển thị: Sale chỉ xem được Lead do mình tạo hoặc được gán
+FR01.3 - Xem chi tiết & Cập nhật trạng thái Lead
+●    Hệ thống phải cho phép Sale cập nhật 1 trong 5 trạng thái xử lý: Không liên lạc được, Tương tác chưa thành công, Đang tìm hiểu, Có nhu cầu ngay, Không có nhu cầu
+●   Hệ thống phải tự động cập nhật Trạng thái Lead thành "Thành công"/"Lead thất bại" khi FR04 ghi nhận kết quả Won/Lost tương ứng, và khóa không cho Sale chỉnh sửa tay 2 trạng thái này
+●     Hệ thống phải lưu lịch sử mọi lần thay đổi Trạng thái Lead (người thay đổi, thời điểm, trạng thái trước/sau) phục vụ audit trail
+=> LIỆT KÊ TRẠNG THÁI LEAD VÀ RULES
+9.2. Đặc tả FR02: Chăm sóc và theo dõi
+9.2.1. Mô tả và Ưu tiên & Đánh giá độ ưu tiên 
+Chức năng 
+Mô tả 
+Đánh giá 
+Độ ưu tiên 
+FR02: Chăm sóc & Theo dõi Lead 
+Cung cấp chức năng để Sales ghi nhận hoạt động chăm sóc (note, loại hoạt động), xem lại lịch sử chăm sóc, tạo lịch hẹn kèm nhắc nhở, và nhận thông báo khi có Lead mới 
+Chức năng quyết định chất lượng nuôi dưỡng Lead sau khi được tạo ở FR01 — trực tiếp ảnh hưởng tỷ lệ chuyển đổi Lead thành hợp đồng (FR03/FR04). Thiếu nhật ký chăm sóc đầy đủ sẽ khiến quản lý (Admin) không thể giám sát chất lượng đội Sales.
+Cao
+ 
+9.2.2. Tương tác & Phản hồi hệ thống
+
+STT
+Tương Tác
+Phản hồi hệ thống
+1
+Sales mở chi tiết Lead, bấm "Ghi hoạt động", chọn Loại hoạt động (Gọi điện/Nhắn tin-Zalo/Gặp trực tiếp/Lịch hẹn/Khác) và nhập ghi chú
+Hệ thống validate dữ liệu → Lưu bản ghi hoạt động (timestamp, loại, ghi chú) vào IndexedDB → Cập nhật Timeline lịch sử ngay trên màn hình
+2
+Sales xem lại lịch sử chăm sóc trong chi tiết Lead
+Hệ thống hiển thị toàn bộ hoạt động theo thứ tự thời gian (mới nhất trước), kèm loại hoạt động và trạng thái Lead tại thời điểm đó
+3
+Sales chọn "Tạo lịch hẹn" ngay trong màn hình ghi hoạt động, nhập ngày giờ, mục đích hẹn, địa điểm
+Hệ thống lưu lịch hẹn liên kết với Lead, đặt lịch nhắc nhở tự động trên thiết bị (VD: trước giờ hẹn 30 phút)
+4
+Sales (tùy chọn) đổi trạng thái Lead ngay trong lúc ghi hoạt động
+Hệ thống ghi nhận trạng thái trước/sau vào cùng bản ghi hoạt động (audit trail, liên kết BR-04 của FR01)
+5
+Đến giờ hẹn đã đặt
+Hệ thống đẩy thông báo nhắc lịch hẹn trên thiết bị của Sales phụ trách
+6
+Có Lead mới phát sinh từ Website (nguồn=Website)
+Hệ thống tự động gán Lead cho Sales theo round-robin (giả định, cần xác nhận lại quy tắc phân bổ với doanh nghiệp) và gửi thông báo đẩy cho Sales được gán
+7
+Admin xem lịch sử chăm sóc của một Sales bất kỳ
+Hệ thống hiển thị toàn bộ hoạt động của Sales đó ở chế độ chỉ xem (read-only), không cho chỉnh sửa
+
+ Hình 2: Sequence Diagram chức năng FR02
+9.2.3/ Yêu cầu chức năng 
+FR02.1 - Ghi nhận & Xem lịch sử hoạt động chăm sóc
+	•	Hệ thống phải cho phép Sales ghi nhận hoạt động chăm sóc gồm: Loại hoạt động (chọn từ danh sách cố định: Gọi điện, Nhắn tin/Zalo, Gặp trực tiếp, Lịch hẹn, Khác) và Ghi chú (text tự do)
+	•	Hệ thống phải hiển thị lịch sử chăm sóc theo dạng Timeline, sắp xếp theo thời gian gần nhất trước, hiển thị đầy đủ: thời gian, loại hoạt động, ghi chú, trạng thái Lead trước/sau (nếu có thay đổi)
+	•	Hệ thống phải cho phép Sales tùy chọn cập nhật Trạng thái Lead (trong 5 trạng thái xử lý của FR01) ngay trong lúc ghi hoạt động, không bắt buộc
+	•	Hệ thống phải giới hạn: Sales chỉ ghi/xem được hoạt động của Lead do mình phụ trách; Admin được xem toàn bộ nhưng ở chế độ read-only
+FR02.2 - Tạo Lịch hẹn & Nhắc nhở
+	•	Hệ thống phải cho phép Sales tạo lịch hẹn gồm: Ngày giờ, Mục đích hẹn (lái thử/ký hợp đồng/tư vấn lại/khác), Địa điểm (Showroom/tại nhà khách/khác)
+	•	Hệ thống phải tự động đặt nhắc nhở (local notification) trên thiết bị trước giờ hẹn theo khoảng thời gian cấu hình được (mặc định 30 phút)
+	•	Hệ thống phải cho phép Sales xem danh sách lịch hẹn sắp tới của mình
+FR02.3 - Nhận thông báo Lead mới từ Website
+	•	Hệ thống phải tự động phát hiện Lead mới có Nguồn = Website và gán cho Sales theo quy tắc phân bổ đã cấu hình
+	•	Hệ thống phải gửi thông báo đẩy (push notification) cho Sales được gán ngay khi Lead từ Website được tạo
+	•	Hệ thống nên đo lường thời gian phản hồi của Sales kể từ khi nhận thông báo (phục vụ SLA chăm sóc Lead nóng, liên kết FR08 Dashboard KPI)
+
+
+9.3. Đặc tả FR03: Tra cứu kho xe, lái thử
+	•	Mục đích tài liệu
+Tài liệu này mô tả yêu cầu nghiệp vụ (BRD) và đặc tả yêu cầu phần mềm (SRS) cho hai chức năng cốt lõi của nền tảng bán xe:
+- Tra cứu kho xe: cho phép khách hàng và nhân viên tìm kiếm, lọc, xem chi tiết tình trạng tồn kho xe.
+- Đặt lịch lái thử: cho phép khách hàng đăng ký lái thử một mẫu xe tại đại lý/showroom.
+	•	Tài liệu Yêu cầu Kinh doanh / Tài liệu Đặc tả Yêu cầu Phần mềm
+	•	Phạm vi: Tra cứu kho xe (Vehicle Inventory Lookup) & Đặt lịch lái thử (Test Drive Booking)
+	•	Trong phạm vi: Tìm kiếm & lọc xe theo thuộc tính, xem chi tiết xe & tồn kho theo showroom, đặt lịch lái thử, xác nhận, hủy, đổi lịch, thông báo cho khách hàng(email/SMS/app)
+	•	Ngoài phạm vi: Thanh toán/đặt cọc mua xe, quản lý hợp đồng bán xe, tích hợp CRM nâng cao (out of MVP).
+	•	Thuật ngữ: 
+	•	SKU/VIN dùng cho mã định danh xe (Vehicle Identification Number).
+	•	Trim: Phiên bản/cấu hình của một dòng xe.
+	•	Showroom/Đại lý: điểm bán, nơi lưu kho và tổ chức lái thử.
+	•	Slot: khung giờ lái thử khả dụng.
+	•	Lead: khách hàng tiềm năng phát sinh từ hành vi đặt lịch.
+	•	Các bên liên quan (Stakeholders):
+Khách hàng (Customer): Tìm xe phù hợp, đặt lịch lái thử nhanh.
+Nhân viên bán hàng (Sales): Nhận lead, xác nhận lịch, theo dõi khách.
+Quản lý showroom: Kiểm soát tồn kho, phân bổ xe & lịch lái thử.
+Admin hệ thống: Cấu hình dữ liệu master, phân quyền.
+	•	Yêu cầu nghiệp vụ (Business Requirements – BRD)
+Mục tiêu nghiệp vụ: 
+- Tăng tỉ lệ chuyển đổi từ truy cập → lead → lái thử → mua xe.
+- Giảm thời gian khách hàng tìm được xe phù hợp và đăng ký lái thử.
+- Cung cấp dữ liệu tồn kho chính xác, giảm tình trạng hẹn lái thử xe không có sẵn.
+Business Rules (Quy tắc nghiệp vụ):
+- BR-01: Chỉ hiển thị xe có trạng thái  "Available " hoặc  "In-transit " cho khách hàng.
+- BR-02: Một khách hàng chỉ được có tối đa 3 lịch lái thử ở trạng thái  "Chờ xác nhận "/ "Đã xác nhận " cùng lúc.
+- BR-03: Slot lái thử phải cách thời điểm đặt tối thiểu 2 giờ.
+- BR-04: Mỗi slot của một xe tại một showroom chỉ phục vụ 1 khách trong 1 khung giờ.
+- BR-05: Khách phải cung cấp SĐT hợp lệ và (khuyến nghị) giấy phép lái xe khi đến lái thử.
+- BR-06: Được phép hủy/đổi lịch trước tối thiểu 4 giờ so với giờ hẹn.
+- BR-07: Tồn kho hiển thị theo thời gian thực (cập nhật ≤ 5 phút).
+9.3.1. Đặc tả chi tiết FR tra cứu kho xe
+FR-INV-01 – Tìm kiếm xe theo từ khóa:
+Người dùng nhập từ khóa (tên dòng xe, hãng, mã VIN) để tìm xe.
+Actor: Khách hàng, Sales.
+Tiền điều kiện: Có dữ liệu xe trong kho; người dùng truy cập trang tra cứu.
+Luồng chính: 1. Người dùng nhập từ khóa vào ô tìm kiếm.<br>2. Hệ thống gợi ý (autocomplete) sau ≥ 2 ký tự.<br>3. Người dùng bấm Tìm/Enter.<br>4. Hệ thống trả về danh sách xe khớp, sắp xếp theo độ liên quan.
+Luồng thay thế: 3a. Không có kết quả → hiển thị thông báo "Không tìm thấy" + gợi ý bỏ bớt bộ lọc.
+Hậu điều kiện: Danh sách kết quả được hiển thị, phân trang.
+Business rule: BR-01.
+Ưu tiên: Must.
+FR-INV-02 – Lọc & sắp xếp kết quả:
+Cho phép lọc theo nhiều tiêu chí và sắp xếp danh sách.
+Actor: Khách hàng, Sales
+Bộ lọc: Hãng, dòng xe, năm SX, giá (min–max), nhiên liệu (xăng/dầu/điện/hybrid), hộp số, màu, kiểu dáng, showroom/khu vực, tình trạng tồn kho.
+Sắp xếp: Giá tăng/giảm, mới nhất, phổ biến, khoảng cách showroom.
+Luồng chính:
+1. Người dùng chọn/điều chỉnh bộ lọc.
+2. Hệ thống cập nhật kết quả tức thời (hoặc sau khi bấm "Áp dụng").
+3. Hiển thị số lượng kết quả và bộ lọc đang áp dụng (chips).
+Luồng thay thế: 2. Kết hợp lọc cho 0 kết quả → gợi ý nới lỏng tiêu chí. 
+Business rule: BR-01, BR-07.
+Ưu tiên: Must.
+FR-INV-03 – Xem chi tiết xe:
+Hiển thị trang chi tiết một xe/trim.
+Actor: Khách hàng, Sales.
+Thông tin hiển thị: Hình ảnh/gallery, thông số kỹ thuật, giá niêm yết, khuyến mãi, mô tả, danh sách showroom còn hàng, nút "Đặt lịch lái thử".
+Luồng chính: 
+1. Người dùng chọn 1 xe từ danh sách.
+2. Hệ thống mở trang chi tiết, tải dữ liệu tồn kho theo showroom.
+3. Hiển thị CTA đặt lái thử nếu xe khả dụng.
+Luồng thay thế: 2a. Xe hết hàng tất cả showroom → ẩn/khóa nút lái thử, hiển thị "Đăng ký nhận thông báo khi có hàng".
+Business rule: BR-01, BR-07.
+Ưu tiên: Must.
+FR-INV-04 – Xem tồn kho theo showroom
+Hiển thị số lượng xe khả dụng của một trim tại từng showroom.
+Actor: Khách hàng, Sales, Quản lý showroom.
+Luồng chính:
+1. Trong trang chi tiết, người dùng xem tab "Tình trạng tại showroom".
+2. Hệ thống hiển thị: showroom, địa chỉ, số lượng, trạng thái (Có sẵn/Đang về/Hết).
+Business rule: BR-07.
+Ưu tiên: Should.
+FR-INV-05 – So sánh xe (tùy chọn)
+So sánh tối đa 3 xe theo thông số.
+Actor: Khách hàng.
+Ưu tiên: Could.
+
+
+9.3.2. Đặc tả chi tiết FR Đặt lịch lái thử
+FR-TD-01 – Khởi tạo yêu cầu lái thử:
+Từ trang chi tiết xe, người dùng bấm "Đặt lịch lái thử".
+Actor: Khách hàng.
+Tiền điều kiện: Xe ở trạng thái khả dụng tại ≥ 1 showroom (BR-01).
+Luồng chính:
+1. Người dùng bấm CTA lái thử.
+2. Hệ thống mở form đặt lịch, gắn sẵn thông tin xe/trim.
+Business rule: BR-01, BR-02:
+Ưu tiên: Must.
+FR-TD-02 – Chọn showroom, ngày & khung giờ:
+Người dùng chọn showroom, ngày và slot lái thử khả dụng.
+Actor: Khách hàng.
+Luồng chính:
+1. Chọn showroom (chỉ hiện showroom có xe).
+2. Chọn ngày trên lịch.
+3. Hệ thống hiển thị các slot còn trống theo ngày
+4. Người dùng chọn 1 slot.
+Luồng thay thế:
+3a. Không còn slot trống → gợi ý ngày khác/showroom khác.
+Business rule: BR-03, BR-04.
+Ưu tiên: Must.
+FR-TD-03 – Nhập thông tin khách hàng:
+Thu thập thông tin liên hệ để xác nhận lịch.
+Actor: Khách hàng.
+Trường dữ liệu: Họ tên (bắt buộc), SĐT (bắt buộc, validate), email (tùy chọn, validate), số GPLX (tùy chọn), ghi chú.
+Luồng chính:
+1. Nhập thông tin.
+2. Hệ thống validate định dạng theo thời gian thực.
+3. Đồng ý điều khoản & chính sách dữ liệu.
+Luồng thay thế:
+a. Dữ liệu không hợp lệ → hiển thị lỗi tại từng trường, chặn submit.
+Business rule: BR-05.
+Ưu tiên: Must.
+FR-TD-04 – Xác nhận & tạo lịch lái thử:
+Hệ thống tạo bản ghi lịch lái thử và giữ slot.
+Actor: Khách hàng, Hệ thống.
+Luồng chính:
+1. Người dùng bấm "Xác nhận".
+2. Hệ thống kiểm tra lại slot còn trống (BR-04) & giới hạn (BR-02).
+3. Tạo booking trạng thái  "Chờ xác nhận ", khóa slot.
+4. Sinh mã đặt lịch, tạo lead cho Sales.
+5. Gửi thông báo cho khách.
+Luồng thay thế: 
+2a. Slot vừa bị giữ bởi người khác → báo lỗi, yêu cầu chọn lại slot.
+2b. Vượt giới hạn BR-02 → chặn và thông báo. 
+Hậu điều kiện: Booking được lưu; slot bị khóa; lead được tạo.
+Business rule: BR-02, BR-03, BR-04.
+Ưu tiên: Must.
+FR-TD-05 – Xác nhận từ Sales/Showroom:
+Nhân viên xác nhận/từ chối lịch lái thử.
+Actor: Sales, Quản lý showroom.
+Luồng chính: 
+1. Sales xem danh sách booking  "Chờ xác nhận ".
+2. Xác nhận → trạng thái  "Đã xác nhận ", gửi thông báo cho khách.
+3. Từ chối → nêu lý do, giải phóng slot, thông báo khách. 
+Ưu tiên: Must.
+FR-TD-06 – Hủy / đổi lịch lái thử:
+Khách hoặc Sales hủy hoặc đổi khung giờ.
+Actor: Khách hàng, Sales.
+Luồng chính: 1. Người dùng chọn booking.
+2. Chọn Hủy hoặc Đổi lịch.
+3. Hệ thống kiểm tra BR-06.
+4. Giải phóng slot cũ, (nếu đổi) khóa slot mới, cập nhật trạng thái, gửi thông báo.
+Luồng thay thế:
+3a. Trong khoảng < 4 giờ → chặn thao tác online, hướng dẫn liên hệ showroom. 
+Business rule: BR-06.
+Ưu tiên: Must.
+
+FR-TD-07 – Nhắc lịch & cập nhật kết quả:
+Gửi nhắc lịch trước giờ hẹn và ghi nhận kết quả sau lái thử.
+Actor: Hệ thống, Sales.
+Luồng chính: 
+1. Hệ thống gửi nhắc trước 24h và 2h.
+2. Sau buổi hẹn, Sales cập nhật  "Hoàn thành "/ "No-show " + ghi chú.
+Ưu tiên | Should.
+
+9.4. Đặc tả FR04: Quản lý người dùng & Phân quyền
+9.4.1. Mô tả và đánh giá mức độ ưu tiên của chức năng
+Chức Năng 
+Mô Tả 
+Đánh Giá 
+Độ Ưu Tiên 
+FR04: Quản Lý Người Dùng & Phân Quyền
+Hệ thống cho phép quản trị viên tạo, chỉnh sửa, vô hiệu hóa tài khoản người dùng và gán các vai trò (Role) khác nhau. Mỗi vai trò có tập hợp quyền (Permission) riêng biệt để kiểm soát truy cập vào các chức năng, dữ liệu, và tài nguyên hệ thống. Hệ thống hỗ trợ 4 vai trò chính: Admin, Manager, Staff, Viewer. Hệ thống ghi log toàn bộ hoạt động quản lý người dùng (tạo, sửa, xóa, gán quyền) để audit trail. Hệ thống cung cấp dashboard quản lý người dùng, phân quyền, và báo cáo truy cập.
+Cao
+
+9.4.2. Tương Tác & Phản Hồi Hệ Thống (Stimulus-Response Sequences)
+STT
+Tương Tác 
+Phản hồi hệ thống
+1
+Admin tạo tài khoản người dùng mới
+Hệ thống validate email/username → Tạo user record trong database → Gửi email xác nhận với link reset password → Ghi log: "User created: email@tnt.com, created_by: admin_id, timestamp: ..."
+2
+Admin gán vai trò (Role) cho người dùng
+Hệ thống validate role tồn tại → Cập nhật user.role_id → Tải danh sách permissions của role đó → Cập nhật user_permissions table → Ghi log: "Role assigned: user_id, role_id, assigned_by: admin_id"
+3
+Người dùng đăng nhập vào hệ thống
+Hệ thống validate credentials → Kiểm tra user status (active/inactive) → Tải role & permissions của user → Tạo session → Ghi log: "User login: user_id, ip_address, device_info, timestamp: ..."
+4
+Người dùng truy cập một chức năng/tài nguyên
+Hệ thống kiểm tra permission của user → Nếu có quyền, cho phép truy cập → Nếu không, hiển thị lỗi No access→ Ghi log: "Access attempt: user_id, resource, permission, status (ALLOWED/DENIED)"
+5
+Admin chỉnh sửa quyền của một role
+Hệ thống validate role tồn tại → Cập nhật role_permissions table → Tất cả user có role đó sẽ tự động có quyền mới → Ghi log: "Role permissions updated: role_id, permissions_changed, updated_by: admin_id"
+6
+Admin vô hiệu hóa tài khoản người dùng
+Hệ thống set user.status = "INACTIVE" → Hủy tất cả active sessions của user → Gửi email thông báo → Ghi log: "User deactivated: user_id, reason, deactivated_by: admin_id"
+ 9.4.3. Yêu cầu chức năng (Functional Requirements):
+FR4.1 - Quản Lý Tài Khoản Người Dùng (User Account Management)
+	•	Hệ thống phải cho phép Admin tạo tài khoản người dùng mới với thông tin: email, full_name, phone, department, status (ACTIVE/INACTIVE)
+	•	Hệ thống phải validate email duy nhất (không trùng lặp)
+	•	Hệ thống phải gửi email xác nhận với link reset password khi tạo user mới
+	•	Hệ thống phải cho phép Admin chỉnh sửa thông tin người dùng: full_name, phone, department, email
+	•	Hệ thống phải cho phép Admin vô hiệu hóa (deactivate) tài khoản người dùng mà không xóa dữ liệu
+	•	Hệ thống phải cho phép Admin xóa vĩnh viễn tài khoản người dùng (soft delete - đánh dấu deleted_at)
+	•	Hệ thống phải hỗ trợ bulk import người dùng từ file CSV/Excel
+	•	Hệ thống phải cho phép người dùng thay đổi mật khẩu của chính mình
+	•	Hệ thống phải hỗ trợ reset mật khẩu qua email
+FR4.2 - Quản Lý Vai Trò (Role Management)
+	•	Hệ thống phải hỗ trợ 4 vai trò mặc định: Admin (quản trị viên), Manager (quản lý), Staff (nhân viên), Viewer (xem)
+	•	Hệ thống phải cho phép Admin tạo vai trò tùy chỉnh (custom role)
+	•	Hệ thống phải cho phép Admin chỉnh sửa tên, mô tả của vai trò
+	•	Hệ thống phải cho phép Admin xóa vai trò (nếu không có user nào sử dụng)
+	•	Hệ thống phải hiển thị danh sách tất cả vai trò với số lượng user có vai trò đó
+	•	Hệ thống phải gán vai trò cho người dùng (1 user có thể có 1 hoặc nhiều role)
+	•	Hệ thống phải cho phép Admin xem danh sách user có một vai trò cụ thể
+FR4.3 - Quản Lý Quyền (Permission Management)
+	•	Hệ thống phải định nghĩa danh sách quyền (permissions) cho từng chức năng: CREATE, READ, UPDATE, DELETE, EXPORT, APPROVE, REJECT
+	•	Hệ thống phải gán quyền cho vai trò (role_permissions table)
+	•	Hệ thống phải cho phép Admin xem danh sách quyền của một vai trò
+	•	Hệ thống phải cho phép Admin thêm/xóa quyền cho một vai trò
+	•	Hệ thống phải hỗ trợ quyền cấp độ tài nguyên (Resource-level permissions): ví dụ user A chỉ có quyền xem phiếu của department A
+	•	Hệ thống phải hỗ trợ quyền cấp độ hàng (Row-level permissions): ví dụ user B chỉ có quyền xem phiếu do chính user B tạo
+	•	Hệ thống phải kiểm tra quyền trước mỗi lần user truy cập tài nguyên
+FR4.4 - Xác Thực & Phiên Làm Việc (Authentication & Session Management)
+	•	Hệ thống phải hỗ trợ đăng nhập bằng email + mật khẩu
+	•	Hệ thống phải hỗ trợ đăng nhập bằng SSO (Single Sign-On) nếu có
+	•	Hệ thống phải tạo JWT token hoặc session cookie khi user đăng nhập thành công
+	•	Hệ thống phải set thời gian hết hạn token: 24 giờ cho web, 7 ngày cho mobile
+	•	Hệ thống phải hỗ trợ refresh token để gia hạn phiên làm việc
+	•	Hệ thống phải hỗ trợ đăng xuất (logout) - hủy token/session
+	•	Hệ thống phải hỗ trợ "Remember me" - tự động đăng nhập lần sau (tối đa 30 ngày)
+	•	Hệ thống phải kiểm tra token hợp lệ trước mỗi request
+	•	Hệ thống phải hỗ trợ multi-device login (user có thể đăng nhập trên nhiều thiết bị cùng lúc)
+	•	Hệ thống phải cho phép user xem danh sách active sessions và logout từ xa
+FR4.5 - Kiểm Soát Truy Cập (Access Control)
+	•	Hệ thống phải kiểm tra quyền trước khi user truy cập API endpoint
+	•	Hệ thống phải kiểm tra quyền trước khi user xem/edit/delete dữ liệu
+	•	Hệ thống phải trả về lỗi 403 Forbidden nếu user không có quyền
+	•	Hệ thống phải hỗ trợ kiểm soát truy cập dựa trên vai trò (RBAC - Role-Based Access Control)
+	•	Hệ thống phải hỗ trợ kiểm soát truy cập dựa trên thuộc tính (ABAC - Attribute-Based Access Control): ví dụ user chỉ có quyền xem phiếu của department mình
+	•	Hệ thống phải hỗ trợ kiểm soát truy cập dựa trên thời gian: ví dụ user chỉ có quyền truy cập từ 8h-17h
+	•	Hệ thống phải hỗ trợ kiểm soát truy cập dựa trên địa chỉ IP: ví dụ user chỉ có quyền truy cập từ IP công ty
+FR4.6 - Ghi Log & Audit Trail (Logging & Audit)
+	•	Hệ thống phải ghi log mỗi lần user đăng nhập: user_id, email, ip_address, device_info, timestamp, status (SUCCESS/FAILED)
+	•	Hệ thống phải ghi log mỗi lần user truy cập tài nguyên: user_id, resource, action (CREATE/READ/UPDATE/DELETE), timestamp, status (ALLOWED/DENIED)
+	•	Hệ thống phải ghi log mỗi lần Admin quản lý người dùng: admin_id, action (CREATE/UPDATE/DELETE/DEACTIVATE), user_id, changes, timestamp
+	•	Hệ thống phải ghi log mỗi lần Admin quản lý vai trò: admin_id, action, role_id, changes, timestamp
+	•	Hệ thống phải ghi log mỗi lần Admin quản lý quyền: admin_id, action, role_id, permissions_changed, timestamp
+	•	Hệ thống phải lưu trữ log ít nhất 1 năm
+	•	Hệ thống phải cho phép Admin export log theo khoảng thời gian, user, action
+	•	Hệ thống phải cung cấp dashboard audit trail với bộ lọc: user, action, date range, status
+FR4.7 - Bảo Mật & Chính Sách Mật Khẩu (Security & Password Policy)
+	•	Hệ thống phải enforce mật khẩu mạnh: tối thiểu 8 ký tự, chứa chữ hoa, chữ thường, số, ký tự đặc biệt
+	•	Hệ thống phải yêu cầu user thay đổi mật khẩu mỗi 90 ngày
+	•	Hệ thống phải ngăn chặn tái sử dụng mật khẩu cũ (tối thiểu 5 mật khẩu gần nhất)
+	•	Hệ thống phải khóa tài khoản sau 5 lần đăng nhập thất bại (unlock sau 30 phút hoặc Admin unlock)
+	•	Hệ thống phải hỗ trợ 2FA (Two-Factor Authentication) bằng email hoặc authenticator app
+	•	Hệ thống phải ghi log tất cả thay đổi mật khẩu: user_id, changed_by, timestamp
+	•	Hệ thống phải hỗ trợ password reset link hết hạn sau 24 giờ
+FR4.8 - Quản Lý Phòng Ban & Cấu Trúc Tổ Chức (Department & Organization Structure)
+	•	Hệ thống phải cho phép Admin tạo phòng ban (department)
+	•	Hệ thống phải hỗ trợ phòng ban cấp bậc (hierarchical departments)
+	•	Hệ thống phải gán user vào phòng ban
+	•	Hệ thống phải hỗ trợ quyền dựa trên phòng ban: ví dụ Manager của phòng A chỉ có quyền quản lý user của phòng A
+	•	Hệ thống phải hiển thị sơ đồ tổ chức (organization chart)
+ 
+9.5. Đặc tả FR06: Dashboard KPI & Báo Cáo
+9.5.1. Mô tả và đánh giá mức độ ưu tiên của chức năng
+Chức Năng 
+Mô Tả 
+Đánh Giá 
+Độ Ưu Tiên 
+FR05: Dashboard KPI & Báo Cáo
+Hệ thống cung cấp dashboard tổng hợp các KPI (Key Performance Indicators) quan trọng về bán hàng ô tô. Dashboard hiển thị: (1) Xe đã giao so với target giao hàng, (2) Tỷ lệ hủy cọc (cancellation rate), (3) Doanh số bán hàng theo từng nhân viên, (4) Doanh thu theo model xe, (5) Tỷ lệ chuyển đổi khách hàng, (6) Phân tích lợi nhuận, (7) Xu hướng bán hàng theo thời gian. Hệ thống hỗ trợ so sánh dữ liệu (MoM, YoY), cảnh báo khi KPI không đạt target, và xuất báo cáo thành PDF/Excel. Dashboard cung cấp bộ lọc linh hoạt (theo ngày, nhân viên, model, phòng ban) và hỗ trợ drill-down để xem chi tiết.
+Cao
+
+
+9.5.2. Tương Tác & Phản Hồi Hệ Thống (Stimulus-Response Sequences) 
+STT
+Tương Tác
+Phản hồi hệ thống
+1
+Manager mở Dashboard KPI
+Hệ thống tải dữ liệu từ database → Tính toán KPI (xe giao, hủy cọc, doanh số nhân viên) → Hiển thị KPI cards, biểu đồ, danh sách → Ghi log: "Dashboard opened by manager_id, timestamp: ..." 
+2
+Manager chọn bộ lọc (ngày, nhân viên, model) 
+Hệ thống validate bộ lọc → Query database với điều kiện lọc → Cập nhật tất cả KPI, biểu đồ, danh sách → Ghi log: "Filter applied: date_range, salesman, model" 
+3
+Manager xem chi tiết nhân viên (drill-down) 
+Hệ thống hiển thị danh sách xe bán của nhân viên đó → Hiển thị chi tiết từng xe (model, giá, ngày bán, trạng thái) → Cho phép xem hóa đơn, hợp đồng 
+4
+Manager so sánh dữ liệu (MoM, YoY) 
+Hệ thống tính toán dữ liệu tháng này vs tháng trước, năm này vs năm ngoái → Hiển thị % thay đổi, biểu đồ so sánh → Ghi log: "Comparison viewed: MoM/YoY" 
+5
+Manager xuất báo cáo (PDF/Excel) 
+Hệ thống tạo báo cáo từ dữ liệu hiện tại → Định dạng PDF/Excel → Gửi file hoặc download → Ghi log: "Report exported: format, date_range, exported_by" 
+6
+Manager nhận cảnh báo (KPI không đạt) 
+Hệ thống kiểm tra KPI vs target → Nếu KPI < target, gửi alert (email, push notification) → Hiển thị alert trên dashboard → Ghi log: "Alert triggered: KPI_type, current_value, target_value" 
+ 9.5.3. Yêu cầu chức năng (Functional Requirements):
+FR5.1 - KPI Xe Đã Giao So Với Target (Delivery vs Target KPI)
+	•	Hệ thống phải hiển thị số xe đã giao trong kỳ (period)
+	•	Hệ thống phải hiển thị target giao hàng (delivery target)
+	•	Hệ thống phải tính toán tỷ lệ đạt target: (xe giao / target) × 100%
+	•	Hệ thống phải hiển thị số xe còn lại cần giao để đạt target
+	•	Hệ thống phải hiển thị xu hướng giao hàng theo ngày/tuần/tháng (line chart)
+	•	Hệ thống phải so sánh xe giao tháng này vs tháng trước (MoM - Month-over-Month)
+	•	Hệ thống phải so sánh xe giao năm này vs năm ngoái (YoY - Year-over-Year)
+	•	Hệ thống phải cảnh báo khi tỷ lệ giao hàng < 80% của target
+	•	Hệ thống phải hiển thị danh sách xe chưa giao (pending delivery) với thông tin: model, khách hàng, ngày đặt hàng, trạng thái
+	•	Hệ thống phải cho phép drill-down xem chi tiết từng xe chưa giao (hóa đơn, hợp đồng, lý do chậm giao)
+FR5.2 - Tỷ Lệ Hủy Cọc (Cancellation Rate KPI)
+	•	Hệ thống phải tính toán tỷ lệ hủy cọc: (số hủy cọc / tổng đơn hàng) × 100%
+	•	Hệ thống phải hiển thị số đơn hủy cọc trong kỳ
+	•	Hệ thống phải hiển thị lý do hủy cọc (khách hàng thay đổi ý định, vấn đề tài chính, tìm được xe khác, giá không phù hợp, v.v.)
+	•	Hệ thống phải hiển thị xu hướng hủy cọc theo thời gian (line chart)
+	•	Hệ thống phải so sánh tỷ lệ hủy cọc tháng này vs tháng trước (MoM)
+	•	Hệ thống phải cảnh báo khi tỷ lệ hủy cọc > 5%
+	•	Hệ thống phải hiển thị danh sách khách hàng hủy cọc (tên, xe, lý do, ngày hủy, số tiền cọc)
+	•	Hệ thống phải cho phép xem chi tiết từng đơn hủy cọc (hợp đồng, lý do chi tiết, xử lý hoàn tiền)
+	•	Hệ thống phải phân tích tỷ lệ hủy cọc theo model xe (model nào bị hủy nhiều nhất)
+	•	Hệ thống phải phân tích tỷ lệ hủy cọc theo nhân viên bán (nhân viên nào có tỷ lệ hủy cao nhất)
+FR5.3 - Doanh Số Theo Từng Nhân Viên (Salesman Performance KPI)
+	•	Hệ thống phải hiển thị bảng xếp hạng nhân viên theo doanh số (ranking) từ cao đến thấp
+	•	Hệ thống phải hiển thị số xe bán của mỗi nhân viên
+	•	Hệ thống phải hiển thị doanh thu của mỗi nhân viên (tính bằng VND)
+	•	Hệ thống phải hiển thị hoa hồng của mỗi nhân viên (tính bằng VND và %)
+	•	Hệ thống phải hiển thị tỷ lệ đạt target của mỗi nhân viên: (xe bán / target) × 100%
+	•	Hệ thống phải hiển thị tỷ lệ chuyển đổi (conversion rate) của mỗi nhân viên: (xe bán / khách hàng tiếp cận) × 100%
+	•	Hệ thống phải hiển thị giá trung bình (average price) của mỗi nhân viên
+	•	Hệ thống phải hiển thị xu hướng bán hàng của nhân viên theo tuần/tháng (line chart)
+	•	Hệ thống phải so sánh doanh số nhân viên tháng này vs tháng trước (MoM)
+	•	Hệ thống phải cảnh báo khi nhân viên không đạt target (< 80%)
+	•	Hệ thống phải hiển thị danh sách xe bán của mỗi nhân viên (drill-down): model, giá, ngày bán, khách hàng, trạng thái
+	•	Hệ thống phải cho phép so sánh hiệu suất 2 nhân viên (side-by-side comparison)
+FR5.4 - Báo Cáo (Reporting)
+	•	Hệ thống phải hỗ trợ xuất báo cáo thành PDF
+	•	Hệ thống phải hỗ trợ xuất báo cáo thành Excel
+	•	Hệ thống phải hỗ trợ xuất báo cáo thành CSV
+	•	Hệ thống phải cho phép chọn dữ liệu cần xuất: KPI cards, biểu đồ, danh sách chi tiết
+	•	Hệ thống phải cho phép chọn khoảng thời gian xuất (ngày, tuần, tháng, quý, năm)
+	•	Hệ thống phải cho phép chọn định dạng báo cáo: summary (tóm tắt) hoặc detailed (chi tiết)
+	•	Hệ thống phải cho phép chọn loại báo cáo: báo cáo xe giao, báo cáo hủy cọc, báo cáo doanh số nhân viên, báo cáo tổng hợp
+	•	Hệ thống phải ghi log tất cả báo cáo được xuất: user_id, report_type, date_range, format, exported_at
+	•	Hệ thống phải hỗ trợ schedule báo cáo (gửi báo cáo định kỳ qua email): hàng ngày, hàng tuần, hàng tháng
+	•	Hệ thống phải cho phép lưu báo cáo đã tạo để tái sử dụng lần sau
+	•	Hệ thống phải hiển thị lịch sử báo cáo đã xuất (report history)
+	•	Hệ thống phải cho phép download lại báo cáo đã xuất trước đó
+
+
+9.6. Đặc tả FR06: Đồng bộ dữ liệu Offline/Online
+9.6.1. Mô tả và đánh giá mức độ ưu tiên của chức năng
+
+Chức Năng 
+Mô Tả 
+Đánh Giá 
+Độ Ưu Tiên 
+FR06: Đồng Bộ Dữ Liệu Offline/Online
+Hệ thống cho phép người dùng làm việc offline trên thiết bị di động mà không cần kết nối internet. Các phiếu, dữ liệu được tạo offline sẽ được lưu trữ cục bộ trong IndexedDB. Mỗi 30 phút, hệ thống sẽ tự động scan và kiểm tra các phiếu chưa được đồng bộ (status = PENDING). Khi thiết bị có kết nối internet, hệ thống sẽ tự động gửi batch các phiếu offline lên server để lưu vào SQL Database. Hệ thống cũng xử lý trùng lặp dữ liệu, cập nhật trạng thái đồng bộ, và ghi log toàn bộ quá trình đồng bộ để giám sát và báo cáo.
+Cao
+Cao
+
+9.6.2. Tương Tác & Phản Hồi Hệ Thống (Stimulus-Response Sequences)
+
+STT
+Tương Tác
+Phản hồi hệ thống
+1
+User tạo phiếu khi thiết bị offline Internet
+Hệ thống sẽ kiểm tra kết nối -> nếu không có mạng hệ thống sẽ lưu chữ IndexDB với Status = pending -> hiển thị thống báo đã lưu trên máy sẽ đồng bộ khi có Internet
+2
+Service Worker sync mỗi khi nào app mà thiết bị có Internet 
+Hệ thống scan phiếu có trạng thái là Pending -> Nếu có mạng sẽ đồng bộ lên DB
+3
+Hệ thống gửi batch phiếu offline lên server 
+Khi có internet server nhận RQ -> Validate dữ liệu ->  thì Insert vào DB
+4
+Server xử lý xong và trả response 
+Hệ thống nhận danh sách ID phiếu đã sync thành công → Cập nhật IndexedDB: status = "SYNCED", server_id, sync_timestamp → Ghi log vào sync_log table 
+5
+Người dùng xem trạng thái đồng bộ 
+Hệ thống hiển thị: số phiếu đã sync, thời gian sync cuối cùng, trạng thái (thành công/thất bại) 
+6
+Sync thất bại (mạng yếu, server error) 
+sync thất lại thì Service Worker try khi có internet ở thiết bị 
+ 9.6.3. Yêu cầu chức năng (Functional Requirements):
+FR06.1 - Lưu Trữ Offline (Offline Storage)
+	•	Hệ thống phải lưu trữ các phiếu được tạo offline vào IndexedDB với các thông tin: UUID, nội dung phiếu, timestamp tạo, status (PENDING/SYNCED/FAILED), số lần sync attempt
+	•	Hệ thống phải hỗ trợ lưu trữ cấu hình, token, metadata cục bộ trong LocalStorage
+	•	Hệ thống phải đảm bảo dữ liệu lưu trữ cục bộ không bị mất khi ứng dụng đóng/mở lại
+FR06.2 - Scan & Sync Tự Động (Automatic Sync)
+	•	Hệ thống phải kích hoạt Service Worker khi thiết bị có internet để scan các phiếu chưa đồng bộ
+	•	Hệ thống phải kiểm tra kết nối mạng trước khi thực hiện sync
+	•	Hệ thống phải gửi batch request chứa tất cả phiếu PENDING lên endpoint /api/sync với định dạng JSON
+	•	Hệ thống phải hỗ trợ retry tự động nếu sync thất bại, với khoảng cách 30 phút giữa các lần retry
+	•	Hệ thống phải cập nhật status phiếu từ PENDING → SYNCED khi sync thành công
+FR06.3 - Xử Lý Trùng Lặp Dữ Liệu (Deduplication)
+	•	Hệ thống phải so sánh UUID của phiếu incoming với dữ liệu trong SQL Database
+	•	Nếu UUID đã tồn tại, hệ thống phải so sánh timestamp và tạo bản mới nhất
+	•	Hệ thống phải bỏ qua phiếu incoming nếu phiếu cũ có timestamp mới hơn hoặc bằng
+FR06.4 - Cập Nhật Trạng Thái Đồng Bộ (Sync Status Update)
+	•	Hệ thống phải cập nhật IndexedDB sau khi nhận response từ server: status = "SYNCED", server_id, sync_timestamp
+	•	Hệ thống phải cập nhật sync_attempts = 0 khi sync thành công
+	•	Hệ thống phải cập nhật sync_attempts++ khi sync thất bại
+	•	Hệ thống phải mark status = "FAILED" nếu sync_attempts >= 5
+FR06.5 - Ghi Log & Giám Sát (Logging & Monitoring)
+	•	Hệ thống phải ghi log mỗi lần sync vào bảng sync_log với thông tin: device_id, synced_count, failed_count, sync_timestamp, status (SUCCESS/PARTIAL/FAILED), error_message
+	•	Hệ thống phải ghi log chi tiết mỗi phiếu được sync: phiếu_id, uuid, server_id, sync_timestamp, status
+	•	Hệ thống phải cung cấp dashboard báo cáo: tổng phiếu sync, thời gian sync trung bình, số lần sync thất bại, danh sách thiết bị hoạt động
+	•	Hệ thống phải hỗ trợ export log sync theo khoảng thời gian
+FR06.6 - Thông Báo & Trạng Thái (Notifications)
+	•	Hệ thống phải hiển thị thông báo "Đã lưu cục bộ" khi phiếu được tạo offline
+	•	Hệ thống phải hiển thị thông báo "Đang đồng bộ..." khi sync đang diễn ra
+	•	Hệ thống phải hiển thị thông báo "Đã đồng bộ X phiếu thành công" khi sync hoàn tất
+	•	Hệ thống phải hiển thị thông báo lỗi chi tiết nếu sync thất bại
+	•	Hệ thống phải cho phép người dùng trigger manual sync bất kỳ lúc nào
+FR06.7 - Xử Lý Lỗi & Conflict (Error Handling)
+	•	Hệ thống phải xử lý lỗi mạng (timeout, connection refused) bằng cách retry tự động
+	•	Hệ thống phải xử lý lỗi validation từ server (invalid data, missing fields) bằng cách mark status = "FAILED" và notify user
+	•	Hệ thống phải xử lý conflict khi cùng phiếu được edit trên 2 thiết bị khác nhau bằng cách giữ bản có timestamp mới nhất
+	•	Hệ thống phải ghi log chi tiết mỗi lỗi xảy ra để debug
+
+9.7. Đặc tả FR07: Hiển thị danh mục xe (Read-only)
+9.7.1. Mô tả và đánh giá mức độ ưu tiên của chức năng
+9.7.2. Tương Tác & Phản Hồi Hệ Thống (Stimulus-Response Sequences)
+9.7.3. Yêu cầu chức năng (Functional Requirements):
+
+
+
+
+9.8. Đặc tả FR08: Quản lý nội dung Website (Trang chủ/Thương hiệu)
+9.8.1. Mô tả và đánh giá mức độ ưu tiên của chức năng (Description and Priority):
+Chức năng
+Mô tả
+Đánh giá 
+Độ ưu tiên
+FR-08: Quản lý nội dung Website (Trang chủ/Thương hiệu)
+Cho phép Admin TNT Car quản lý nội dung được hiển thị công khai trên website, bao gồm banner trang chủ, hình ảnh, thông tin giới thiệu/thương hiệu, thông tin liên hệ và các nội dung thiết kế trên trang chủ. Admin có thể tạo mới, xem, chỉnh sửa và xóa nội dung. Website có quyền đọc và hiển thị các nội dung đã được Admin cập nhật cho khách hàng. 
+Đây là chức năng quan trọng giúp TNT Car chủ động quản lý hình ảnh thương hiệu và thông tin cung cấp cho khách hàng trên website. Việc cập nhật nội dung tập trung giúp hạn chế thông tin cũ hoặc sai lệch, đồng thời hỗ trợ TNT Car nhanh chóng thay đổi banner, chương trình và thông tin liên hệ theo hoạt động kinh doanh thực tế.. 
+Cao
+9.8.2. Tương tác & Phản hồi hệ thống (Stimulus-Response Sequences):
+	•	Admin TNT Car đăng nhập vào hệ thống quản trị Website.
+	•	Admin truy cập chức năng “Quản lý nội dung Website”.
+	•	Hệ thống hiển thị danh sách các nội dung hiện đang được sử dụng trên Website.
+	•	Admin lựa chọn loại nội dung cần quản lý, bao gồm Banner, Thương hiệu, Thông tin liên hệ hoặc nội dung Trang chủ.
+	•	Nếu Admin muốn xem nội dung, hệ thống hiển thị thông tin và nội dung hiện tại tương ứng.
+	•	Nếu Admin muốn tạo mới, Admin chọn “Thêm mới”.
+	•	Hệ thống hiển thị biểu mẫu tương ứng với loại nội dung được lựa chọn.
+	•	Admin nhập các thông tin cần thiết như nội dung, hình ảnh/banner, thông tin liên hệ hoặc thông tin thương hiệu.
+	•	Admin chọn “Lưu” để hoàn tất thao tác.
+	•	Hệ thống kiểm tra các trường thông tin bắt buộc và tính hợp lệ của dữ liệu.
+	•	Nếu dữ liệu không hợp lệ hoặc còn thiếu, hệ thống hiển thị thông báo lỗi và không lưu nội dung.
+	•	Nếu dữ liệu hợp lệ, hệ thống lưu nội dung mới và cập nhật nội dung tương ứng trên Website.
+	•	Nếu Admin muốn chỉnh sửa, hệ thống hiển thị dữ liệu hiện tại để Admin cập nhật.
+	•	Admin thực hiện thay đổi và chọn “Lưu”.
+	•	Hệ thống kiểm tra dữ liệu cập nhật; nếu hợp lệ, hệ thống lưu thay đổi và cập nhật nội dung mới trên Website.
+	•	Nếu Admin muốn xóa nội dung, hệ thống hiển thị yêu cầu xác nhận trước khi thực hiện.
+	•	Admin xác nhận thao tác xóa.
+	•	Hệ thống xóa hoặc ngừng hiển thị nội dung tương ứng trên Website.
+	•	Website tự động đọc dữ liệu đã được cập nhật từ hệ thống và hiển thị nội dung mới cho khách hàng.
+	•	Người dùng truy cập Website chỉ có quyền xem nội dung công khai và không được trực tiếp tạo, chỉnh sửa hoặc xóa nội dung.
+9.8.3. Yêu cầu chức năng (Functional Requirements):
+	•	Hệ thống phải cho phép Admin TNT Car đăng nhập và truy cập chức năng Quản lý nội dung Website.
+	•	Hệ thống phải cho phép Admin thực hiện thao tác Create để tạo mới banner và các nội dung được quản lý trên Website.
+	•	Hệ thống phải cho phép Admin thực hiện thao tác Read để xem danh sách và chi tiết các nội dung đang được sử dụng trên Website.
+	•	Hệ thống phải cho phép Admin thực hiện thao tác Update để chỉnh sửa banner và các nội dung Website.
+	•	Hệ thống phải cho phép Admin thực hiện thao tác Delete đối với banner hoặc nội dung không còn sử dụng.
+	•	Hệ thống phải cho phép Admin cập nhật thông tin liên hệ của TNT Car trên Website.
+	•	Hệ thống phải cho phép Admin cập nhật nội dung giới thiệu và thông tin thương hiệu TNT Car.
+	•	Hệ thống phải cho phép Admin quản lý các nội dung chính được hiển thị trên Trang chủ.
+	•	Hệ thống phải kiểm tra các trường thông tin bắt buộc và tính hợp lệ của dữ liệu trước khi lưu nội dung.
+	•	Hệ thống phải thông báo lỗi và không lưu nội dung khi Admin nhập thiếu hoặc không hợp lệ các trường thông tin bắt buộc.
+	•	Hệ thống phải yêu cầu Admin xác nhận trước khi thực hiện thao tác Delete.
+	•	Hệ thống phải lưu nội dung sau khi Admin tạo mới hoặc cập nhật thành công.
+	•	Website phải có khả năng Read và hiển thị các nội dung đã được Admin cập nhật.
+	•	Nội dung được cập nhật thành công phải được hiển thị thống nhất giữa hệ thống quản trị và Website công khai.
+	•	Website và khách hàng công khai chỉ được phép Read nội dung được công khai trên Website và không được thực hiện Create, Update hoặc Delete.
+	•	Chỉ Admin được cấp quyền mới có thể thực hiện các thao tác Create, Read, Update và Delete đối với nội dung Website.
+
+9.9. Đặc tả FR09: Tiếp nhận yêu cầu từ website (Đăng ký lái thử, Tư vấn CSKH)
+9.9.1. Mô tả và đánh giá mức độ ưu tiên của chức năng (Description and Priority):
+Chức năng
+Mô tả
+Đánh giá 
+Độ ưu tiên
+FR-10: Tiếp nhận yêu cầu từ Website (Đăng ký lái thử / Tư vấn / CSKH) 
+Cho phép khách hàng ẩn danh gửi yêu cầu đến TNT Car thông qua các biểu mẫu trên website, bao gồm Đăng ký lái thử, Tư vấn mua xe và CSKH. Sau khi khách hàng gửi yêu cầu hợp lệ, hệ thống tự động tạo Lead và chuyển vào FR-01 – Quản lý Lead để Sales tiếp tục xử lý. Đối với yêu cầu Đăng ký lái thử và Tư vấn, hệ thống gửi email thông báo cho Sales; đồng thời gửi email xác nhận cho khách hàng.  
+Đây là chức năng quan trọng vì giúp TNT Car biến yêu cầu từ website thành Lead, giảm nhập liệu thủ công và hạn chế bỏ sót khách hàng tiềm năng. Việc tự động chuyển yêu cầu thành Lead giúp giảm thao tác nhập liệu thủ công, tránh bỏ sót khách hàng tiềm năng và rút ngắn thời gian từ lúc khách hàng gửi yêu cầu đến khi Sales tiếp nhận. Email thông báo cho Sales và email xác nhận cho khách hàng cũng giúp quá trình chăm sóc khách hàng minh bạch và kịp thời hơn. 
+Cao
+9.9.2. Tương tác & Phản hồi hệ thống (Stimulus-Response Sequences):
+	•	Khách hàng truy cập website TNT Car.
+	•	Khách hàng lựa chọn nhu cầu cần hỗ trợ: Đăng ký lái thử / Tư vấn / CSKH.
+	•	Website hiển thị biểu mẫu tương ứng với loại yêu cầu.
+	•	Khách hàng nhập các thông tin cần thiết, chẳng hạn như họ tên, số điện thoại, email, dòng xe quan tâm và nội dung yêu cầu.
+	•	Khách hàng nhấn “Gửi yêu cầu”.
+	•	Hệ thống kiểm tra các trường thông tin bắt buộc và tính hợp lệ của dữ liệu.
+	•	Nếu thông tin không hợp lệ hoặc còn thiếu, hệ thống hiển thị thông báo để khách hàng bổ sung.
+	•	Nếu thông tin hợp lệ, hệ thống ghi nhận yêu cầu.
+	•	Hệ thống tự động tạo một Lead mới từ thông tin khách hàng gửi qua Website.
+	•	Lead mới được chuyển vào FR-01 – Quản lý Lead để Sales tiếp tục xử lý.
+	•	Nếu khách hàng đăng ký lái thử hoặc tư vấn, hệ thống tự động gửi email thông báo đến Sales để Sales chủ động liên hệ.
+	•	Hệ thống gửi email xác nhận thành công cho khách hàng, thông báo rằng yêu cầu đã được TNT Car tiếp nhận.
+	•	Hệ thống lưu lại thời gian tiếp nhận và thông tin yêu cầu để phục vụ quá trình chăm sóc khách hàng.
+	•	Sales có thể tiếp tục xem và xử lý Lead thông qua chức năng FR-01 – Quản lý Lead.
+	•	Nếu quá trình tạo Lead thất bại, hệ thống phải ghi nhận lỗi và thông báo để đảm bảo yêu cầu của khách hàng không bị mất.
+9.9.3. Yêu cầu chức năng (Functional Requirements):
+	•	Website TNT Car phải cung cấp biểu mẫu để khách hàng gửi yêu cầu trực tuyến.
+	•	Hệ thống phải hỗ trợ tối thiểu 3 loại yêu cầu: đăng ký lái thử, tư vấn và CSKH.
+	•	Hệ thống phải cho phép khách hàng ẩn danh tạo yêu cầu mà không bắt buộc phải có tài khoản đăng nhập.
+	•	Hệ thống phải yêu cầu khách hàng nhập các thông tin bắt buộc trước khi gửi yêu cầu.
+	•	Hệ thống phải kiểm tra tính hợp lệ của các thông tin được khách hàng nhập.
+	•	Hệ thống không tạo Lead nếu các trường thông tin bắt buộc chưa được hoàn thành.
+	•	Khi yêu cầu hợp lệ được gửi thành công, hệ thống phải tự động tạo Lead mới.
+	•	Lead được tạo từ website phải được chuyển vào FR-01 – Quản lý Lead.
+	•	Hệ thống phải ghi nhận nguồn của Lead là Website để Sales có thể xác định nguồn khách hàng.
+	•	Hệ thống phải lưu loại nhu cầu của khách hàng, bao gồm Lái thử / Tư vấn / CSKH.
+	•	Đối với yêu cầu Đăng ký lái thử hoặc Tư vấn, hệ thống phải tự động gửi email thông báo cho Sales.
+	•	Email gửi cho Sales phải chứa các thông tin cần thiết để Sales có thể tiếp nhận và liên hệ với khách hàng.
+	•	Sau khi tạo Lead thành công, hệ thống phải gửi email xác nhận cho khách hàng.
+	•	Email xác nhận phải thông báo rằng yêu cầu đã được TNT Car tiếp nhận thành công.
+	•	Hệ thống phải lưu thời gian tiếp nhận, loại yêu cầu và thông tin khách hàng.
+	•	Hệ thống phải đảm bảo yêu cầu được chuyển sang FR-01 để Sales tiếp tục xử lý, tránh tình trạng Lead được tạo nhưng không có người tiếp nhận.
+	•	Trong trường hợp hệ thống không thể tạo Lead, hệ thống phải ghi nhận lỗi và không được xác nhận thành công với khách hàng.
+	•	Hệ thống phải đảm bảo dữ liệu khách hàng từ Website được truyền chính xác sang FR-01 - Quản lý Lead.
+
+
+
+
+	•	NON-FUNCTIONAL REQUIREMENTS
+NFR
+Loại
+Nội dung
+NFR-01
+Nền tảng
+App bắt buộc PWA (Service Worker + Web Push); Sales phải cài "Thêm vào màn hình chính" + cấp quyền Thông báo ngay từ onboarding lần đầu, không được bỏ qua.
+NFR-02
+Tương thích thiết bị
+Tối thiểu iOS 16.4+ (Safari) hoặc Android Chrome/Edge bản mới để hỗ trợ Web Push.
+NFR-03
+Hiệu năng
+Tìm kiếm/lọc Lead và tra cứu xe phải trả kết quả dưới 1 giây. Autocomplete xe kích hoạt sau ≥2 ký tự.
+NFR-04
+Độ tin cậy — Offline
+Toàn bộ thao tác tạo/sửa Lead, chốt/sửa Won-Lost, ghi chú, lịch hẹn phải hoạt động được khi mất mạng, lưu cục bộ trong IndexedDB, không mất dữ liệu khi đóng/mở lại app.
+NFR-05
+Độ tin cậy — Đồng bộ
+Retry tự động tối đa 5 lần, cách nhau 30 phút/lần, trước khi đánh dấu FAILED. Không được mất dữ liệu ở trạng thái PENDING dù sync thất bại nhiều lần.
+NFR-06
+Bảo mật
+Giao tiếp Client-Server bắt buộc qua HTTPS/TLS. Dữ liệu khách hàng (SĐT, họ tên) trong IndexedDB cần có cơ chế bảo vệ cơ bản, không lưu plaintext token nhạy cảm lâu dài.
+NFR-07
+Phân quyền & Truy vết
+Sales chỉ truy cập được Lead do mình tạo/được gán. Sales được tự sửa kết quả Won/Lost bất kỳ lúc nào (không cần Admin duyệt), nhưng mọi lần sửa bắt buộc ghi lý do và lưu đầy đủ audit trail (trạng thái cũ/mới, người sửa, thời điểm) để phục vụ truy vết.
+NFR-08
+Khả dụng (Availability)
+Server API (đặc biệt /api/sync) cần đạt uptime đủ cao vì Sales phụ thuộc vào đây để đồng bộ dữ liệu khi online. ⚠️ Cần xác nhận chỉ số SLA cụ thể (VD 99.5%) — chưa được doanh nghiệp chốt.
+NFR-09
+Khả năng mở rộng
+Cơ chế polymorphic của sync_queue (entity_type/entity_id) cần hỗ trợ dễ dàng thêm loại dữ liệu offline mới trong tương lai mà không đổi schema.
+NFR-10
+Giám sát & Nhật ký
+Mọi lượt đồng bộ phải ghi log vào sync_log (device_id, synced_count, failed_count, trạng thái). Mọi lần Sales sửa lại Won/Lost cũng phải ghi log riêng (audit trail) để phục vụ giám sát, không chỉ dựa vào lời khai của Sales.
+NFR-11
+Khả năng dùng (Usability)
+Giao diện tối giản, ngôn ngữ tiếng Việt, tối ưu cho thao tác một tay trên di động — phù hợp bối cảnh Sales dùng khi đang đứng tư vấn tại showroom.
+NFR-12
+Dung lượng ứng dụng
+⚠️ Cần xác nhận: SRS chưa nêu giới hạn dung lượng cài đặt/cache — cần chốt để đảm bảo app nhẹ, cài nhanh trên thiết bị Sales phổ thông.
+NFR-13
+Toàn vẹn báo cáo
+🆕 Vì Sales có thể sửa lại Won/Lost tự do, số liệu Dashboard/KPI tại một thời điểm có thể khác với số liệu xem lại sau đó cho cùng kỳ báo cáo đã "chốt". ⚠️ Cần doanh nghiệp xác nhận: có cần snapshot/khóa số liệu báo cáo theo từng kỳ (tuần/tháng) để tránh sai lệch khi so sánh về sau không?
+
+
+	•	DATA DICTIONARY
+11.1. Bảng: leads
+Lưu thông tin khách hàng tiềm năng — thực thể trung tâm của hệ thống (FR-01, FR-03). 
+
+Fields
+Kiểu dữ liệu
+Bắt buộc
+Constraint / Enum
+Mô tả
+id
+UUID
+Có
+PK, sinh client-side khi tạo offline
+Định danh duy nhất của Lead, không đổi kể cả sau khi sync
+server_id
+bỏ
+BIGINT
+Không
+Nullable, unique khi có giá trị
+ID do server SQL Database cấp sau khi đồng bộ thành công (FR07.4)
+full_name
+VARCHAR(100)
+Có
+Tối đa 100 ký tự
+Họ tên khách hàng (FR01.1)
+phone
+VARCHAR(11)
+Có
+9-11 chữ số; KHÔNG unique — 1 SĐT được phép tồn tại trên nhiều Lead do nhiều Sales khác nhau theo dõi song song (quyết định nghiệp vụ)
+Số điện thoại khách hàng (FR01.1)
+car_model_id
+UUID
+Không
+FK → car_models.id
+Dòng xe khách quan tâm
+source
+ENUM(12 giá trị)
+Có
+Sale tự nhập / Facebook Ads / Website / CSKH nhập / TikTok Ads / Zalo / Google Ads / Hotline / Giới thiệu / Showroom-Sự kiện / Import hệ thống cũ / Khác
+Nguồn Lead (FR01.1)
+status (theo bảng của thầy Tịnh)
+
+
+
+
+status_detail
+ENUM(7 giá trị)
+Có
+Không liên lạc được / Tương tác chưa thành công / Đang tìm hiểu (mặc định) / Có nhu cầu ngay / Không có nhu cầu / Thành công / Lead thất bại
+5 trạng thái đầu do Sale set (FR01.3); 2 trạng thái cuối chỉ set qua FR-03
+lost_reason_id
+UUID
+Không
+FK → lost_reasons.id, bắt buộc khi status = Lead thất bại
+Lý do Lost (US-03.3/US-01.7)
+lost_reason_note
+TEXT
+Không
+Bắt buộc khi lost_reason = Khác
+Lý do cụ thể dạng tự do khi chọn lý do Khác
+assigned_sales_id
+UUID
+Không
+FK → users.id
+Sales phụ trách; null nếu Lead từ Website chưa được gán (BR-21)
+created_by
+UUID
+Có
+FK → users.id
+Người tạo Lead ban đầu
+sync_status
+ENUM
+Có
+PENDING / SYNCED / FAILED
+Trạng thái đồng bộ của bản ghi này (FR07.1)
+sync_attempts
+INT
+Có
+Default: 0, reset về 0 khi sync thành công
+Số lần thử đồng bộ; đạt 5 thì set FAILED (FR07.4)
+created_at
+TIMESTAMP
+Có
+Gán tại thời điểm tạo (client hoặc server)
+Thời điểm tạo bản ghi
+updated_at
+TIMESTAMP
+Có
+Cập nhật mỗi lần sửa; dùng để so sánh Last-Write-Wins
+Thời điểm sửa gần nhất — trường quyết định thắng/thua khi conflict (FR07.3)
+
+11.2. Bảng: interactions
+Nhật ký hoạt động chăm sóc — mỗi lần Sales gọi điện/gặp khách (FR-02).
+
+Fields
+Kiểu dữ liệu
+Bắt buộc
+Constraint / Enum
+Mô tả
+id
+UUID
+Có
+PK, sinh client-side
+Định danh bản ghi tương tác
+lead_id
+UUID
+Có
+FK → leads.id
+Lead được chăm sóc
+type
+ENUM
+Có
+Gọi điện / Nhắn tin-Zalo / Gặp trực tiếp / Lịch hẹn / Khác
+Loại hoạt động chăm sóc (US-02.1)
+note
+TEXT
+Có
+Không được để trống (BR-08)
+Nội dung ghi chú
+status_before
+ENUM
+Không
+1 trong 5 trạng thái xử lý của leads.status
+Trạng thái Lead trước khi ghi hoạt động (audit trail)
+status_after
+ENUM
+Không
+1 trong 5 trạng thái xử lý; null nếu không đổi trạng thái lần này
+Trạng thái Lead sau khi ghi hoạt động — đổi trạng thái là tùy chọn (US-02.1)
+created_by
+UUID
+Có
+FK → users.id
+Sales ghi nhận hoạt động
+sync_status
+ENUM
+Có
+PENDING / SYNCED / FAILED
+Trạng thái đồng bộ
+created_at
+TIMESTAMP
+Có
+—
+Thời điểm ghi nhận, dùng sắp xếp Timeline (mới nhất trước)
+
+11.3. Bảng: reminders
+Lịch hẹn / nhắc việc gắn với Lead, kèm push notification (FR-02, FR-11).
+
+Fields
+Kiểu dữ liệu
+Bắt buộc
+Constraint / Enum
+Mô tả
+id
+UUID
+Có
+PK, sinh client-side
+Định danh lịch hẹn
+lead_id
+UUID
+Có
+FK → leads.id
+Lead liên quan
+remind_at
+TIMESTAMP
+Có
+Phải > thời điểm hiện tại (BR-10)
+Thời điểm hẹn
+purpose
+ENUM
+Có
+Lái thử / Ký hợp đồng / Tư vấn lại / Khác
+Mục đích lịch hẹn (US-02.2)
+location
+VARCHAR(255)
+Không
+—
+Địa điểm hẹn
+notify_before_minutes
+INT
+Có
+Default: 30
+Nhắc trước bao nhiêu phút, có thể cấu hình
+notified
+BOOLEAN
+Có
+Default: false
+Đã gửi push notification hay chưa
+created_by
+UUID
+Có
+FK → users.id
+Sales tạo lịch hẹn
+sync_status
+ENUM
+Có
+PENDING / SYNCED / FAILED
+Trạng thái đồng bộ
+created_at
+TIMESTAMP
+Có
+—
+Thời điểm tạo lịch hẹn
+
+11.4. Bảng: car_models
+Danh mục xe — Read-only, dữ liệu là bản cache đồng bộ từ hệ thống kho xe ngoài phạm vi dự án (BR-26, BR-27, BR-28). Không có thao tác Create/Update/Delete từ ứng dụng này.
+
+Fields
+Kiểu dữ liệu
+Bắt buộc
+Constraint / Enum
+Mô tả
+id
+UUID
+Có
+PK — khớp ID từ hệ thống kho xe nguồn (nếu có) hoặc UUID ánh xạ nội bộ
+Định danh dòng xe/trim
+name
+VARCHAR(150)
+Có
+—
+Tên dòng xe
+brand
+VARCHAR(50)
+Có
+—
+Hãng xe
+price
+DECIMAL(14,2)
+Có
+—
+Giá niêm yết
+fuel_type
+VARCHAR(20)
+Không
+Xăng / Dầu / Điện / Hybrid
+Loại nhiên liệu
+status
+ENUM
+Có
+Available / In-transit / OutOfStock (BR-01 của FR-04)
+Chỉ hiển thị Available/In-transit cho người dùng
+last_synced_at
+TIMESTAMP
+Có
+Cập nhật ≤5 phút/lần (BR-07)
+Lần đồng bộ gần nhất từ hệ thống kho xe ngoài — dùng để hiển thị cảnh báo dữ liệu cũ nếu nguồn ngoài không phản hồi (BR-28)
+
+11.5. Bảng: lost_reasons
+Danh mục lý do Lost — dữ liệu master do Admin cấu hình, dùng làm dropdown khi Sales chốt Lost (FR-03).
+
+Fields
+Kiểu dữ liệu
+Bắt buộc
+Constraint / Enum
+Mô tả
+id
+UUID
+Có
+PK
+Định danh lý do
+label
+VARCHAR(100)
+Có
+VD: Giá cao, Chọn đối thủ, Vướng ngân hàng, Khác...
+Tên hiển thị trong dropdown
+requires_note
+BOOLEAN
+Có
+true chỉ với lý do "Khác"
+Bắt buộc nhập lost_reason_note ở bảng leads khi true (BR-03)
+active
+BOOLEAN
+Có
+Default: true
+Ẩn lý do không còn dùng mà không xóa dữ liệu lịch sử
+
+11.6. Bảng: sync-queue
+Hàng đợi đồng bộ phía client — theo dõi các bản ghi (Lead/Interaction/Reminder) đang chờ/đã/không đồng bộ được. Đây là bảng polymorphic — entity_id không có FK cứng trong DB vì có thể trỏ tới 1 trong nhiều bảng khác nhau tùy entity_type. Tương ứng với sync_log/sync_attempts trong FR07.5.
+
+Fields
+Kiểu dữ liệu
+Bắt buộc
+Constraint / Enum
+Mô tả
+id
+UUID
+Có
+PK, sinh client-side
+Định danh bản ghi hàng đợi
+entity_type
+ENUM
+Có
+lead / interaction / reminder
+Loại bản ghi cần đồng bộ (polymorphic)
+entity_id
+UUID
+Có
+Tham chiếu LOGIC tới leads.id / interactions.id / reminders.id tùy entity_type — không FK cứng
+ID của bản ghi gốc cần sync
+payload
+TEXT (JSON)
+Có
+—
+Toàn bộ nội dung bản ghi tại thời điểm đưa vào hàng đợi, để gửi nguyên khối lên POST /api/sync
+status
+ENUM
+Có
+PENDING / SYNCED / FAILED
+Trạng thái xử lý của item trong hàng đợi
+sync_attempts
+INT
+Có
+Default: 0; FAILED khi ≥5 (FR07.4)
+Số lần đã thử gửi
+server_id
+VARCHAR(64)
+Không
+Gán sau khi server xác nhận insert/update thành công
+ID phía server tương ứng với entity_id
+last_attempt_at
+TIMESTAMP
+Không
+—
+Lần thử gần nhất — dùng tính khoảng cách retry 30 phút (FR07.2)
+created_at
+TIMESTAMP
+Có
+—
+Thời điểm item được đưa vào hàng đợi (khi entity được tạo/sửa lúc offline)
+
+
+
+	•	MOCKUP & PROTOTYPE
+FIGMA
