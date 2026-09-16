@@ -19,14 +19,14 @@ router.get('/', (req, res) => {
   // Phân quyền: Sales chỉ thấy Lead của mình; Manager thấy nhóm; Admin thấy tất cả
   const visible = getVisibleSalesIds(req.user!);
   if (visible) {
-    conds.push(`(assigned_sales_id IN (${visible.map(() => '?').join(',')}) OR created_by IN (${visible.map(() => '?').join(',')}))`);
+    conds.push(`(l.assigned_sales_id IN (${visible.map(() => '?').join(',')}) OR l.created_by IN (${visible.map(() => '?').join(',')}))`);
     params.push(...visible, ...visible);
   }
-  if (!includeArchived) conds.push('is_archived = 0');
-  if (status) { conds.push('status_detail = ?'); params.push(status); }
-  if (source) { conds.push('source = ?'); params.push(source); }
-  if (sync) { conds.push('sync_status = ?'); params.push(sync); }
-  if (q) { conds.push('(full_name LIKE ? OR phone LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
+  if (!includeArchived) conds.push('l.is_archived = 0');
+  if (status) { conds.push('l.status_detail = ?'); params.push(status); }
+  if (source) { conds.push('l.source = ?'); params.push(source); }
+  if (sync) { conds.push('l.sync_status = ?'); params.push(sync); }
+  if (q) { conds.push('(l.full_name LIKE ? OR l.phone LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
 
   const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
   const rows = all(

@@ -30,12 +30,14 @@ COPY --from=backend /be/node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/sq
 # Copy frontend đã build vào thư mục public để backend serve
 COPY --from=frontend /fe/dist ./public
 
-# Cloud Run cấp PORT qua biến môi trường (mặc định 8080)
+# Script khởi động: chỉ migrate+seed khi DB chưa tồn tại (giữ dữ liệu khi dùng volume)
+COPY backend/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# PORT (Cloud Run cấp qua env; mặc định 8080). Với docker-compose dùng DB_PATH=/data
 ENV PORT=8080
-# Cloud Run chỉ cho ghi vào /tmp — đặt DB ở đó
 ENV DB_PATH=/tmp/tntcar.db
 ENV JWT_SECRET=tntcar-prod-doi-secret-nay
 EXPOSE 8080
 
-# Khởi tạo DB + seed khi container khởi động, rồi chạy server
-CMD ["sh", "-c", "node dist/db/migrate.js && node dist/db/seed.js && node dist/index.js"]
+CMD ["/docker-entrypoint.sh"]

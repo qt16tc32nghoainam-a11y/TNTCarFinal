@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { enqueue } from '../lib/db';
+import { v4 as uuid } from '../lib/uuid';
 import { useAuth } from '../lib/auth';
 import { Lead, PROCESSING_STATUSES, ACTIVITY_TYPES } from '../lib/types';
 import { Modal, Spinner, Field } from '../components/ui';
@@ -136,7 +138,14 @@ function ActivityModal({ leadId, onClose, onDone }: any) {
   const [note, setNote] = useState('');
   const [newStatus, setNewStatus] = useState('');
   async function save() {
-    await api.post('/care/interactions', { lead_id: leadId, type, note, new_status: newStatus || undefined });
+    const id = uuid();
+    if (navigator.onLine) {
+      await api.post('/care/interactions', { id, lead_id: leadId, type, note, new_status: newStatus || undefined });
+    } else {
+      // Offline: lưu vào outbox, đồng bộ khi có mạng (BR-11)
+      await enqueue({ id, entity_type: 'interaction', payload: { lead_id: leadId, type, note, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
+      alert('Đã lưu hoạt động cục bộ (offline), sẽ đồng bộ khi có mạng.');
+    }
     onDone();
   }
   return (
@@ -163,8 +172,16 @@ function ReminderModal({ leadId, onClose, onDone }: any) {
   const [err, setErr] = useState('');
   async function save() {
     setErr('');
+    if (!remind_at) return setErr('Vui lòng chọn thời gian hẹn');
+    if (new Date(remind_at).getTime() <= Date.now()) return setErr('Thời gian nhắc việc phải ở tương lai');
     try {
-      await api.post('/care/reminders', { lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location });
+      const id = uuid();
+      if (navigator.onLine) {
+        await api.post('/care/reminders', { id, lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location });
+      } else {
+        await enqueue({ id, entity_type: 'reminder', payload: { lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
+        alert('Đã lưu lịch hẹn cục bộ (offline), sẽ đồng bộ khi có mạng.');
+      }
       onDone();
     } catch (e: any) { setErr(e.message); }
   }
