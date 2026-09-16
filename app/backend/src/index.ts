@@ -16,9 +16,12 @@ import syncRoutes from './routes/sync';
 import publicRoutes from './routes/public';
 import contentRoutes from './routes/content';
 import metaRoutes from './routes/meta';
+import notificationRoutes from './routes/notifications';
+import { startScheduler } from './scheduler';
 
 async function main() {
   await initDb();
+  startScheduler();
 
   const app = express();
   app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',') }));
@@ -37,6 +40,7 @@ async function main() {
   app.use('/api/public', publicRoutes);
   app.use('/api/content', contentRoutes);
   app.use('/api/meta', metaRoutes);
+  app.use('/api/notifications', notificationRoutes);
 
   // Phục vụ frontend đã build (production). Đường dẫn tới thư mục frontend/dist
   const staticDir = path.join(__dirname, '../public');

@@ -120,4 +120,39 @@ router.get('/snapshots', requireRole('Admin', 'Manager'), (_req, res) => {
   res.json(all('SELECT id,period_type,period_label,locked_at FROM kpi_snapshots ORDER BY locked_at DESC'));
 });
 
+/** GET /api/dashboard/export — xuất báo cáo CSV (US-05.2), phân quyền theo scope. */
+router.get('/export', (req, res) => {
+  const scope = getVisibleSalesIds(req.user!);
+  const clause = scope ? ` AND u.id IN (${scope.map(() => '?').join(',')})` : '';
+  const ranking = all<any>(
+    `SELECT u.full_name, s.name AS showroom_name,
+       COUNT(CASE WHEN l.status_detail='Thành công' THEN 1 END) AS won,
+       COUNT(CASE WHEN l.status_detail='Lead thất bại' THEN 1 END) AS lost,
+       COUNT(l.id) AS total_leads,
+       COALESCE((SELECT SUM(value) FROM contracts ct WHERE ct.created_by=u.id AND ct.status='Hiệu lực'),0) AS revenue
+     FROM users u
+     LEFT JOIN leads l ON l.assigned_sales_id = u.id
+     LEFT JOIN showrooms s ON s.id = u.showroom_id
+     WHERE u.role='Sales' ${clause}
+     GROUP BY u.id ORDER BY won DESC`,
+    scope || []
+  );
+
+  // Tạo CSV (có BOM để Excel đọc đúng tiếng Việt)
+  const header = ['Nhân viên', 'Showroom', 'Tổng Lead', 'Won', 'Lost', 'Doanh thu (đ)'];
+  const escape = (v: any) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [header.join(',')];
+  for (const r of ranking) {
+    lines.push([r.full_name, r.showroom_name || '', r.total_leads, r.won, r.lost, r.revenue].map(escape).join(','));
+  }
+  const csv = '\uFEFF' + lines.join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="bao-cao-kpi-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(csv);
+});
+
 export default router;

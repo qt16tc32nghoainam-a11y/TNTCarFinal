@@ -7,6 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true, // Bật service worker ngay ở chế độ dev (npm run dev) để test offline
+        type: 'module',
+      },
       manifest: {
         name: 'TNT CAR - Sales App',
         short_name: 'TNT CAR',

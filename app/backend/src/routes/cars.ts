@@ -55,6 +55,11 @@ router.post('/test-drives', authenticate, (req, res) => {
   const slot = get<any>('SELECT * FROM slots WHERE id = ?', [slot_id]);
   if (!slot || !slot.is_available) return res.status(409).json({ error: 'Khung giờ vừa bị giữ, vui lòng chọn lại' });
 
+  // BR-TD-02: khung giờ phải cách hiện tại tối thiểu 2 giờ (kiểm lại lúc đặt)
+  if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
+    return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ' });
+  }
+
   // BR-TD-01: tối đa 3 lịch active của cùng SĐT
   const activeCount = get<any>(
     `SELECT COUNT(*) c FROM test_drive_bookings WHERE customer_phone = ? AND status IN ('Chờ xác nhận','Đã xác nhận')`,
@@ -100,8 +105,13 @@ router.patch('/test-drives/:id/status', authenticate, (req, res) => {
   const { status, note } = req.body || {};
   const valid = ['Đã xác nhận', 'Từ chối', 'Hoàn thành', 'Vắng mặt', 'Hủy'];
   if (!valid.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
-  const booking = get<any>('SELECT * FROM test_drive_bookings WHERE id = ?', [req.params.id]);
+  const booking = get<any>('SELECT b.*, s.start_time FROM test_drive_bookings b JOIN slots s ON s.id = b.slot_id WHERE b.id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Không tìm thấy lịch' });
+
+  // BR-TD-05: khách hủy phải trước giờ hẹn tối thiểu 4 giờ
+  if (status === 'Hủy' && new Date(booking.start_time).getTime() < Date.now() + 4 * 3600000) {
+    return res.status(400).json({ error: 'Chỉ được hủy trước giờ hẹn tối thiểu 4 giờ. Vui lòng liên hệ showroom trực tiếp.' });
+  }
 
   transaction(() => {
     run('UPDATE test_drive_bookings SET status = ?, result_note = ? WHERE id = ?', [status, note || booking.result_note, req.params.id]);
@@ -109,6 +119,34 @@ router.patch('/test-drives/:id/status', authenticate, (req, res) => {
     if (status === 'Từ chối' || status === 'Hủy') {
       run('UPDATE slots SET is_available = 1 WHERE id = ?', [booking.slot_id]);
     }
+  });
+  res.json({ ok: true });
+});
+
+/** PATCH /api/cars/test-drives/:id/reschedule — đổi khung giờ (BR-TD-05, trước 4h). */
+router.patch('/test-drives/:id/reschedule', authenticate, (req, res) => {
+  const { new_slot_id } = req.body || {};
+  if (!new_slot_id) return res.status(400).json({ error: 'Thiếu khung giờ mới' });
+  const booking = get<any>('SELECT b.*, s.start_time FROM test_drive_bookings b JOIN slots s ON s.id = b.slot_id WHERE b.id = ?', [req.params.id]);
+  if (!booking) return res.status(404).json({ error: 'Không tìm thấy lịch' });
+  if (!['Chờ xác nhận', 'Đã xác nhận'].includes(booking.status)) {
+    return res.status(400).json({ error: 'Chỉ đổi được lịch đang hoạt động' });
+  }
+  // BR-TD-05: đổi lịch phải trước giờ hẹn tối thiểu 4 giờ
+  if (new Date(booking.start_time).getTime() < Date.now() + 4 * 3600000) {
+    return res.status(400).json({ error: 'Chỉ được đổi lịch trước giờ hẹn tối thiểu 4 giờ. Vui lòng liên hệ showroom.' });
+  }
+  const newSlot = get<any>('SELECT * FROM slots WHERE id = ?', [new_slot_id]);
+  if (!newSlot || !newSlot.is_available) return res.status(409).json({ error: 'Khung giờ mới không còn trống' });
+  // BR-TD-02: slot mới cách hiện tại tối thiểu 2 giờ
+  if (new Date(newSlot.start_time).getTime() < Date.now() + 2 * 3600000) {
+    return res.status(400).json({ error: 'Khung giờ mới phải cách hiện tại tối thiểu 2 giờ' });
+  }
+
+  transaction(() => {
+    run('UPDATE slots SET is_available = 1 WHERE id = ?', [booking.slot_id]); // giải phóng slot cũ
+    run('UPDATE slots SET is_available = 0 WHERE id = ?', [new_slot_id]);      // khóa slot mới
+    run("UPDATE test_drive_bookings SET slot_id = ?, status = 'Chờ xác nhận' WHERE id = ?", [new_slot_id, req.params.id]);
   });
   res.json({ ok: true });
 });

@@ -182,9 +182,14 @@ router.post('/:id/assign', requireRole('Admin'), (req, res) => {
   const { sales_id } = req.body || {};
   const sale = get<any>('SELECT id FROM users WHERE id = ? AND role = ?', [sales_id, 'Sales']);
   if (!sale) return res.status(400).json({ error: 'Sales không hợp lệ' });
-  const lead = get<any>('SELECT id FROM leads WHERE id = ?', [req.params.id]);
+  const lead = get<any>('SELECT id, full_name FROM leads WHERE id = ?', [req.params.id]);
   if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
   run('UPDATE leads SET assigned_sales_id = ?, updated_at = ? WHERE id = ?', [sales_id, nowIso(), req.params.id]);
+  // Thông báo cho Sales được gán (US-01.5)
+  run(
+    `INSERT INTO notifications (id,user_id,type,title,body,ref_type,ref_id,is_read,created_at) VALUES (?,?,?,?,?,?,?,?,?)`,
+    [uuid(), sales_id, 'lead_assigned', 'Bạn được gán một Lead mới', `Lead: ${lead.full_name}`, 'lead', lead.id, 0, nowIso()]
+  );
   persist();
   res.json({ ok: true });
 });

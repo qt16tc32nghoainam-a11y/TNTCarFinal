@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, getToken } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Spinner } from '../components/ui';
 import { formatVnd } from '../lib/format';
@@ -24,6 +24,18 @@ export default function Dashboard() {
     alert('Đã khóa số liệu kỳ ' + label);
   }
 
+  async function exportCsv() {
+    const res = await fetch('/api/dashboard/export', { headers: { Authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) return alert('Xuất báo cáo thất bại');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bao-cao-kpi-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (loading || !kpi) return <Spinner />;
 
   const cards = [
@@ -43,7 +55,10 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold">Dashboard KPI</h1>
           <div className="text-sm text-gray-500">Phạm vi: {kpi.scope === 'Admin' ? 'Toàn hệ thống' : kpi.scope === 'Manager' ? 'Nhóm của bạn' : 'Của bạn'}</div>
         </div>
-        {user?.role === 'Admin' && <button onClick={lockPeriod} className="btn-secondary">Khóa số liệu kỳ</button>}
+        <div className="flex gap-2">
+          <button onClick={exportCsv} className="btn-secondary">Xuất báo cáo (CSV)</button>
+          {user?.role === 'Admin' && <button onClick={lockPeriod} className="btn-secondary">Khóa số liệu kỳ</button>}
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">

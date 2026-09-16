@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { v4 as uuid } from '../lib/uuid';
 import { api } from '../lib/api';
-import { enqueue } from '../lib/db';
+import { enqueue, cacheLeads, getCachedLeads, getOutboxLeads } from '../lib/db';
 import { runSync } from '../lib/sync';
 import { useAuth } from '../lib/auth';
 import { Lead, PROCESSING_STATUSES } from '../lib/types';
@@ -21,6 +21,7 @@ export default function LeadsList() {
   const [showCreate, setShowCreate] = useState(false);
   const [dupGroups, setDupGroups] = useState<any[]>([]);
   const [showDup, setShowDup] = useState(false);
+  const [offline, setOffline] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -31,11 +32,28 @@ export default function LeadsList() {
       if (source) params.set('source', source);
       const data = await api.get<Lead[]>('/leads?' + params.toString());
       setLeads(data);
+      setOffline(false);
+      // Lưu bản sao để xem offline (chỉ cache khi tải toàn bộ, không cache khi đang lọc)
+      if (!q && !status && !source) cacheLeads(data);
     } catch {
-      // offline: bỏ qua, danh sách rỗng
+      // Offline: đọc từ cache + gộp các Lead tạo offline chưa đồng bộ
+      const [cached, outbox] = await Promise.all([getCachedLeads(), getOutboxLeads()]);
+      const merged = [...outbox, ...cached];
+      setLeads(applyFilters(merged));
+      setOffline(true);
     } finally {
       setLoading(false);
     }
+  }
+
+  // Lọc phía client khi offline (server không truy vấn được)
+  function applyFilters(list: any[]): Lead[] {
+    return list.filter((l) => {
+      if (q && !(`${l.full_name || ''} ${l.phone || ''}`.toLowerCase().includes(q.toLowerCase()))) return false;
+      if (status && l.status_detail !== status) return false;
+      if (source && l.source !== source) return false;
+      return true;
+    });
   }
 
   useEffect(() => {
@@ -54,7 +72,10 @@ export default function LeadsList() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Quản lý Lead</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold">Quản lý Lead</h1>
+          {offline && <span className="badge bg-amber-100 text-amber-700">Đang xem dữ liệu offline</span>}
+        </div>
         <div className="flex gap-2">
           <button onClick={loadDuplicates} className="btn-secondary">Lead trùng</button>
           <button onClick={() => setShowCreate(true)} className="btn-primary">+ Tạo Lead</button>
@@ -95,6 +116,7 @@ export default function LeadsList() {
                   <td className="p-3">
                     <Link to={`/leads/${l.id}`} className="font-medium text-brand-700 hover:underline">{l.full_name}</Link>
                     {!!l.flag_duplicate_phone && <span className="ml-1 badge bg-amber-100 text-amber-700">trùng</span>}
+                    {!!(l as any)._pendingSync && <span className="ml-1 badge bg-blue-100 text-blue-700">chờ đồng bộ</span>}
                   </td>
                   <td className="p-3">{l.phone}</td>
                   <td className="p-3">{l.car_name || '-'}</td>

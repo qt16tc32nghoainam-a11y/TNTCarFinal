@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { pendingCount } from '../lib/db';
 import { startAutoSync, runSync } from '../lib/sync';
+import { api } from '../lib/api';
+import InstallButton from './InstallButton';
 
 const navByRole: Record<string, { to: string; label: string; icon: string }[]> = {
   Sales: [
@@ -36,6 +38,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const nav = useNavigate();
   const [online, setOnline] = useState(navigator.onLine);
   const [pending, setPending] = useState(0);
+  const [notis, setNotis] = useState<any[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [showNoti, setShowNoti] = useState(false);
+
+  async function loadNotis() {
+    try {
+      const d = await api.get<any>('/notifications');
+      setNotis(d.items || []);
+      setUnread(d.unread || 0);
+      // Nếu trình duyệt cho phép, đẩy thông báo hệ thống cho các mục chưa đọc mới
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const unseen = (d.items || []).filter((n: any) => !n.is_read).slice(0, 1);
+        unseen.forEach((n: any) => {
+          const key = 'noti_shown_' + n.id;
+          if (!sessionStorage.getItem(key)) {
+            new Notification(n.title, { body: n.body || '' });
+            sessionStorage.setItem(key, '1');
+          }
+        });
+      }
+    } catch { /* offline */ }
+  }
 
   useEffect(() => {
     const upd = () => setOnline(navigator.onLine);
@@ -43,8 +67,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     window.addEventListener('offline', upd);
     startAutoSync(() => pendingCount().then(setPending));
     const t = setInterval(() => pendingCount().then(setPending), 3000);
-    return () => { window.removeEventListener('online', upd); window.removeEventListener('offline', upd); clearInterval(t); };
+    loadNotis();
+    const nt = setInterval(loadNotis, 20000);
+    return () => { window.removeEventListener('online', upd); window.removeEventListener('offline', upd); clearInterval(t); clearInterval(nt); };
   }, []);
+
+  async function markAllRead() {
+    await api.post('/notifications/read-all');
+    loadNotis();
+  }
 
   const items = navByRole[user?.role || 'Sales'] || [];
 
@@ -79,6 +110,31 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 ⏳ {pending} chờ đồng bộ
               </button>
             )}
+            <InstallButton />
+            {/* Chuông thông báo */}
+            <div className="relative">
+              <button onClick={() => { setShowNoti(!showNoti); }} className="relative rounded-full px-2 py-1 hover:bg-gray-100" title="Thông báo">
+                🔔
+                {unread > 0 && <span className="absolute -right-0 -top-0 rounded-full bg-red-600 px-1 text-[10px] text-white">{unread}</span>}
+              </button>
+              {showNoti && (
+                <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border bg-white shadow-lg">
+                  <div className="flex items-center justify-between border-b px-3 py-2">
+                    <span className="text-sm font-semibold">Thông báo</span>
+                    {unread > 0 && <button onClick={markAllRead} className="text-xs text-brand-700 hover:underline">Đánh dấu đã đọc</button>}
+                  </div>
+                  <div className="max-h-80 overflow-auto">
+                    {notis.length === 0 ? <div className="p-4 text-center text-xs text-gray-400">Chưa có thông báo</div> :
+                      notis.map((n) => (
+                        <div key={n.id} className={`border-b px-3 py-2 text-sm ${n.is_read ? 'opacity-60' : 'bg-brand-50'}`}>
+                          <div className="font-medium">{n.title}</div>
+                          <div className="text-xs text-gray-600">{n.body}</div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

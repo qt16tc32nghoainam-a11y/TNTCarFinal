@@ -16,9 +16,14 @@ export default function TestDrives() {
   async function update(id: string, status: string) {
     let note: string | undefined;
     if (status === 'Từ chối') { note = prompt('Lý do từ chối?') || ''; if (!note) return; }
+    if (status === 'Hủy' && !confirm('Xác nhận hủy lịch lái thử này?')) return;
     if (status === 'Hoàn thành' || status === 'Vắng mặt') note = prompt('Ghi chú kết quả (tùy chọn):') || '';
-    await api.patch(`/cars/test-drives/${id}/status`, { status, note });
-    load();
+    try {
+      await api.patch(`/cars/test-drives/${id}/status`, { status, note });
+      load();
+    } catch (e: any) {
+      alert(e.message); // vd: "Chỉ được hủy trước giờ hẹn tối thiểu 4 giờ..."
+    }
   }
 
   const tdStatusColor = (s: string) => ({
@@ -54,11 +59,13 @@ export default function TestDrives() {
                       </div>
                     )}
                     {r.status === 'Đã xác nhận' && (
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-1">
                         <button onClick={() => update(r.id, 'Hoàn thành')} className="badge bg-green-100 text-green-700">Hoàn thành</button>
                         <button onClick={() => update(r.id, 'Vắng mặt')} className="badge bg-gray-100 text-gray-600">Vắng mặt</button>
+                        <button onClick={() => update(r.id, 'Hủy')} className="badge bg-red-100 text-red-700">Hủy</button>
                       </div>
                     )}
+                    {r.status === 'Chờ xác nhận' && null}
                   </td>
                 </tr>
               ))}

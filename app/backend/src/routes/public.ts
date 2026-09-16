@@ -51,8 +51,13 @@ router.post('/requests', (req, res) => {
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     [leadId, full_name, phone, car_model_id || null, 'Website', 'Đang tìm hiểu', request_type, randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
   );
+  // Thông báo in-app cho Sales được gán (FR-09 / US-02.3)
+  run(
+    `INSERT INTO notifications (id,user_id,type,title,body,ref_type,ref_id,is_read,created_at) VALUES (?,?,?,?,?,?,?,?,?)`,
+    [uuid(), randomSale, 'lead_assigned', `Lead mới từ Website (${request_type})`, `Khách: ${full_name} - ${phone}`, 'lead', leadId, 0, nowIso()]
+  );
   persist();
-  // Mô phỏng gửi email thông báo (ghi log server thay cho gửi thật)
+  // Ghi log mô phỏng gửi email (chưa tích hợp SMTP thật)
   console.log(`[EMAIL] Lead mới từ Website (${request_type}) gán cho Sales ${randomSale}; xác nhận gửi tới khách ${email || 'không có email'}`);
   res.status(201).json({ ok: true, lead_id: leadId, message: 'Yêu cầu đã được tiếp nhận, TNT CAR sẽ liên hệ lại sớm.' });
 });

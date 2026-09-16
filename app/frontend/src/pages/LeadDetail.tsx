@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { enqueue } from '../lib/db';
+import { enqueue, cacheLead, getCachedLead } from '../lib/db';
 import { v4 as uuid } from '../lib/uuid';
 import { useAuth } from '../lib/auth';
 import { Lead, PROCESSING_STATUSES, ACTIVITY_TYPES } from '../lib/types';
@@ -19,10 +19,22 @@ export default function LeadDetail() {
   const [showResult, setShowResult] = useState(false);
   const [showContract, setShowContract] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
+  const [offline, setOffline] = useState(false);
 
   async function load() {
     setLoading(true);
-    try { setLead(await api.get<Lead>(`/leads/${id}`)); } finally { setLoading(false); }
+    try {
+      const data = await api.get<Lead>(`/leads/${id}`);
+      setLead(data);
+      setOffline(false);
+      cacheLead(data); // lưu để xem offline
+    } catch {
+      // Offline: đọc từ cache
+      const cached = await getCachedLead(id!);
+      if (cached) { setLead(cached); setOffline(true); }
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { load(); }, [id]);
 
@@ -47,7 +59,10 @@ export default function LeadDetail() {
       <div className="card mb-4">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-bold">{lead.full_name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">{lead.full_name}</h1>
+              {offline && <span className="badge bg-amber-100 text-amber-700">offline</span>}
+            </div>
             <div className="text-sm text-gray-500">{lead.phone} · {lead.source}</div>
             {lead.car_name && <div className="text-sm text-gray-500">Quan tâm: {lead.car_brand} {lead.car_name}</div>}
           </div>

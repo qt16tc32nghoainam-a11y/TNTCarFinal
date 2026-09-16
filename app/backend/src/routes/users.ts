@@ -68,6 +68,46 @@ router.patch('/:id/assign', requireRole('Admin'), (req, res) => {
   res.json({ ok: true });
 });
 
+/** PATCH /api/users/:id — cập nhật hồ sơ & vai trò (US-04.3). */
+router.patch('/:id', requireRole('Admin'), (req, res) => {
+  const { full_name, phone, role, showroom_id, manager_id } = req.body || {};
+  const u = get<any>('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  if (!u) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+  if (role && !['Admin', 'Manager', 'Sales'].includes(role)) return res.status(400).json({ error: 'Vai trò không hợp lệ' });
+
+  // Không cho tự hạ vai trò của chính mình (tránh mất quyền Admin cuối cùng)
+  if (req.params.id === req.user!.id && role && role !== 'Admin') {
+    return res.status(400).json({ error: 'Không thể tự đổi vai trò của chính mình' });
+  }
+  if (phone && phone !== u.phone) {
+    const dup = get<any>('SELECT id FROM users WHERE phone = ? AND id != ?', [phone, req.params.id]);
+    if (dup) return res.status(409).json({ error: 'Số điện thoại đã tồn tại' });
+  }
+  run(
+    'UPDATE users SET full_name = ?, phone = ?, role = ?, showroom_id = ?, manager_id = ? WHERE id = ?',
+    [
+      full_name ?? u.full_name,
+      phone ?? u.phone,
+      role ?? u.role,
+      showroom_id !== undefined ? (showroom_id || null) : u.showroom_id,
+      manager_id !== undefined ? (manager_id || null) : u.manager_id,
+      req.params.id,
+    ]
+  );
+  persist();
+  res.json({ ok: true });
+});
+
+/** POST /api/users/:id/reset-password — đặt lại mật khẩu về mặc định. */
+router.post('/:id/reset-password', requireRole('Admin'), (req, res) => {
+  const u = get<any>('SELECT id FROM users WHERE id = ?', [req.params.id]);
+  if (!u) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+  const newPass = req.body?.password || '123456';
+  run('UPDATE users SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(newPass, 8), req.params.id]);
+  persist();
+  res.json({ ok: true, password: newPass });
+});
+
 /** GET /api/users/showrooms — danh sách showroom. */
 router.get('/meta/showrooms', (_req, res) => res.json(all('SELECT * FROM showrooms')));
 

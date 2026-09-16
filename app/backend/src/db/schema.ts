@@ -231,6 +231,29 @@ CREATE TABLE IF NOT EXISTS loan_rates (
   note TEXT
 );
 
+-- Thông báo trong ứng dụng (nhắc việc, nhắc lái thử) (FR-02, FR-10)
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,           -- reminder | test_drive | lead_assigned
+  title TEXT NOT NULL,
+  body TEXT,
+  ref_type TEXT,                -- reminder | booking | lead
+  ref_id TEXT,
+  is_read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Đánh dấu các mốc nhắc lái thử đã gửi (tránh gửi trùng 24h/2h)
+CREATE TABLE IF NOT EXISTS test_drive_reminders_sent (
+  id TEXT PRIMARY KEY,
+  booking_id TEXT NOT NULL,
+  milestone TEXT NOT NULL,      -- '24h' | '2h'
+  sent_at TEXT NOT NULL,
+  FOREIGN KEY (booking_id) REFERENCES test_drive_bookings(id)
+);
+
 -- Nhật ký đồng bộ (FR-06, NFR-10)
 CREATE TABLE IF NOT EXISTS sync_log (
   id TEXT PRIMARY KEY,
@@ -249,4 +272,5 @@ CREATE INDEX IF NOT EXISTS idx_interactions_lead ON interactions(lead_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_lead ON reminders(lead_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_slot ON test_drive_bookings(slot_id);
 CREATE INDEX IF NOT EXISTS idx_contracts_lead ON contracts(lead_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
 `;
