@@ -16,7 +16,19 @@ export type Row = Record<string, SqlValue>;
 
 /** Khởi tạo DB: nạp từ file nếu có, hoặc tạo mới trong bộ nhớ. */
 export async function initDb(): Promise<void> {
-  const SQL = await initSqlJs();
+  // locateFile giúp sql.js tìm đúng file wasm khi chạy production (từ dist/)
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => {
+      const candidates = [
+        path.join(process.cwd(), 'node_modules/sql.js/dist', file),
+        require.resolve('sql.js/dist/' + file),
+      ];
+      for (const c of candidates) {
+        try { if (fs.existsSync(c)) return c; } catch { /* ignore */ }
+      }
+      return file;
+    },
+  });
   const dir = path.dirname(DB_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 

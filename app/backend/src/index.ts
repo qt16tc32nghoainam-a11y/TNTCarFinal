@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 import { config } from './config';
 import { initDb } from './db/database';
 
@@ -36,6 +38,17 @@ async function main() {
   app.use('/api/content', contentRoutes);
   app.use('/api/meta', metaRoutes);
 
+  // Phục vụ frontend đã build (production). Đường dẫn tới thư mục frontend/dist
+  const staticDir = path.join(__dirname, '../public');
+  if (fs.existsSync(staticDir)) {
+    app.use(express.static(staticDir));
+    // SPA fallback: mọi route không phải /api trả về index.html
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(staticDir, 'index.html'));
+    });
+  }
+
   // Error handler chung
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Lỗi:', err);
@@ -43,7 +56,7 @@ async function main() {
   });
 
   app.listen(config.port, () => {
-    console.log(`TNT CAR API đang chạy tại http://localhost:${config.port}`);
+    console.log(`TNT CAR chạy tại cổng ${config.port}`);
   });
 }
 
