@@ -66,16 +66,16 @@ async function seed() {
   // ---------- Car models ----------
   const cars: any[] = [
     // id, name, brand, price, fuel, segment, year, transmission, color, image, promotion, status
-    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=800&q=70', 'Giảm 20 triệu + BHVC', 'Available'],
-    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', 'https://images.unsplash.com/photo-1568844293986-8d0400bd4745?w=800&q=70', 'Tặng phụ kiện 30 triệu', 'Available'],
-    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=70', '', 'Available'],
-    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=70', 'Hỗ trợ 50% trước bạ', 'In-transit'],
-    [uuid(), 'VF 8 Plus', 'VinFast', 1219000000, 'Điện', 'SUV hạng D', 2025, 'Số tự động', 'Xanh', 'https://images.unsplash.com/photo-1617704548623-340376564e68?w=800&q=70', 'Miễn phí sạc 1 năm', 'Available'],
-    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=70', '', 'Available'],
-    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', 'https://images.unsplash.com/photo-1550355291-bbee04a92027?w=800&q=70', 'Giảm 15 triệu', 'Available'],
-    [uuid(), 'Santa Fe', 'Hyundai', 1069000000, 'Dầu', 'SUV hạng D', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?w=800&q=70', '', 'OutOfStock'],
-    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', 'https://images.unsplash.com/photo-1607853202273-797f1c22a38e?w=800&q=70', 'Tặng camera 360', 'Available'],
-    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=70', '', 'In-transit'],
+    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', 'https://commons.wikimedia.org/wiki/Special:FilePath/Toyota%20Vios%20(XP40)%20in%20Taiwan%202023.jpg?width=800', 'Giảm 20 triệu + BHVC', 'Available'],
+    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', 'https://commons.wikimedia.org/wiki/Special:FilePath/Toyota%20Corolla%20Cross%201.8%20HEV%202022.jpg?width=800', 'Tặng phụ kiện 30 triệu', 'Available'],
+    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', 'https://commons.wikimedia.org/wiki/Special:FilePath/2024%20Honda%20CR-V%202.0%20eHEV%20RS%20Crystal%20Black%20Pearl%20in%20Indonesia%2001.jpg?width=800', '', 'Available'],
+    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', 'https://commons.wikimedia.org/wiki/Special:FilePath/2024%20Honda%20City%201.5%20S%20in%20Taffeta%20White,%20rear%20right,%2006-14-2024.jpg?width=800', 'Hỗ trợ 50% trước bạ', 'In-transit'],
+    [uuid(), 'VF 8 Plus', 'VinFast', 1219000000, 'Điện', 'SUV hạng D', 2025, 'Số tự động', 'Xanh', 'https://commons.wikimedia.org/wiki/Special:FilePath/Vinfast%20VF8%20at%20Hillsdale%204%20(cropped).jpg?width=800', 'Miễn phí sạc 1 năm', 'Available'],
+    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', 'https://commons.wikimedia.org/wiki/Special:FilePath/NewOne-En%20Vang%20taxi%20VinFast%20VF%205%2004.jpg?width=800', '', 'Available'],
+    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', 'https://commons.wikimedia.org/wiki/Special:FilePath/Hyundai%20Accent%20Design%202024%20(53443284447).jpg?width=800', 'Giảm 15 triệu', 'Available'],
+    [uuid(), 'Santa Fe', 'Hyundai', 1069000000, 'Dầu', 'SUV hạng D', 2025, 'Số tự động', 'Trắng', 'https://commons.wikimedia.org/wiki/Special:FilePath/2024%20Hyundai%20Santa%20Fe%202.5%20GLS%202WD%20in%20Abyss%20Black%20Pearl,%20front%20right.jpg?width=800', '', 'OutOfStock'],
+    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', 'https://commons.wikimedia.org/wiki/Special:FilePath/2022%20Mitsubishi%20Xpander%201.5%20GLS%20in%20Blade%20Silver%20Metallic,%2006-23-2024.jpg?width=800', 'Tặng camera 360', 'Available'],
+    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', 'https://commons.wikimedia.org/wiki/Special:FilePath/2023%20Ford%20Ranger%20Wildtrak%20EcoBlue%204x4%20Auto.jpg?width=800', '', 'In-transit'],
   ];
   for (const c of cars) {
     run(
