@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { publicApi } from '../../lib/api';
 import PublicHome from './PublicHome';
 import PublicCars from './PublicCars';
 import PublicCarDetail from './PublicCarDetail';
 import PublicRequest from './PublicRequest';
 
-const HOTLINE = '1900 1234';
-
 export default function PublicSite() {
   const loc = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [contact, setContact] = useState<any>(null);
+
+  useEffect(() => {
+    publicApi.get<any[]>('/public/contents')
+      .then((cs) => setContact(cs.find((c) => c.content_type === 'contact') || null))
+      .catch(() => {});
+  }, []);
+
+  // Hotline: tách số từ nội dung liên hệ (Admin nhập), fallback mặc định
+  const hotlineMatch = contact?.body?.match(/(\d[\d\s.]{6,})/);
+  const HOTLINE = (hotlineMatch ? hotlineMatch[1].trim() : '1900 1234');
   const link = (to: string, label: string, exact = false) => {
     const active = exact ? loc.pathname === to : loc.pathname.startsWith(to);
     return (
@@ -69,10 +79,16 @@ export default function PublicSite() {
             <p className="mt-2 text-sm text-gray-400">Hệ thống đại lý ô tô chính hãng. Tư vấn, lái thử và hỗ trợ trả góp toàn quốc.</p>
           </div>
           <div className="text-sm">
-            <div className="mb-2 font-semibold text-white">Liên hệ</div>
-            <div>Hotline: {HOTLINE}</div>
-            <div>Email: cskh@tntcar.vn</div>
-            <div>Showroom: TP.HCM · Hà Nội</div>
+            <div className="mb-2 font-semibold text-white">{contact?.title || 'Liên hệ'}</div>
+            {contact?.body ? (
+              <div className="whitespace-pre-line">{contact.body}</div>
+            ) : (
+              <>
+                <div>Hotline: {HOTLINE}</div>
+                <div>Email: cskh@tntcar.vn</div>
+                <div>Showroom: TP.HCM · Hà Nội</div>
+              </>
+            )}
           </div>
           <div className="text-sm">
             <div className="mb-2 font-semibold text-white">Liên kết</div>

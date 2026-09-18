@@ -14,13 +14,26 @@ export default function PublicHome() {
   }, []);
   const banner = contents.find((c) => c.content_type === 'banner');
   const brand = contents.find((c) => c.content_type === 'brand');
+  const promos = contents.filter((c) => c.content_type === 'promo');
   const minPrice = cars.length ? Math.min(...cars.map((c) => c.price)) : 0;
+
+  // Ưu đãi: lấy từ nội dung Admin nhập; nếu chưa có thì dùng mặc định
+  const defaultPromos = [
+    { image_url: '🚗', title: 'Lái thử miễn phí', body: 'Tận nơi theo yêu cầu' },
+    { image_url: '💰', title: 'Hỗ trợ trả góp', body: 'Vay đến 80% giá trị xe' },
+    { image_url: '🛠️', title: 'Bảo hành chính hãng', body: 'Cứu hộ 24/7' },
+    { image_url: '🔄', title: 'Thu cũ đổi mới', body: 'Định giá xe cũ giá cao' },
+  ];
+  const promoItems = promos.length ? promos : defaultPromos;
 
   return (
     <div>
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-brand-800 to-brand-600 text-white">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-2">
+        {banner?.image_url && (
+          <img src={banner.image_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
+        )}
+        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-2">
           <div>
             <p className="text-sm uppercase tracking-widest text-brand-200">{banner?.title || 'TNT CAR'}</p>
             <h1 className="mt-2 text-4xl font-extrabold leading-tight md:text-5xl">
@@ -42,21 +55,24 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* Dải ưu đãi */}
+      {/* Dải ưu đãi (nội dung từ Admin) */}
       <section className="border-b bg-gray-50">
-        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 text-center sm:grid-cols-4">
-          {[
-            ['🚗', 'Lái thử miễn phí', 'Tận nơi theo yêu cầu'],
-            ['💰', 'Hỗ trợ trả góp', 'Vay đến 80% giá trị xe'],
-            ['🛠️', 'Bảo hành chính hãng', 'Cứu hộ 24/7'],
-            ['🔄', 'Thu cũ đổi mới', 'Định giá xe cũ giá cao'],
-          ].map(([icon, title, desc]) => (
-            <div key={title}>
-              <div className="text-2xl">{icon}</div>
-              <div className="mt-1 font-semibold text-gray-800">{title}</div>
-              <div className="text-xs text-gray-500">{desc}</div>
-            </div>
-          ))}
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 text-center sm:grid-cols-2 lg:grid-cols-4">
+          {promoItems.map((p: any, i: number) => {
+            // image_url có thể là emoji (mặc định) hoặc URL ảnh (Admin nhập)
+            const isUrl = typeof p.image_url === 'string' && /^https?:\/\//.test(p.image_url);
+            return (
+              <div key={i}>
+                {isUrl ? (
+                  <img src={p.image_url} alt="" className="mx-auto h-12 w-12 rounded-full object-cover" />
+                ) : (
+                  <div className="text-2xl">{p.image_url || '⭐'}</div>
+                )}
+                <div className="mt-1 font-semibold text-gray-800">{p.title}</div>
+                <div className="text-xs text-gray-500">{p.body}</div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

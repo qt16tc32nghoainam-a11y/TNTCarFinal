@@ -248,6 +248,15 @@ async function seed() {
     [uuid(), 'contact', 'Thông tin liên hệ', 'Hotline: 1900 1234 - Email: info@tntcar.vn', '', 1, now()]);
   run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
     [uuid(), 'brand', 'Về TNT CAR', 'TNT CAR là hệ thống đại lý ô tô chính hãng với nhiều dòng xe đa dạng từ sedan, SUV đến xe điện. Chúng tôi cam kết tư vấn tận tâm, lái thử miễn phí và hỗ trợ trả góp linh hoạt cho khách hàng trên toàn quốc.', '', 1, now()]);
+  // Các mục ưu đãi hiển thị ở dải ưu đãi trang chủ (Admin có thể sửa/thêm/xóa)
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'promo', 'Lái thử miễn phí', 'Tận nơi theo yêu cầu', '🚗', 1, now()]);
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'promo', 'Hỗ trợ trả góp', 'Vay đến 80% giá trị xe', '💰', 1, now()]);
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'promo', 'Bảo hành chính hãng', 'Cứu hộ 24/7', '🛠️', 1, now()]);
+  run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
+    [uuid(), 'promo', 'Thu cũ đổi mới', 'Định giá xe cũ giá cao', '🔄', 1, now()]);
 
   persist();
 
