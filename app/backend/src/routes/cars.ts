@@ -24,6 +24,41 @@ router.get('/', (req, res) => {
 
 // ------------- Thư viện ảnh xe (FR-07) -------------
 
+/**
+ * POST /api/cars/images/backfill — Admin bơm ảnh mẫu cho các xe CHƯA có ảnh.
+ * Chạy 1 lần trên môi trường đã có DB cũ (bảng car_images trống) để không phải seed lại.
+ * KHÔNG đụng tới các xe đã có ảnh, không xóa dữ liệu khác.
+ */
+router.post('/images/backfill', authenticate, requireRole('Admin'), (_req, res) => {
+  const partImages: [string, string][] = [
+    ['Ngoại thất phía sau', 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=800&q=70'],
+    ['Nội thất - khoang lái', 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&q=70'],
+    ['Vô lăng & bảng đồng hồ', 'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&q=70'],
+    ['Bánh xe & mâm', 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=70'],
+    ['Khoang máy', 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&q=70'],
+    ['Cốp xe', 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=800&q=70'],
+  ];
+  const cars = all<any>('SELECT id, image_url FROM car_models');
+  let filled = 0;
+  transaction(() => {
+    for (const car of cars) {
+      const existing = get<any>('SELECT COUNT(*) c FROM car_images WHERE car_model_id = ?', [car.id]);
+      if ((existing?.c || 0) > 0) continue; // xe đã có ảnh -> bỏ qua
+      let order = 0;
+      if (car.image_url) {
+        run('INSERT INTO car_images (id,car_model_id,url,caption,sort_order) VALUES (?,?,?,?,?)',
+          [uuid(), car.id, car.image_url, 'Ngoại thất', order++]);
+      }
+      for (const [caption, url] of partImages) {
+        run('INSERT INTO car_images (id,car_model_id,url,caption,sort_order) VALUES (?,?,?,?,?)',
+          [uuid(), car.id, url, caption, order++]);
+      }
+      filled++;
+    }
+  });
+  res.json({ ok: true, cars_filled: filled, message: `Đã bơm ảnh cho ${filled} xe chưa có ảnh.` });
+});
+
 /** GET /api/cars/:id/images — danh sách ảnh của xe (công khai). */
 router.get('/:id/images', (req, res) => {
   res.json(all('SELECT * FROM car_images WHERE car_model_id = ? ORDER BY sort_order ASC, rowid ASC', [req.params.id]));

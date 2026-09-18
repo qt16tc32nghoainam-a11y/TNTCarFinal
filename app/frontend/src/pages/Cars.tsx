@@ -36,11 +36,27 @@ export default function Cars() {
     else alert('Chỉ so sánh tối đa 3 xe');
   }
 
+  async function backfillImages() {
+    if (!confirm('Bơm bộ ảnh mẫu (7 ảnh) cho các xe chưa có ảnh? Xe đã có ảnh sẽ được giữ nguyên.')) return;
+    try {
+      const r = await api.post<any>('/cars/images/backfill');
+      alert(r.message || 'Đã bơm ảnh xong');
+      load();
+    } catch (e: any) {
+      alert(e.message || 'Bơm ảnh thất bại');
+    }
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold">Tra cứu kho xe</h1>
-        {compare.length > 0 && <button onClick={() => setShowCompare(true)} className="btn-primary">So sánh ({compare.length})</button>}
+        <div className="flex gap-2">
+          {isAdmin && (
+            <button onClick={backfillImages} className="btn-secondary text-xs" title="Bơm bộ ảnh mẫu cho các xe chưa có ảnh">🖼️ Bơm ảnh mẫu</button>
+          )}
+          {compare.length > 0 && <button onClick={() => setShowCompare(true)} className="btn-primary">So sánh ({compare.length})</button>}
+        </div>
       </div>
       <div className="card mb-4 flex flex-wrap gap-2">
         <input className="input flex-1 min-w-[180px]" placeholder="Tìm xe..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
