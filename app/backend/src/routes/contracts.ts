@@ -23,6 +23,19 @@ function refreshStatusByPayment(contractId: string) {
   if (next !== c.status) run('UPDATE contracts SET status = ? WHERE id = ?', [next, contractId]);
 }
 
+/** GET /api/contracts/eligible-leads — Lead "Thành công" chưa có hợp đồng đang xử lý (để tạo HĐ). */
+router.get('/eligible-leads', (_req, res) => {
+  const rows = all(
+    `SELECT l.id, l.full_name, l.phone, l.car_model_id, c.name AS car_name, c.brand AS car_brand, c.price AS car_price
+     FROM leads l
+     LEFT JOIN car_models c ON c.id = l.car_model_id
+     WHERE l.status_detail = 'Thành công'
+       AND NOT EXISTS (SELECT 1 FROM contracts ct WHERE ct.lead_id = l.id AND ct.status != 'Đã hủy cọc')
+     ORDER BY l.updated_at DESC`
+  );
+  res.json(rows);
+});
+
 /** POST /api/contracts — tạo hợp đồng từ Lead Won (US-11.1, BR-20). */
 router.post('/', (req, res) => {
   const { lead_id, car_model_id, value, signed_date, note, payment_method, bank_name, expected_delivery } = req.body || {};
@@ -131,6 +144,45 @@ router.post('/:id/cancel-deposit', (req, res) => {
     run('UPDATE payments SET is_cancelled = 1, cancel_reason = ?, cancelled_by = ?, cancelled_at = ? WHERE contract_id = ?',
       [reason, req.user!.id, nowIso(), req.params.id]);
   });
+  res.json({ ok: true });
+});
+
+/** PATCH /api/contracts/:id — sửa thông tin hợp đồng (không sửa khi đã giao xe/hủy). */
+router.patch('/:id', (req, res) => {
+  const c = get<any>('SELECT * FROM contracts WHERE id = ?', [req.params.id]);
+  if (!c) return res.status(404).json({ error: 'Không tìm thấy hợp đồng' });
+  if (['Đã giao xe', 'Hoàn tất', 'Đã hủy cọc'].includes(c.status)) {
+    return res.status(400).json({ error: 'Hợp đồng đã giao xe/hoàn tất/hủy cọc, không thể sửa' });
+  }
+  const b = req.body || {};
+  const fields = ['value', 'payment_method', 'bank_name', 'signed_date', 'note', 'expected_delivery'];
+  const sets: string[] = [];
+  const params: any[] = [];
+  for (const f of fields) {
+    if (b[f] !== undefined) { sets.push(`${f} = ?`); params.push(f === 'value' ? Number(b[f]) : b[f]); }
+  }
+  if (sets.length === 0) return res.status(400).json({ error: 'Không có dữ liệu cập nhật' });
+  params.push(req.params.id);
+  transaction(() => {
+    run(`UPDATE contracts SET ${sets.join(', ')} WHERE id = ?`, params);
+    if (b.value !== undefined) refreshStatusByPayment(req.params.id); // đổi giá trị -> cập nhật lại tiến độ
+  });
+  persist();
+  res.json({ ok: true });
+});
+
+/** DELETE /api/contracts/:id — xóa hợp đồng + thanh toán (không xóa khi đã giao xe). */
+router.delete('/:id', (req, res) => {
+  const c = get<any>('SELECT status FROM contracts WHERE id = ?', [req.params.id]);
+  if (!c) return res.status(404).json({ error: 'Không tìm thấy hợp đồng' });
+  if (['Đã giao xe', 'Hoàn tất'].includes(c.status)) {
+    return res.status(400).json({ error: 'Hợp đồng đã giao xe/hoàn tất, không thể xóa' });
+  }
+  transaction(() => {
+    run('DELETE FROM payments WHERE contract_id = ?', [req.params.id]);
+    run('DELETE FROM contracts WHERE id = ?', [req.params.id]);
+  });
+  persist();
   res.json({ ok: true });
 });
 

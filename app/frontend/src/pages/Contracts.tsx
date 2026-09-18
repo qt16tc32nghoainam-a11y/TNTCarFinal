@@ -18,12 +18,20 @@ export default function Contracts() {
   const [statusFilter, setStatusFilter] = useState('');
   const [payFor, setPayFor] = useState<any>(null);
   const [deliverFor, setDeliverFor] = useState<any>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editFor, setEditFor] = useState<any>(null);
 
   async function load() {
     setLoading(true);
     try { setRows(await api.get<any[]>('/contracts')); } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
+
+  async function removeContract(id: string) {
+    if (!confirm('Xóa hợp đồng này? Các thanh toán liên quan cũng bị xóa.')) return;
+    try { await api.del(`/contracts/${id}`); load(); }
+    catch (e: any) { alert(e.message); }
+  }
 
   async function cancelDeposit(id: string) {
     const reason = prompt('Lý do hủy cọc?');
@@ -49,10 +57,13 @@ export default function Contracts() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold">Hợp đồng bán xe</h1>
-        <select className="input w-auto text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">Tất cả trạng thái</option>
-          {['Đã cọc', 'Đã thanh toán đủ', 'Đã giao xe', 'Hoàn tất', 'Đã hủy cọc'].map((s) => <option key={s}>{s}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <select className="input w-auto text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Tất cả trạng thái</option>
+            {['Đã cọc', 'Đã thanh toán đủ', 'Đã giao xe', 'Hoàn tất', 'Đã hủy cọc'].map((s) => <option key={s}>{s}</option>)}
+          </select>
+          <button onClick={() => setShowCreate(true)} className="btn-primary">+ Tạo hợp đồng</button>
+        </div>
       </div>
 
       {/* Thống kê */}
@@ -130,7 +141,11 @@ export default function Contracts() {
                   {canDeliver && <button onClick={() => setDeliverFor(c)} className="btn-primary text-xs">🚗 Giao xe</button>}
                   {c.status === 'Đã giao xe' && <button onClick={() => complete(c.id)} className="btn-secondary text-xs">Đánh dấu Hoàn tất</button>}
                   {!['Đã giao xe', 'Hoàn tất', 'Đã hủy cọc'].includes(c.status) && (
-                    <button onClick={() => cancelDeposit(c.id)} className="btn-danger text-xs">Hủy cọc</button>
+                    <>
+                      <button onClick={() => setEditFor(c)} className="btn-secondary text-xs">Sửa</button>
+                      <button onClick={() => cancelDeposit(c.id)} className="btn-danger text-xs">Hủy cọc</button>
+                      <button onClick={() => removeContract(c.id)} className="text-xs text-red-600 hover:underline">Xóa</button>
+                    </>
                   )}
                 </div>
               </div>
@@ -141,7 +156,129 @@ export default function Contracts() {
 
       {payFor && <PaymentModal contract={payFor} onClose={() => setPayFor(null)} onDone={() => { setPayFor(null); load(); }} />}
       {deliverFor && <DeliverModal contract={deliverFor} onClose={() => setDeliverFor(null)} onDone={() => { setDeliverFor(null); load(); }} />}
+      {showCreate && <CreateContractModal onClose={() => setShowCreate(false)} onDone={() => { setShowCreate(false); load(); }} />}
+      {editFor && <EditContractModal contract={editFor} onClose={() => setEditFor(null)} onDone={() => { setEditFor(null); load(); }} />}
     </div>
+  );
+}
+
+function CreateContractModal({ onClose, onDone }: any) {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [leadId, setLeadId] = useState('');
+  const [value, setValue] = useState('');
+  const [method, setMethod] = useState('Đặt cọc');
+  const [bank, setBank] = useState('');
+  const [signedDate, setSignedDate] = useState('');
+  const [expected, setExpected] = useState('');
+  const [note, setNote] = useState('');
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { api.get<any[]>('/contracts/eligible-leads').then(setLeads).catch(() => {}); }, []);
+  const selectedLead = leads.find((l) => l.id === leadId);
+
+  useEffect(() => {
+    if (selectedLead?.car_price) setValue(String(selectedLead.car_price));
+  }, [leadId]);
+
+  async function save() {
+    setErr('');
+    if (!leadId) return setErr('Vui lòng chọn khách hàng (Lead Thành công)');
+    if (!selectedLead?.car_model_id) return setErr('Lead này chưa gắn dòng xe, không thể tạo hợp đồng');
+    if (!value || Number(value) <= 0) return setErr('Nhập giá trị hợp đồng hợp lệ');
+    setSaving(true);
+    try {
+      await api.post('/contracts', {
+        lead_id: leadId,
+        car_model_id: selectedLead.car_model_id,
+        value: Number(value),
+        signed_date: signedDate ? new Date(signedDate).toISOString() : undefined,
+        payment_method: method,
+        bank_name: method === 'Trả góp' ? bank : undefined,
+        expected_delivery: expected ? new Date(expected).toISOString() : undefined,
+        note,
+      });
+      onDone();
+    } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Tạo hợp đồng">
+      <Field label="Khách hàng (Lead đã chốt Thành công) *">
+        <select className="input" value={leadId} onChange={(e) => setLeadId(e.target.value)}>
+          <option value="">-- Chọn khách hàng --</option>
+          {leads.map((l) => <option key={l.id} value={l.id}>{l.full_name} · {l.phone} {l.car_name ? `· ${l.car_brand} ${l.car_name}` : '(chưa có xe)'}</option>)}
+        </select>
+        {leads.length === 0 && <div className="mt-1 text-xs text-amber-600">Chưa có Lead nào ở trạng thái Thành công (hoặc đều đã có hợp đồng).</div>}
+      </Field>
+      {selectedLead && <div className="mb-3 rounded bg-gray-50 p-2 text-sm">Xe: <b>{selectedLead.car_brand} {selectedLead.car_name || '(chưa gắn xe)'}</b></div>}
+      <Field label="Giá trị hợp đồng (đ) *"><input className="input" type="number" value={value} onChange={(e) => setValue(e.target.value)} /></Field>
+      <Field label="Hình thức thanh toán">
+        <select className="input" value={method} onChange={(e) => setMethod(e.target.value)}>
+          <option>Đặt cọc</option><option>Trả góp</option><option>Trả thẳng</option>
+        </select>
+      </Field>
+      {method === 'Trả góp' && (
+        <Field label="Ngân hàng">
+          <select className="input" value={bank} onChange={(e) => setBank(e.target.value)}>
+            <option value="">-- Chọn --</option>
+            {['Techcombank', 'Vietcombank', 'Agribank', 'Sacombank', 'HDBank'].map((b) => <option key={b}>{b}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label="Ngày ký"><input className="input" type="date" value={signedDate} onChange={(e) => setSignedDate(e.target.value)} /></Field>
+      <Field label="Ngày giao dự kiến"><input className="input" type="date" value={expected} onChange={(e) => setExpected(e.target.value)} /></Field>
+      <Field label="Ghi chú"><textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+      {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
+      <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang tạo...' : 'Tạo hợp đồng'}</button></div>
+    </Modal>
+  );
+}
+
+function EditContractModal({ contract, onClose, onDone }: any) {
+  const [value, setValue] = useState(String(contract.value || ''));
+  const [method, setMethod] = useState(contract.payment_method || 'Đặt cọc');
+  const [bank, setBank] = useState(contract.bank_name || '');
+  const [note, setNote] = useState(contract.note || '');
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setErr('');
+    if (!value || Number(value) <= 0) return setErr('Nhập giá trị hợp lệ');
+    setSaving(true);
+    try {
+      await api.patch(`/contracts/${contract.id}`, {
+        value: Number(value),
+        payment_method: method,
+        bank_name: method === 'Trả góp' ? bank : '',
+        note,
+      });
+      onDone();
+    } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Sửa hợp đồng · ${contract.contract_code}`}>
+      <div className="mb-3 rounded bg-gray-50 p-2 text-sm">{contract.customer_name} · {contract.car_brand} {contract.car_name}</div>
+      <Field label="Giá trị hợp đồng (đ) *"><input className="input" type="number" value={value} onChange={(e) => setValue(e.target.value)} /></Field>
+      <Field label="Hình thức thanh toán">
+        <select className="input" value={method} onChange={(e) => setMethod(e.target.value)}>
+          <option>Đặt cọc</option><option>Trả góp</option><option>Trả thẳng</option>
+        </select>
+      </Field>
+      {method === 'Trả góp' && (
+        <Field label="Ngân hàng">
+          <select className="input" value={bank} onChange={(e) => setBank(e.target.value)}>
+            <option value="">-- Chọn --</option>
+            {['Techcombank', 'Vietcombank', 'Agribank', 'Sacombank', 'HDBank'].map((b) => <option key={b}>{b}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label="Ghi chú"><textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+      {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
+      <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Lưu'}</button></div>
+    </Modal>
   );
 }
 
