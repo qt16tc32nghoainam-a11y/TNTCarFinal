@@ -8,8 +8,9 @@ const nowIso = () => new Date().toISOString();
 
 /** GET /api/cars — tìm kiếm & lọc xe (FR-03/FR-07). Public-friendly nhưng đặt sau auth ở router chính. */
 router.get('/', (req, res) => {
-  const { q, brand, fuel, segment, minPrice, maxPrice, showroom } = req.query as Record<string, string>;
-  const conds: string[] = ["status IN ('Available','In-transit')"]; // BR-INV-01
+  const { q, brand, fuel, segment, minPrice, maxPrice, showroom, all: showAll } = req.query as Record<string, string>;
+  // Mặc định chỉ hiện xe đang bán (BR-INV-01); Admin có thể xem tất cả (kể cả hết hàng) để quản lý
+  const conds: string[] = showAll === '1' ? ['1=1'] : ["status IN ('Available','In-transit')"];
   const params: any[] = [];
   if (q) { conds.push('(name LIKE ? OR brand LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
   if (brand) { conds.push('brand = ?'); params.push(brand); }
@@ -19,6 +20,27 @@ router.get('/', (req, res) => {
   if (maxPrice) { conds.push('price <= ?'); params.push(Number(maxPrice)); }
   const cars = all(`SELECT * FROM car_models WHERE ${conds.join(' AND ')} ORDER BY price ASC`, params);
   res.json(cars);
+});
+
+/** PATCH /api/cars/:id — Admin cập nhật thông tin xe (kèm ảnh) (FR-03/FR-08). */
+router.patch('/:id', authenticate, requireRole('Admin'), (req, res) => {
+  const car = get<any>('SELECT * FROM car_models WHERE id = ?', [req.params.id]);
+  if (!car) return res.status(404).json({ error: 'Không tìm thấy xe' });
+  const b = req.body || {};
+  const fields = ['name', 'brand', 'price', 'fuel_type', 'segment', 'year', 'transmission', 'color', 'image_url', 'promotion', 'status'];
+  const sets: string[] = [];
+  const params: any[] = [];
+  for (const f of fields) {
+    if (b[f] !== undefined) { sets.push(`${f} = ?`); params.push(b[f]); }
+  }
+  if (sets.length === 0) return res.status(400).json({ error: 'Không có dữ liệu cập nhật' });
+  if (b.status && !['Available', 'In-transit', 'OutOfStock'].includes(b.status)) {
+    return res.status(400).json({ error: 'Trạng thái xe không hợp lệ' });
+  }
+  params.push(req.params.id);
+  run(`UPDATE car_models SET ${sets.join(', ')} WHERE id = ?`, params);
+  persist();
+  res.json({ ok: true });
 });
 
 /** GET /api/cars/:id — chi tiết xe + tồn kho theo showroom (FR-03 US-03.2). */

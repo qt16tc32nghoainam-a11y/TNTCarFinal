@@ -25,7 +25,7 @@ async function main() {
 
   const app = express();
   app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',') }));
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: '15mb' })); // đủ chỗ cho ảnh xe upload dạng base64 (đã nén phía client)
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'TNT CAR API', time: new Date().toISOString() }));
 
