@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { publicApi } from '../../lib/api';
 import { formatVnd } from '../../lib/format';
+import CarCard from './CarCard';
 
 export default function PublicCars() {
   const [cars, setCars] = useState<any[]>([]);
@@ -21,31 +21,23 @@ export default function PublicCars() {
   function toggle(c: any) {
     if (compare.find((x) => x.id === c.id)) setCompare(compare.filter((x) => x.id !== c.id));
     else if (compare.length < 3) setCompare([...compare, c]);
-    else alert('Tối đa 3 xe');
+    else alert('Chỉ so sánh tối đa 3 xe');
   }
 
   return (
-    <div>
-      <h1 className="mb-4 text-xl font-bold">Danh mục xe</h1>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <input className="input flex-1 min-w-[180px]" placeholder="Tìm xe..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <h1 className="mb-1 text-2xl font-bold">Danh mục xe</h1>
+      <p className="mb-5 text-sm text-gray-500">Khám phá các dòng xe đang có tại TNT CAR</p>
+      <div className="mb-6 flex flex-wrap gap-2">
+        <input className="input flex-1 min-w-[180px]" placeholder="Tìm theo tên xe..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
         <select className="input w-auto" value={brand} onChange={(e) => setBrand(e.target.value)}><option value="">Tất cả hãng</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
         <button onClick={load} className="btn-secondary">Tìm</button>
       </div>
 
       {cars.length === 0 ? <div className="p-8 text-center text-gray-400">Không tìm thấy xe phù hợp</div> : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {cars.map((c) => (
-            <div key={c.id} className="card">
-              <div className="font-semibold">{c.brand} {c.name}</div>
-              <div className="text-sm text-gray-500">{c.segment} · {c.fuel_type}</div>
-              <div className="mt-2 text-lg font-bold text-brand-700">{formatVnd(c.price)}</div>
-              {c.promotion && <div className="text-xs text-red-600">{c.promotion}</div>}
-              <div className="mt-3 flex gap-2">
-                <Link to={`/site/cars/${c.id}`} className="btn-secondary flex-1 text-xs">Chi tiết</Link>
-                <button onClick={() => toggle(c)} className={`btn text-xs ${compare.find((x) => x.id === c.id) ? 'bg-brand-700 text-white' : 'bg-gray-100'}`}>So sánh</button>
-              </div>
-            </div>
+            <CarCard key={c.id} car={c} onCompare={toggle} comparing={!!compare.find((x) => x.id === c.id)} />
           ))}
         </div>
       )}

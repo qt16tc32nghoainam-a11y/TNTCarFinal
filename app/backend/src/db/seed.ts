@@ -66,16 +66,16 @@ async function seed() {
   // ---------- Car models ----------
   const cars: any[] = [
     // id, name, brand, price, fuel, segment, year, transmission, color, image, promotion, status
-    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', '', 'Giảm 20 triệu + BHVC', 'Available'],
-    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', '', 'Tặng phụ kiện 30 triệu', 'Available'],
-    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', '', '', 'Available'],
-    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', '', 'Hỗ trợ 50% trước bạ', 'In-transit'],
-    [uuid(), 'VF 8 Plus', 'VinFast', 1219000000, 'Điện', 'SUV hạng D', 2025, 'Số tự động', 'Xanh', '', 'Miễn phí sạc 1 năm', 'Available'],
-    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', '', '', 'Available'],
-    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', '', 'Giảm 15 triệu', 'Available'],
-    [uuid(), 'Santa Fe', 'Hyundai', 1069000000, 'Dầu', 'SUV hạng D', 2025, 'Số tự động', 'Trắng', '', '', 'OutOfStock'],
-    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', '', 'Tặng camera 360', 'Available'],
-    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', '', '', 'In-transit'],
+    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&q=70', 'Giảm 20 triệu + BHVC', 'Available'],
+    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', 'https://images.unsplash.com/photo-1550355291-bbee04a92027?w=800&q=70', 'Tặng phụ kiện 30 triệu', 'Available'],
+    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', 'https://images.unsplash.com/photo-1568844293986-8d0400bd4745?w=800&q=70', '', 'Available'],
+    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=70', 'Hỗ trợ 50% trước bạ', 'In-transit'],
+    [uuid(), 'VF 8 Plus', 'VinFast', 1219000000, 'Điện', 'SUV hạng D', 2025, 'Số tự động', 'Xanh', 'https://images.unsplash.com/photo-1617704548623-340376564e68?w=800&q=70', 'Miễn phí sạc 1 năm', 'Available'],
+    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&q=70', '', 'Available'],
+    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=70', 'Giảm 15 triệu', 'Available'],
+    [uuid(), 'Santa Fe', 'Hyundai', 1069000000, 'Dầu', 'SUV hạng D', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?w=800&q=70', '', 'OutOfStock'],
+    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=70', 'Tặng camera 360', 'Available'],
+    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=70', '', 'In-transit'],
   ];
   for (const c of cars) {
     run(
@@ -243,11 +243,11 @@ async function seed() {
 
   // ---------- Website contents ----------
   run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
-    [uuid(), 'banner', 'Ưu đãi tháng 9 - Giảm đến 50 triệu', 'Áp dụng cho các dòng xe chọn lọc', '', 1, now()]);
+    [uuid(), 'banner', 'Ưu đãi tháng 9', 'Chọn xe trong mơ, nhận ưu đãi đến 50 triệu và hỗ trợ trả góp đến 80%', '', 1, now()]);
   run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
     [uuid(), 'contact', 'Thông tin liên hệ', 'Hotline: 1900 1234 - Email: info@tntcar.vn', '', 1, now()]);
   run(`INSERT INTO website_contents (id,content_type,title,body,image_url,active,updated_at) VALUES (?,?,?,?,?,?,?)`,
-    [uuid(), 'brand', 'Về TNT CAR', 'TNT CAR - Đại lý ô tô uy tín hàng đầu', '', 1, now()]);
+    [uuid(), 'brand', 'Về TNT CAR', 'TNT CAR là hệ thống đại lý ô tô chính hãng với nhiều dòng xe đa dạng từ sedan, SUV đến xe điện. Chúng tôi cam kết tư vấn tận tâm, lái thử miễn phí và hỗ trợ trả góp linh hoạt cho khách hàng trên toàn quốc.', '', 1, now()]);
 
   persist();
 

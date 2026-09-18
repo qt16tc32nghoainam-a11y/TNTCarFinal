@@ -19,7 +19,7 @@ export default function PublicRequest() {
   }
 
   if (done) return (
-    <div className="mx-auto max-w-md rounded-xl bg-green-50 p-8 text-center">
+    <div className="mx-auto my-10 max-w-md rounded-xl bg-green-50 p-8 text-center">
       <div className="text-2xl">✅</div>
       <h2 className="mt-2 text-lg font-bold text-green-700">Yêu cầu đã được tiếp nhận</h2>
       <p className="mt-1 text-sm text-gray-600">TNT CAR sẽ liên hệ lại với bạn trong thời gian sớm nhất.</p>
@@ -27,8 +27,8 @@ export default function PublicRequest() {
   );
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-4 text-xl font-bold">Đăng ký lái thử / Tư vấn</h1>
+    <div className="mx-auto max-w-md px-4 py-10">
+      <h1 className="mb-4 text-2xl font-bold">Đăng ký lái thử / Tư vấn</h1>
       <form onSubmit={submit} className="card space-y-3">
         <div>
           <label className="label">Loại yêu cầu</label>

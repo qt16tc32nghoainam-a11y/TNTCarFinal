@@ -2,45 +2,100 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { publicApi } from '../../lib/api';
 import { formatVnd } from '../../lib/format';
+import CarCard from './CarCard';
+import QuickLeadForm from './QuickLeadForm';
 
 export default function PublicHome() {
   const [contents, setContents] = useState<any[]>([]);
   const [cars, setCars] = useState<any[]>([]);
   useEffect(() => {
     publicApi.get<any[]>('/public/contents').then(setContents).catch(() => {});
-    publicApi.get<any[]>('/public/cars').then((c) => setCars(c.slice(0, 6))).catch(() => {});
+    publicApi.get<any[]>('/public/cars').then(setCars).catch(() => {});
   }, []);
   const banner = contents.find((c) => c.content_type === 'banner');
   const brand = contents.find((c) => c.content_type === 'brand');
+  const minPrice = cars.length ? Math.min(...cars.map((c) => c.price)) : 0;
 
   return (
     <div>
-      {banner && (
-        <div className="mb-8 rounded-2xl bg-brand-800 p-10 text-center text-white">
-          <h1 className="text-3xl font-bold">{banner.title}</h1>
-          <p className="mt-2 text-white/80">{banner.body}</p>
-          <Link to="/site/cars" className="mt-4 inline-block rounded-lg bg-white px-6 py-2 font-medium text-brand-800">Xem xe ngay</Link>
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand-800 to-brand-600 text-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-2">
+          <div>
+            <p className="text-sm uppercase tracking-widest text-brand-200">{banner?.title || 'TNT CAR'}</p>
+            <h1 className="mt-2 text-4xl font-extrabold leading-tight md:text-5xl">
+              {banner?.body || 'Chọn xe trong mơ, nhận ưu đãi hôm nay'}
+            </h1>
+            {minPrice > 0 && (
+              <p className="mt-4 text-lg text-brand-100">Giá chỉ từ <span className="text-2xl font-bold text-white">{formatVnd(minPrice)}</span></p>
+            )}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/site/cars" className="rounded-lg bg-white px-6 py-3 font-semibold text-brand-800 hover:bg-gray-100">Xem danh mục xe</Link>
+              <Link to="/site/request" className="rounded-lg border border-white/60 px-6 py-3 font-semibold text-white hover:bg-white/10">Đăng ký lái thử</Link>
+            </div>
+          </div>
+          <div className="hidden md:block">
+            <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
+              <QuickLeadForm cars={cars} compact />
+            </div>
+          </div>
         </div>
-      )}
+      </section>
 
-      <h2 className="mb-4 text-xl font-bold">Xe nổi bật</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cars.map((c) => (
-          <Link to={`/site/cars/${c.id}`} key={c.id} className="card hover:shadow-md">
-            <div className="font-semibold">{c.brand} {c.name}</div>
-            <div className="text-sm text-gray-500">{c.segment}</div>
-            <div className="mt-2 text-lg font-bold text-brand-700">{formatVnd(c.price)}</div>
-            {c.promotion && <div className="text-xs text-red-600">{c.promotion}</div>}
-          </Link>
-        ))}
-      </div>
+      {/* Dải ưu đãi */}
+      <section className="border-b bg-gray-50">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 text-center sm:grid-cols-4">
+          {[
+            ['🚗', 'Lái thử miễn phí', 'Tận nơi theo yêu cầu'],
+            ['💰', 'Hỗ trợ trả góp', 'Vay đến 80% giá trị xe'],
+            ['🛠️', 'Bảo hành chính hãng', 'Cứu hộ 24/7'],
+            ['🔄', 'Thu cũ đổi mới', 'Định giá xe cũ giá cao'],
+          ].map(([icon, title, desc]) => (
+            <div key={title}>
+              <div className="text-2xl">{icon}</div>
+              <div className="mt-1 font-semibold text-gray-800">{title}</div>
+              <div className="text-xs text-gray-500">{desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
+      {/* Xe nổi bật */}
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Xe nổi bật</h2>
+            <p className="text-sm text-gray-500">Những mẫu xe được quan tâm nhất tại TNT CAR</p>
+          </div>
+          <Link to="/site/cars" className="text-sm font-medium text-brand-700 hover:underline">Xem tất cả →</Link>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {cars.slice(0, 6).map((c) => <CarCard key={c.id} car={c} />)}
+        </div>
+      </section>
+
+      {/* Giới thiệu thương hiệu */}
       {brand && (
-        <div className="mt-10 rounded-xl bg-gray-50 p-6">
-          <h3 className="font-bold">{brand.title}</h3>
-          <p className="mt-1 text-sm text-gray-600">{brand.body}</p>
-        </div>
+        <section className="bg-gray-50">
+          <div className="mx-auto max-w-6xl px-4 py-12">
+            <h3 className="text-xl font-bold">{brand.title}</h3>
+            <p className="mt-2 max-w-3xl text-gray-600">{brand.body}</p>
+          </div>
+        </section>
       )}
+
+      {/* Form đăng ký cuối trang */}
+      <section className="bg-brand-800">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 md:grid-cols-2">
+          <div className="text-white">
+            <h3 className="text-2xl font-bold">Nhận báo giá & lịch lái thử</h3>
+            <p className="mt-2 text-brand-100">Để lại thông tin, tư vấn viên TNT CAR sẽ liên hệ lại trong thời gian sớm nhất. Hoàn toàn miễn phí.</p>
+          </div>
+          <div className="rounded-2xl bg-white p-6 shadow-lg">
+            <QuickLeadForm cars={cars} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
