@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 
 /**
  * Nút "Cài đặt ứng dụng" (PWA) — tạo shortcut ra desktop / màn hình chính.
@@ -57,7 +58,7 @@ export default function InstallButton() {
     return setHelp('desktop');
   }
 
-  const label = isIos ? '⬇ Thêm vào màn hình' : '⬇ Cài đặt ứng dụng';
+  const label = isIos ? 'Thêm vào màn hình' : 'Cài đặt ứng dụng';
 
   if (installed && !toast) return null;
 
@@ -66,10 +67,10 @@ export default function InstallButton() {
       {!installed && (
         <button
           onClick={handleClick}
-          className="badge bg-brand-600 text-white hover:bg-brand-700"
+          className="flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-1 text-xs text-white hover:bg-brand-700"
           title="Cài đặt ứng dụng để dùng offline, tạo shortcut ngoài màn hình"
         >
-          {label}
+          <Download size={13} /> <span className="hidden sm:inline">{label}</span><span className="sm:hidden">Cài</span>
         </button>
       )}
 
