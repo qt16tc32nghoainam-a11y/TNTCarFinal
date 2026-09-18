@@ -24,8 +24,12 @@ export default function CarGallery({ images, alt }: { images: { id?: string; url
           onClick={() => setZoom(true)}
           loading="lazy"
         />
+        {/* Watermark thương hiệu TNT CAR (thay cho biển số) */}
+        <div className="pointer-events-none absolute bottom-2 right-2 rounded bg-black/45 px-2.5 py-1 text-sm font-extrabold tracking-wide text-white shadow">
+          TNT<span className="text-brand-300">CAR</span>
+        </div>
         {cur.caption && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5 text-sm text-white">{cur.caption}</div>
+          <div className="absolute bottom-0 left-0 bg-black/50 px-3 py-1.5 text-sm text-white">{cur.caption}</div>
         )}
         <div className="absolute right-2 top-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white">{active + 1}/{images.length}</div>
       </div>
@@ -46,7 +50,12 @@ export default function CarGallery({ images, alt }: { images: { id?: string; url
       {/* Lightbox phóng to */}
       {zoom && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4" onClick={() => setZoom(false)}>
-          <img src={cur.url} alt={cur.caption || ''} className="max-h-[90vh] max-w-full rounded-lg object-contain" />
+          <div className="relative">
+            <img src={cur.url} alt={cur.caption || ''} className="max-h-[90vh] max-w-full rounded-lg object-contain" />
+            <div className="pointer-events-none absolute bottom-3 right-3 rounded bg-black/45 px-3 py-1 font-extrabold tracking-wide text-white">
+              TNT<span className="text-brand-300">CAR</span>
+            </div>
+          </div>
           <button className="absolute right-4 top-4 text-3xl text-white" onClick={() => setZoom(false)}>✕</button>
         </div>
       )}
