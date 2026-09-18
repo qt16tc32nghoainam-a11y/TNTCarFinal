@@ -66,16 +66,16 @@ async function seed() {
   // ---------- Car models ----------
   const cars: any[] = [
     // id, name, brand, price, fuel, segment, year, transmission, color, image, promotion, status
-    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&q=70', 'Giảm 20 triệu + BHVC', 'Available'],
-    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', 'https://images.unsplash.com/photo-1550355291-bbee04a92027?w=800&q=70', 'Tặng phụ kiện 30 triệu', 'Available'],
-    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', 'https://images.unsplash.com/photo-1568844293986-8d0400bd4745?w=800&q=70', '', 'Available'],
-    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=70', 'Hỗ trợ 50% trước bạ', 'In-transit'],
+    [uuid(), 'Vios G', 'Toyota', 545000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=800&q=70', 'Giảm 20 triệu + BHVC', 'Available'],
+    [uuid(), 'Corolla Cross HEV', 'Toyota', 905000000, 'Hybrid', 'SUV đô thị', 2025, 'Số tự động', 'Đen', 'https://images.unsplash.com/photo-1568844293986-8d0400bd4745?w=800&q=70', 'Tặng phụ kiện 30 triệu', 'Available'],
+    [uuid(), 'CR-V L', 'Honda', 1259000000, 'Xăng', 'SUV hạng C', 2025, 'Số tự động', 'Xám', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=70', '', 'Available'],
+    [uuid(), 'City RS', 'Honda', 599000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Đỏ', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=70', 'Hỗ trợ 50% trước bạ', 'In-transit'],
     [uuid(), 'VF 8 Plus', 'VinFast', 1219000000, 'Điện', 'SUV hạng D', 2025, 'Số tự động', 'Xanh', 'https://images.unsplash.com/photo-1617704548623-340376564e68?w=800&q=70', 'Miễn phí sạc 1 năm', 'Available'],
-    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&q=70', '', 'Available'],
-    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=70', 'Giảm 15 triệu', 'Available'],
+    [uuid(), 'VF 5 Plus', 'VinFast', 529000000, 'Điện', 'SUV hạng A', 2025, 'Số tự động', 'Vàng', 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=70', '', 'Available'],
+    [uuid(), 'Accent AT', 'Hyundai', 569000000, 'Xăng', 'Sedan hạng B', 2025, 'Số tự động', 'Bạc', 'https://images.unsplash.com/photo-1550355291-bbee04a92027?w=800&q=70', 'Giảm 15 triệu', 'Available'],
     [uuid(), 'Santa Fe', 'Hyundai', 1069000000, 'Dầu', 'SUV hạng D', 2025, 'Số tự động', 'Trắng', 'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?w=800&q=70', '', 'OutOfStock'],
-    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=70', 'Tặng camera 360', 'Available'],
-    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=70', '', 'In-transit'],
+    [uuid(), 'Xpander AT', 'Mitsubishi', 658000000, 'Xăng', 'MPV', 2025, 'Số tự động', 'Nâu', 'https://images.unsplash.com/photo-1607853202273-797f1c22a38e?w=800&q=70', 'Tặng camera 360', 'Available'],
+    [uuid(), 'Ranger Wildtrak', 'Ford', 999000000, 'Dầu', 'Bán tải', 2025, 'Số tự động', 'Cam', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=70', '', 'In-transit'],
   ];
   for (const c of cars) {
     run(
