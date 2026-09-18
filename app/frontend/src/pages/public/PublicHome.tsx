@@ -6,6 +6,7 @@ import CarCard from './CarCard';
 import QuickLeadForm from './QuickLeadForm';
 import { EditButton } from './InlineEdit';
 import { useIsContentAdmin } from './InlineEdit';
+import { Car, Wallet, Wrench, Repeat } from 'lucide-react';
 
 export default function PublicHome() {
   const [contents, setContents] = useState<any[]>([]);
@@ -29,14 +30,15 @@ export default function PublicHome() {
   const promos = contents.filter((c) => c.content_type === 'promo' && c.active !== 0);
   const minPrice = cars.length ? Math.min(...cars.map((c) => c.price)) : 0;
 
-  // Ưu đãi: lấy từ nội dung Admin nhập; nếu chưa có thì dùng mặc định
+  // Ưu đãi: lấy từ nội dung Admin nhập; nếu chưa có thì dùng mặc định (icon lucide)
   const defaultPromos = [
-    { image_url: '🚗', title: 'Lái thử miễn phí', body: 'Tận nơi theo yêu cầu' },
-    { image_url: '💰', title: 'Hỗ trợ trả góp', body: 'Vay đến 80% giá trị xe' },
-    { image_url: '🛠️', title: 'Bảo hành chính hãng', body: 'Cứu hộ 24/7' },
-    { image_url: '🔄', title: 'Thu cũ đổi mới', body: 'Định giá xe cũ giá cao' },
+    { icon: Car, title: 'Lái thử miễn phí', body: 'Tận nơi theo yêu cầu' },
+    { icon: Wallet, title: 'Hỗ trợ trả góp', body: 'Vay đến 80% giá trị xe' },
+    { icon: Wrench, title: 'Bảo hành chính hãng', body: 'Cứu hộ 24/7' },
+    { icon: Repeat, title: 'Thu cũ đổi mới', body: 'Định giá xe cũ giá cao' },
   ];
-  const promoItems = promos.length ? promos : defaultPromos;
+  const usingDefault = promos.length === 0;
+  const promoItems: any[] = usingDefault ? defaultPromos : promos;
 
   return (
     <div>
@@ -87,17 +89,20 @@ export default function PublicHome() {
               ]} />
           </div>
         )}
-        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 text-center sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-center sm:grid-cols-2 lg:grid-cols-4">
           {promoItems.map((p: any, i: number) => {
+            const Icon = p.icon; // chỉ có ở default
             const isUrl = typeof p.image_url === 'string' && /^https?:\/\//.test(p.image_url);
             return (
-              <div key={p.id || i} className="relative">
-                {isUrl ? (
-                  <img src={p.image_url} alt="" className="mx-auto h-12 w-12 rounded-full object-cover" />
+              <div key={p.id || i} className="relative flex flex-col items-center">
+                {Icon ? (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700"><Icon size={26} /></div>
+                ) : isUrl ? (
+                  <img src={p.image_url} alt="" className="h-14 w-14 rounded-full object-cover" />
                 ) : (
-                  <div className="text-2xl">{p.image_url || '⭐'}</div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-3xl">{p.image_url || '⭐'}</div>
                 )}
-                <div className="mt-1 font-semibold text-gray-800">{p.title}</div>
+                <div className="mt-2 font-semibold text-gray-800">{p.title}</div>
                 <div className="text-xs text-gray-500">{p.body}</div>
                 {isAdmin && p.id && (
                   <div className="mt-1">

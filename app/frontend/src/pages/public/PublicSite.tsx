@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { publicApi } from '../../lib/api';
+import { Phone, Menu, X } from 'lucide-react';
 import PublicHome from './PublicHome';
 import PublicCars from './PublicCars';
 import PublicCarDetail from './PublicCarDetail';
@@ -36,7 +37,7 @@ export default function PublicSite() {
       <div className="bg-brand-800 text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-1.5 text-xs">
           <span>Đại lý ô tô chính hãng · Lái thử miễn phí tận nơi</span>
-          <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="font-medium">☎ Hotline: {HOTLINE}</a>
+          <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="flex items-center gap-1 font-medium"><Phone size={12} /> Hotline: {HOTLINE}</a>
         </div>
       </div>
 
@@ -48,16 +49,18 @@ export default function PublicSite() {
             {link('/site', 'Trang chủ', true)}
             {link('/site/cars', 'Danh mục xe')}
             {link('/site/request', 'Đăng ký lái thử')}
-            <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="rounded-full bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700">Gọi ngay</a>
+            <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"><Phone size={15} /> Gọi ngay</a>
           </nav>
-          <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">☰</button>
+          <button className="rounded-lg p-1.5 text-gray-700 hover:bg-gray-100 md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
         {menuOpen && (
           <nav className="flex flex-col gap-3 border-t px-4 py-3 text-sm md:hidden">
             {link('/site', 'Trang chủ', true)}
             {link('/site/cars', 'Danh mục xe')}
             {link('/site/request', 'Đăng ký lái thử')}
-            <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="rounded-full bg-brand-600 px-4 py-2 text-center font-medium text-white">Gọi ngay {HOTLINE}</a>
+            <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="flex items-center justify-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-center font-medium text-white"><Phone size={15} /> Gọi ngay {HOTLINE}</a>
           </nav>
         )}
       </header>
@@ -101,7 +104,7 @@ export default function PublicSite() {
       </footer>
 
       {/* Nút gọi nổi (mobile) */}
-      <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="fixed bottom-5 right-5 z-40 rounded-full bg-brand-600 px-5 py-3 text-white shadow-lg md:hidden">☎ Gọi</a>
+      <a href={`tel:${HOTLINE.replace(/\s/g, '')}`} className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-white shadow-lg md:hidden"><Phone size={18} /> Gọi</a>
     </div>
   );
 }
