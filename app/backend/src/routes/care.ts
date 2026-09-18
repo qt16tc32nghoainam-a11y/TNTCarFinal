@@ -42,9 +42,13 @@ router.post('/interactions', (req, res) => {
   res.status(201).json({ ok: true });
 });
 
-/** POST /api/care/reminders — tạo lịch hẹn (US-02.2, BR-07). */
+/**
+ * POST /api/care/reminders — tạo lịch hẹn (US-02.2, BR-07).
+ * Nếu purpose = 'Lái thử' và có showroom_id + slot_id, đồng thời tạo một lịch lái thử
+ * (test_drive_bookings) liên kết Lead -> hiện ở trang Lịch lái thử.
+ */
 router.post('/reminders', (req, res) => {
-  const { id, lead_id, remind_at, purpose, location, notify_before_minutes } = req.body || {};
+  const { id, lead_id, remind_at, purpose, location, notify_before_minutes, showroom_id, slot_id } = req.body || {};
   if (!lead_id || !remind_at || !purpose) return res.status(400).json({ error: 'Thiếu thông tin lịch hẹn' });
   if (new Date(remind_at).getTime() <= Date.now()) {
     return res.status(400).json({ error: 'Thời gian nhắc việc phải ở tương lai' });
@@ -53,13 +57,44 @@ router.post('/reminders', (req, res) => {
   const u = get<any>('SELECT onboarded FROM users WHERE id = ?', [req.user!.id]);
   if (!u?.onboarded) return res.status(428).json({ error: 'Cần hoàn tất cài đặt PWA và cấp quyền thông báo trước' });
 
-  run(
-    `INSERT INTO reminders (id,lead_id,remind_at,purpose,location,notify_before_minutes,created_by,sync_status,created_at)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
-    [id || uuid(), lead_id, remind_at, purpose, location || null, notify_before_minutes || 30, req.user!.id, 'SYNCED', nowIso()]
-  );
+  const lead = get<any>('SELECT id, full_name, phone, car_model_id FROM leads WHERE id = ?', [lead_id]);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
+
+  // Trường hợp lái thử có chọn khung giờ -> tạo booking thật
+  const isTestDrive = purpose === 'Lái thử' && showroom_id && slot_id;
+  let bookingId: string | null = null;
+
+  if (isTestDrive) {
+    const slot = get<any>('SELECT * FROM slots WHERE id = ?', [slot_id]);
+    if (!slot || !slot.is_available) return res.status(409).json({ error: 'Khung giờ vừa bị giữ, vui lòng chọn lại' });
+    if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
+      return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ (BR-TD-02)' });
+    }
+    if (!lead.car_model_id) {
+      return res.status(400).json({ error: 'Lead chưa gắn dòng xe quan tâm, không thể đặt lịch lái thử' });
+    }
+  }
+
+  bookingId = isTestDrive ? uuid() : null;
+  const code = 'TD' + Date.now().toString().slice(-8);
+
+  transaction(() => {
+    run(
+      `INSERT INTO reminders (id,lead_id,remind_at,purpose,location,notify_before_minutes,created_by,sync_status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [id || uuid(), lead_id, remind_at, purpose, location || null, notify_before_minutes || 30, req.user!.id, 'SYNCED', nowIso()]
+    );
+    if (isTestDrive) {
+      run(
+        `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [bookingId, code, lead.car_model_id, showroom_id, slot_id, lead.full_name, lead.phone, lead_id, 'Chờ xác nhận', nowIso()]
+      );
+      run('UPDATE slots SET is_available = 0 WHERE id = ?', [slot_id]);
+    }
+  });
   persist();
-  res.status(201).json({ ok: true });
+  res.status(201).json({ ok: true, booking_id: bookingId, booking_code: isTestDrive ? code : null });
 });
 
 /** GET /api/care/reminders/upcoming — lịch hẹn sắp tới của tôi. */

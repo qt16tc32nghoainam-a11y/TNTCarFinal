@@ -185,26 +185,74 @@ function ReminderModal({ leadId, onClose, onDone }: any) {
   const [purpose, setPurpose] = useState('Lái thử');
   const [location, setLocation] = useState('');
   const [err, setErr] = useState('');
+  // Dành riêng cho mục đích "Lái thử": chọn showroom + khung giờ để tạo lịch lái thử thật
+  const [showrooms, setShowrooms] = useState<any[]>([]);
+  const [showroomId, setShowroomId] = useState('');
+  const [slots, setSlots] = useState<any[]>([]);
+  const [slotId, setSlotId] = useState('');
+
+  const isTestDrive = purpose === 'Lái thử';
+
+  useEffect(() => {
+    if (isTestDrive && showrooms.length === 0) {
+      api.get<any[]>('/meta/showrooms').then(setShowrooms).catch(() => {});
+    }
+  }, [isTestDrive]);
+
+  useEffect(() => {
+    if (isTestDrive && showroomId) {
+      api.get<any[]>(`/cars/slots/available/${showroomId}`).then(setSlots).catch(() => setSlots([]));
+    } else {
+      setSlots([]); setSlotId('');
+    }
+  }, [showroomId, isTestDrive]);
+
   async function save() {
     setErr('');
     if (!remind_at) return setErr('Vui lòng chọn thời gian hẹn');
     if (new Date(remind_at).getTime() <= Date.now()) return setErr('Thời gian nhắc việc phải ở tương lai');
+    // Khi lái thử: bắt buộc chọn showroom + khung giờ để tạo lịch lái thử
+    if (isTestDrive && (!showroomId || !slotId)) return setErr('Với lịch lái thử, vui lòng chọn Showroom và Khung giờ');
     try {
       const id = uuid();
+      const payload: any = { id, lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location };
+      if (isTestDrive) { payload.showroom_id = showroomId; payload.slot_id = slotId; }
       if (navigator.onLine) {
-        await api.post('/care/reminders', { id, lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location });
+        await api.post('/care/reminders', payload);
       } else {
-        await enqueue({ id, entity_type: 'reminder', payload: { lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
+        // Offline: lịch lái thử cần slot nên chỉ lưu reminder; booking tạo khi online
+        await enqueue({ id, entity_type: 'reminder', payload: { lead_id: leadId, remind_at: payload.remind_at, purpose, location, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
         alert('Đã lưu lịch hẹn cục bộ (offline), sẽ đồng bộ khi có mạng.');
       }
       onDone();
     } catch (e: any) { setErr(e.message); }
   }
+
   return (
     <Modal open onClose={onClose} title="Tạo lịch hẹn">
-      <Field label="Thời gian hẹn *"><input type="datetime-local" className="input" value={remind_at} onChange={(e) => setRemindAt(e.target.value)} /></Field>
       <Field label="Mục đích"><select className="input" value={purpose} onChange={(e) => setPurpose(e.target.value)}><option>Lái thử</option><option>Tư vấn lại</option><option>Khác</option></select></Field>
-      <Field label="Địa điểm"><input className="input" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
+      <Field label="Thời gian hẹn *"><input type="datetime-local" className="input" value={remind_at} onChange={(e) => setRemindAt(e.target.value)} /></Field>
+
+      {isTestDrive && (
+        <>
+          <div className="mb-2 rounded bg-brand-50 p-2 text-xs text-brand-700">Lịch lái thử sẽ hiện ở mục "Lịch lái thử" sau khi lưu.</div>
+          <Field label="Showroom *">
+            <select className="input" value={showroomId} onChange={(e) => setShowroomId(e.target.value)}>
+              <option value="">-- Chọn showroom --</option>
+              {showrooms.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Khung giờ lái thử *">
+            <select className="input" value={slotId} onChange={(e) => setSlotId(e.target.value)}>
+              <option value="">-- Chọn khung giờ --</option>
+              {slots.map((s) => <option key={s.id} value={s.id}>{formatDate(s.start_time)}</option>)}
+            </select>
+            {showroomId && slots.length === 0 && <div className="mt-1 text-xs text-amber-600">Không còn khung giờ trống (cách hiện tại &ge;2h), thử showroom khác.</div>}
+          </Field>
+        </>
+      )}
+
+      <Field label="Địa điểm / ghi chú"><input className="input" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
       <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Lưu</button></div>
     </Modal>

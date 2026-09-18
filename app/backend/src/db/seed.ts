@@ -218,8 +218,10 @@ async function seed() {
   }
 
   // ---------- Slots lái thử (khung giờ hôm nay + vài ngày tới) ----------
-  const slotIds: string[] = [];
-  for (let d = 0; d < 3; d++) {
+  // Tạo slot từ hôm qua (d=-1) đến +3 ngày, mỗi ngày vài khung giờ. Lưu theo chỉ số ngày để đặt booking đa dạng.
+  const slotsByDay: Record<number, string[]> = {};
+  for (let d = -1; d <= 3; d++) {
+    slotsByDay[d] = [];
     for (const hour of [9, 11, 14, 16]) {
       const start = new Date();
       start.setDate(start.getDate() + d);
@@ -227,21 +229,38 @@ async function seed() {
       const end = new Date(start);
       end.setHours(hour + 1);
       const sid = uuid();
-      slotIds.push(sid);
+      slotsByDay[d].push(sid);
       run(
         `INSERT INTO slots (id,showroom_id,car_model_id,start_time,end_time,is_available,is_holiday) VALUES (?,?,?,?,?,?,?)`,
         [sid, shrThuDuc, carIds[0], start.toISOString(), end.toISOString(), 1, 0]
       );
     }
   }
+  const slotIds = Object.values(slotsByDay).flat();
 
-  // ---------- Test drive bookings ----------
-  run(
-    `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?)`,
-    [uuid(), 'TD' + Date.now().toString().slice(-6), carIds[0], shrThuDuc, slotIds[0], 'Nguyễn Văn An', '0987100000', leadIds[0], 'Đã xác nhận', now()]
-  );
-  run('UPDATE slots SET is_available=0 WHERE id=?', [slotIds[0]]);
+  // ---------- Test drive bookings (đa dạng ngày + trạng thái để test xem theo ngày) ----------
+  let tdSeq = 0;
+  const mkBooking = (dayOffset: number, slotIdx: number, car: number, name: string, phone: string, leadIdx: number, status: string) => {
+    const sid = slotsByDay[dayOffset]?.[slotIdx];
+    if (!sid) return;
+    run(
+      `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [uuid(), 'TD' + (Date.now().toString().slice(-5)) + (tdSeq++), car >= 0 ? carIds[car] : carIds[0], shrThuDuc, sid, name, phone, leadIdx >= 0 ? leadIds[leadIdx] : null, status, now()]
+    );
+    run('UPDATE slots SET is_available=0 WHERE id=?', [sid]);
+  };
+  // Hôm qua: đã hoàn thành + vắng mặt
+  mkBooking(-1, 0, 0, 'Nguyễn Văn An', '0987100000', 0, 'Hoàn thành');
+  mkBooking(-1, 1, 1, 'Trần Thị Bình', '0987100001', 1, 'Vắng mặt');
+  // Hôm nay: đã xác nhận + chờ xác nhận
+  mkBooking(0, 0, 0, 'Lê Văn Cường', '0987100002', 2, 'Đã xác nhận');
+  mkBooking(0, 1, 2, 'Phạm Thị Dung', '0987100003', 3, 'Chờ xác nhận');
+  // Ngày mai: đã xác nhận + chờ xác nhận
+  mkBooking(1, 0, 3, 'Hoàng Văn Em', '0987100004', 4, 'Đã xác nhận');
+  mkBooking(1, 1, 4, 'Vũ Thị Phương', '0987100005', 5, 'Chờ xác nhận');
+  // +2 ngày: chờ xác nhận
+  mkBooking(2, 0, 5, 'Đặng Văn Giang', '0987100006', 6, 'Chờ xác nhận');
 
   // ---------- Contracts + Payments (cho lead Won) ----------
   for (let i = 0; i < wonLeadIds.length; i++) {
