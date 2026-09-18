@@ -111,6 +111,7 @@ router.get('/leads', (req, res) => {
   const clause = scope ? ` AND l.assigned_sales_id IN (${scope.map(() => '?').join(',')})` : '';
   let statusClause = '';
   if (filter === 'won') statusClause = " AND l.status_detail = 'Thành công'";
+  else if (filter === 'decided') statusClause = " AND l.status_detail IN ('Thành công','Lead thất bại')"; // để tính tỷ lệ chốt
   const rows = all(
     `SELECT l.id, l.full_name, l.phone, l.source, l.status_detail, l.updated_at,
             u.full_name AS sales_name, c.brand AS car_brand, c.name AS car_name

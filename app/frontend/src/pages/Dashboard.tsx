@@ -52,7 +52,7 @@ export default function Dashboard() {
     { label: 'Tổng Lead', value: kpi.totalLeads, color: 'text-blue-600', drill: ['Tất cả Lead', 'lead', '/dashboard/leads?filter=all'] },
     { label: 'Won', value: kpi.won, color: 'text-green-600', drill: ['Lead thành công (Won)', 'lead', '/dashboard/leads?filter=won'] },
     { label: 'Lost', value: kpi.lost, color: 'text-red-600', drill: ['Chi tiết Lead thất bại', 'lost', '/dashboard/lost-leads'] },
-    { label: 'Tỷ lệ chốt', value: kpi.winRate + '%', color: 'text-brand-700' },
+    { label: 'Tỷ lệ chốt', value: kpi.winRate + '%', color: 'text-brand-700', drill: ['Lead đã có kết quả (Won + Lost)', 'lead', '/dashboard/leads?filter=decided'] },
     { label: 'Doanh thu', value: formatVnd(kpi.revenue), color: 'text-emerald-600', drill: ['Hợp đồng có doanh thu', 'contract', '/dashboard/contracts?filter=active'] },
     { label: 'Hợp đồng', value: kpi.contracts, color: 'text-indigo-600', drill: ['Danh sách hợp đồng', 'contract', '/dashboard/contracts?filter=active'] },
     { label: 'Tỷ lệ hủy cọc', value: kpi.cancelRate + '%', color: 'text-amber-600', drill: ['Hợp đồng đã hủy cọc', 'contract', '/dashboard/contracts?filter=cancelled'] },
