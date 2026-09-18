@@ -3,9 +3,27 @@ import { api } from '../lib/api';
 import { Spinner, Empty } from '../components/ui';
 import { formatDate, statusColor } from '../lib/format';
 
+const TD_STATUSES = ['Chờ xác nhận', 'Đã xác nhận', 'Hoàn thành', 'Vắng mặt', 'Từ chối', 'Hủy'];
+
+// So sánh 2 mốc thời gian theo NGÀY (bỏ giờ), trả về số ngày lệch (0 = cùng ngày)
+function dayDiff(iso: string, base: Date): number {
+  const d = new Date(iso);
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const b = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
+function dayLabel(offset: number, date: Date): string {
+  const base = offset === 0 ? 'Hôm nay' : offset === -1 ? 'Hôm qua' : offset === 1 ? 'Ngày mai' : '';
+  const dmy = date.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+  return base ? `${base} · ${dmy}` : dmy;
+}
+
 export default function TestDrives() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dayOffset, setDayOffset] = useState(0);       // 0 = hôm nay
+  const [statusFilter, setStatusFilter] = useState('');
+  const [viewAll, setViewAll] = useState(false);       // xem tất cả (không lọc theo ngày)
 
   async function load() {
     setLoading(true);
@@ -33,17 +51,89 @@ export default function TestDrives() {
   }[s] || 'bg-gray-100');
 
   if (loading) return <Spinner />;
+
+  const base = new Date();
+  const selectedDate = new Date(base);
+  selectedDate.setDate(base.getDate() + dayOffset);
+
+  // Lọc theo trạng thái + (nếu không xem tất cả) theo ngày đang chọn
+  let filtered = rows.filter((r) => !statusFilter || r.status === statusFilter);
+  if (!viewAll) filtered = filtered.filter((r) => dayDiff(r.start_time, base) === dayOffset);
+
+  // Nhóm theo ngày khi xem tất cả
+  const groups: { offset: number; date: Date; items: any[] }[] = [];
+  if (viewAll) {
+    const map = new Map<number, any[]>();
+    for (const r of filtered) {
+      const off = dayDiff(r.start_time, base);
+      if (!map.has(off)) map.set(off, []);
+      map.get(off)!.push(r);
+    }
+    Array.from(map.keys()).sort((a, b) => b - a).forEach((off) => {
+      const dt = new Date(base); dt.setDate(base.getDate() + off);
+      groups.push({ offset: off, date: dt, items: map.get(off)! });
+    });
+  }
+
+  const countForDay = (off: number) => rows.filter((r) => dayDiff(r.start_time, base) === off && (!statusFilter || r.status === statusFilter)).length;
+
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">Lịch lái thử</h1>
-      {rows.length === 0 ? <Empty text="Chưa có lịch lái thử" /> : (
-        <div className="overflow-x-auto rounded-xl border bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr><th className="p-3">Mã</th><th className="p-3">Khách</th><th className="p-3">Xe</th><th className="p-3">Showroom</th><th className="p-3">Thời gian</th><th className="p-3">Trạng thái</th><th className="p-3">Thao tác</th></tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold">Lịch lái thử</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Lọc trạng thái */}
+          <select className="input w-auto text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Tất cả trạng thái</option>
+            {TD_STATUSES.map((s) => <option key={s}>{s}</option>)}
+          </select>
+          {/* Chuyển chế độ xem */}
+          <button onClick={() => setViewAll(!viewAll)} className={`badge ${viewAll ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+            {viewAll ? 'Đang xem: Tất cả ngày' : 'Xem tất cả ngày'}
+          </button>
+        </div>
+      </div>
+
+      {/* Điều hướng ngày (ẩn khi xem tất cả) */}
+      {!viewAll && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border bg-white p-3">
+          <button onClick={() => setDayOffset(dayOffset - 1)} className="btn-secondary text-sm">◀ Hôm trước</button>
+          <div className="text-center">
+            <div className="font-semibold">{dayLabel(dayOffset, selectedDate)}</div>
+            <div className="text-xs text-gray-500">{countForDay(dayOffset)} lịch{dayOffset !== 0 && <button onClick={() => setDayOffset(0)} className="ml-2 text-brand-700 hover:underline">Về hôm nay</button>}</div>
+          </div>
+          <button onClick={() => setDayOffset(dayOffset + 1)} className="btn-secondary text-sm">Hôm sau ▶</button>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <Empty text={viewAll ? 'Không có lịch lái thử phù hợp' : `Không có lịch lái thử ${dayLabel(dayOffset, selectedDate).toLowerCase()}`} />
+      ) : viewAll ? (
+        // Xem tất cả: nhóm theo ngày
+        <div className="space-y-6">
+          {groups.map((g) => (
+            <div key={g.offset}>
+              <div className="mb-2 text-sm font-semibold text-brand-700">{dayLabel(g.offset, g.date)} ({g.items.length})</div>
+              <BookingTable rows={g.items} update={update} tdStatusColor={tdStatusColor} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <BookingTable rows={filtered} update={update} tdStatusColor={tdStatusColor} />
+      )}
+    </div>
+  );
+}
+
+function BookingTable({ rows, update, tdStatusColor }: { rows: any[]; update: (id: string, s: string) => void; tdStatusColor: (s: string) => string }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border bg-white">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+          <tr><th className="p-3">Mã</th><th className="p-3">Khách</th><th className="p-3">Xe</th><th className="p-3">Showroom</th><th className="p-3">Thời gian</th><th className="p-3">Trạng thái</th><th className="p-3">Thao tác</th></tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-3 font-mono text-xs">{r.booking_code}</td>
                   <td className="p-3">{r.customer_name}<div className="text-xs text-gray-400">{r.customer_phone}</div></td>
@@ -65,14 +155,11 @@ export default function TestDrives() {
                         <button onClick={() => update(r.id, 'Hủy')} className="badge bg-red-100 text-red-700">Hủy</button>
                       </div>
                     )}
-                    {r.status === 'Chờ xác nhận' && null}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
