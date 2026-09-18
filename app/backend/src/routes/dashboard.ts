@@ -56,7 +56,7 @@ router.get('/kpi', (req, res) => {
   const contractScope = getVisibleSalesIds(req.user!);
   const cScopeClause = contractScope ? ` AND ct.created_by IN (${contractScope.map(() => '?').join(',')})` : '';
   const revenue = get<any>(
-    `SELECT COALESCE(SUM(value),0) s, COUNT(*) c FROM contracts ct WHERE status='Hiệu lực' AND signed_date BETWEEN ? AND ? ${cScopeClause}`,
+    `SELECT COALESCE(SUM(value),0) s, COUNT(*) c FROM contracts ct WHERE status != 'Đã hủy cọc' AND signed_date BETWEEN ? AND ? ${cScopeClause}`,
     [dateFrom, dateTo, ...(contractScope || [])]
   );
   const cancelled = get<any>(
@@ -156,7 +156,7 @@ router.get('/ranking', (req, res) => {
        COUNT(CASE WHEN l.status_detail='Thành công' THEN 1 END) AS won,
        COUNT(CASE WHEN l.status_detail='Lead thất bại' THEN 1 END) AS lost,
        COUNT(l.id) AS total_leads,
-       COALESCE((SELECT SUM(value) FROM contracts ct WHERE ct.created_by=u.id AND ct.status='Hiệu lực'),0) AS revenue
+       COALESCE((SELECT SUM(value) FROM contracts ct WHERE ct.created_by=u.id AND ct.status != 'Đã hủy cọc'),0) AS revenue
      FROM users u
      LEFT JOIN leads l ON l.assigned_sales_id = u.id
      LEFT JOIN showrooms s ON s.id = u.showroom_id
@@ -196,7 +196,7 @@ router.get('/export', (req, res) => {
        COUNT(CASE WHEN l.status_detail='Thành công' THEN 1 END) AS won,
        COUNT(CASE WHEN l.status_detail='Lead thất bại' THEN 1 END) AS lost,
        COUNT(l.id) AS total_leads,
-       COALESCE((SELECT SUM(value) FROM contracts ct WHERE ct.created_by=u.id AND ct.status='Hiệu lực'),0) AS revenue
+       COALESCE((SELECT SUM(value) FROM contracts ct WHERE ct.created_by=u.id AND ct.status != 'Đã hủy cọc'),0) AS revenue
      FROM users u
      LEFT JOIN leads l ON l.assigned_sales_id = u.id
      LEFT JOIN showrooms s ON s.id = u.showroom_id
