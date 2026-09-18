@@ -1,0 +1,41 @@
+services:
+  tntcar:
+    build: .
+    image: tntcar:latest
+    container_name: tntcar
+    restart: unless-stopped
+    # KHÔNG map cổng 80 ra ngoài nữa - chỉ Caddy expose ra internet.
+    # App chỉ nói chuyện với Caddy trong mạng nội bộ Docker.
+    expose:
+      - "8080"
+    environment:
+      PORT: "8080"
+      JWT_SECRET: "doi-chuoi-bi-mat-nay-di"
+      DB_PATH: "/data/tntcar.db"
+    volumes:
+      - tntcar_data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"     # Let's Encrypt cần cổng 80 để xác thực (HTTP-01)
+      - "443:443"   # HTTPS
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # lưu chứng chỉ SSL (bền qua restart)
+      - caddy_config:/config
+    depends_on:
+      - tntcar
+
+volumes:
+  tntcar_data:
+  caddy_data:
+  caddy_config:

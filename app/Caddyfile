@@ -1,0 +1,5 @@
+# Caddy tự động xin chứng chỉ HTTPS (Let's Encrypt) và tự gia hạn.
+tntcar.duckdns.org {
+	# Chuyển tiếp mọi request về app TNT CAR (container tntcar, cổng 8080)
+	reverse_proxy tntcar:8080
+}
