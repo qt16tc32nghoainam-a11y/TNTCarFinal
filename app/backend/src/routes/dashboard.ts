@@ -81,6 +81,29 @@ router.get('/kpi', (req, res) => {
   });
 });
 
+/** GET /api/dashboard/lost-leads — chi tiết Lead thất bại (lead nào, sales nào, lý do gì). */
+router.get('/lost-leads', (req, res) => {
+  const { from, to } = req.query as Record<string, string>;
+  const dateFrom = from || '1970-01-01';
+  const dateTo = to || '2999-12-31';
+  const scope = getVisibleSalesIds(req.user!);
+  const clause = scope ? ` AND l.assigned_sales_id IN (${scope.map(() => '?').join(',')})` : '';
+  const rows = all(
+    `SELECT l.id, l.full_name, l.phone, l.source, l.updated_at,
+            lr.label AS lost_reason, l.lost_reason_note,
+            u.full_name AS sales_name,
+            c.brand AS car_brand, c.name AS car_name
+     FROM leads l
+     LEFT JOIN lost_reasons lr ON lr.id = l.lost_reason_id
+     LEFT JOIN users u ON u.id = l.assigned_sales_id
+     LEFT JOIN car_models c ON c.id = l.car_model_id
+     WHERE l.status_detail = 'Lead thất bại' AND l.created_at BETWEEN ? AND ? ${clause}
+     ORDER BY l.updated_at DESC`,
+    [dateFrom, dateTo, ...(scope || [])]
+  );
+  res.json(rows);
+});
+
 /** GET /api/dashboard/ranking — bảng xếp hạng Sales/Showroom (US-05.1). */
 router.get('/ranking', (req, res) => {
   const scope = getVisibleSalesIds(req.user!);
@@ -88,6 +111,7 @@ router.get('/ranking', (req, res) => {
   const salesRanking = all(
     `SELECT u.id, u.full_name, s.name AS showroom_name,
        COUNT(CASE WHEN l.status_detail='Thành công' THEN 1 END) AS won,
+       COUNT(CASE WHEN l.status_detail='Lead thất bại' THEN 1 END) AS lost,
        COUNT(l.id) AS total_leads,
        COALESCE((SELECT SUM(value) FROM contracts ct WHERE ct.created_by=u.id AND ct.status='Hiệu lực'),0) AS revenue
      FROM users u
