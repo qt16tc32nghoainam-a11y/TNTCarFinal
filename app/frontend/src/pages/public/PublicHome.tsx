@@ -1,20 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { publicApi } from '../../lib/api';
+import { publicApi, api } from '../../lib/api';
 import { formatVnd } from '../../lib/format';
 import CarCard from './CarCard';
 import QuickLeadForm from './QuickLeadForm';
+import { EditButton } from './InlineEdit';
+import { useIsContentAdmin } from './InlineEdit';
 
 export default function PublicHome() {
   const [contents, setContents] = useState<any[]>([]);
   const [cars, setCars] = useState<any[]>([]);
+  const isAdmin = useIsContentAdmin();
+
+  function loadContents() {
+    // Admin xem cả nội dung đang ẩn (qua /content); khách chỉ xem nội dung active (/public/contents)
+    const url = isAdmin ? '/content' : '/public/contents';
+    const call = isAdmin ? api.get<any[]>(url) : publicApi.get<any[]>(url);
+    call.then(setContents).catch(() => publicApi.get<any[]>('/public/contents').then(setContents).catch(() => {}));
+  }
+
   useEffect(() => {
-    publicApi.get<any[]>('/public/contents').then(setContents).catch(() => {});
+    loadContents();
     publicApi.get<any[]>('/public/cars').then(setCars).catch(() => {});
-  }, []);
+  }, [isAdmin]);
   const banner = contents.find((c) => c.content_type === 'banner');
   const brand = contents.find((c) => c.content_type === 'brand');
-  const promos = contents.filter((c) => c.content_type === 'promo');
+  // Hiển thị đúng như khách thấy: chỉ mục đang bật (active !== 0)
+  const promos = contents.filter((c) => c.content_type === 'promo' && c.active !== 0);
   const minPrice = cars.length ? Math.min(...cars.map((c) => c.price)) : 0;
 
   // Ưu đãi: lấy từ nội dung Admin nhập; nếu chưa có thì dùng mặc định
@@ -35,7 +47,15 @@ export default function PublicHome() {
         )}
         <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-2">
           <div>
-            <p className="text-sm uppercase tracking-widest text-brand-200">{banner?.title || 'TNT CAR'}</p>
+            <div className="mb-1 flex items-center gap-2">
+              <p className="text-sm uppercase tracking-widest text-brand-200">{banner?.title || 'TNT CAR'}</p>
+              <EditButton item={banner} contentType="banner" onSaved={loadContents} label="Sửa banner"
+                fields={[
+                  { key: 'title', label: 'Tiêu đề nhỏ (phía trên)' },
+                  { key: 'body', label: 'Tiêu đề lớn', multiline: true },
+                  { key: 'image_url', label: 'Ảnh nền (URL)', isImage: true },
+                ]} />
+            </div>
             <h1 className="mt-2 text-4xl font-extrabold leading-tight md:text-5xl">
               {banner?.body || 'Chọn xe trong mơ, nhận ưu đãi hôm nay'}
             </h1>
@@ -57,12 +77,21 @@ export default function PublicHome() {
 
       {/* Dải ưu đãi (nội dung từ Admin) */}
       <section className="border-b bg-gray-50">
+        {isAdmin && (
+          <div className="mx-auto flex max-w-6xl items-center justify-end px-4 pt-3">
+            <EditButton contentType="promo" onSaved={loadContents} label="Thêm ưu đãi"
+              fields={[
+                { key: 'title', label: 'Tiêu đề ưu đãi' },
+                { key: 'body', label: 'Mô tả ngắn' },
+                { key: 'image_url', label: 'Biểu tượng (emoji) hoặc ảnh URL' },
+              ]} />
+          </div>
+        )}
         <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 text-center sm:grid-cols-2 lg:grid-cols-4">
           {promoItems.map((p: any, i: number) => {
-            // image_url có thể là emoji (mặc định) hoặc URL ảnh (Admin nhập)
             const isUrl = typeof p.image_url === 'string' && /^https?:\/\//.test(p.image_url);
             return (
-              <div key={i}>
+              <div key={p.id || i} className="relative">
                 {isUrl ? (
                   <img src={p.image_url} alt="" className="mx-auto h-12 w-12 rounded-full object-cover" />
                 ) : (
@@ -70,6 +99,16 @@ export default function PublicHome() {
                 )}
                 <div className="mt-1 font-semibold text-gray-800">{p.title}</div>
                 <div className="text-xs text-gray-500">{p.body}</div>
+                {isAdmin && p.id && (
+                  <div className="mt-1">
+                    <EditButton item={p} contentType="promo" onSaved={loadContents}
+                      fields={[
+                        { key: 'title', label: 'Tiêu đề ưu đãi' },
+                        { key: 'body', label: 'Mô tả ngắn' },
+                        { key: 'image_url', label: 'Biểu tượng (emoji) hoặc ảnh URL' },
+                      ]} />
+                  </div>
+                )}
               </div>
             );
           })}
@@ -91,11 +130,18 @@ export default function PublicHome() {
       </section>
 
       {/* Giới thiệu thương hiệu */}
-      {brand && (
+      {(brand || isAdmin) && (
         <section className="bg-gray-50">
           <div className="mx-auto max-w-6xl px-4 py-12">
-            <h3 className="text-xl font-bold">{brand.title}</h3>
-            <p className="mt-2 max-w-3xl text-gray-600">{brand.body}</p>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl font-bold">{brand?.title || 'Về TNT CAR'}</h3>
+              <EditButton item={brand} contentType="brand" onSaved={loadContents} label="Sửa giới thiệu"
+                fields={[
+                  { key: 'title', label: 'Tiêu đề' },
+                  { key: 'body', label: 'Nội dung giới thiệu', multiline: true },
+                ]} />
+            </div>
+            <p className="mt-2 max-w-3xl text-gray-600">{brand?.body}</p>
           </div>
         </section>
       )}
