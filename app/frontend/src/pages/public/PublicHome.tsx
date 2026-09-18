@@ -6,7 +6,7 @@ import CarCard from './CarCard';
 import QuickLeadForm from './QuickLeadForm';
 import { EditButton } from './InlineEdit';
 import { useIsContentAdmin } from './InlineEdit';
-import { Car, Wallet, Wrench, Repeat } from 'lucide-react';
+import { Car, Wallet, Wrench, ArrowLeftRight } from 'lucide-react';
 
 export default function PublicHome() {
   const [contents, setContents] = useState<any[]>([]);
@@ -35,7 +35,7 @@ export default function PublicHome() {
     { icon: Car, title: 'Lái thử miễn phí', body: 'Tận nơi theo yêu cầu' },
     { icon: Wallet, title: 'Hỗ trợ trả góp', body: 'Vay đến 80% giá trị xe' },
     { icon: Wrench, title: 'Bảo hành chính hãng', body: 'Cứu hộ 24/7' },
-    { icon: Repeat, title: 'Thu cũ đổi mới', body: 'Định giá xe cũ giá cao' },
+    { icon: ArrowLeftRight, title: 'Thu cũ đổi mới', body: 'Định giá xe cũ giá cao' },
   ];
   const usingDefault = promos.length === 0;
   const promoItems: any[] = usingDefault ? defaultPromos : promos;
