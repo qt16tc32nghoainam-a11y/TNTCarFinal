@@ -22,6 +22,40 @@ router.get('/', (req, res) => {
   res.json(cars);
 });
 
+// ------------- Thư viện ảnh xe (FR-07) -------------
+
+/** GET /api/cars/:id/images — danh sách ảnh của xe (công khai). */
+router.get('/:id/images', (req, res) => {
+  res.json(all('SELECT * FROM car_images WHERE car_model_id = ? ORDER BY sort_order ASC, rowid ASC', [req.params.id]));
+});
+
+/** POST /api/cars/:id/images — Admin thêm ảnh (1 hoặc nhiều). Body: { images: [{url, caption}] } hoặc { url, caption }. */
+router.post('/:id/images', authenticate, requireRole('Admin'), (req, res) => {
+  const car = get<any>('SELECT id FROM car_models WHERE id = ?', [req.params.id]);
+  if (!car) return res.status(404).json({ error: 'Không tìm thấy xe' });
+  const list = Array.isArray(req.body?.images) ? req.body.images : [req.body];
+  const valid = list.filter((x: any) => x && x.url);
+  if (valid.length === 0) return res.status(400).json({ error: 'Thiếu ảnh' });
+  const base = (get<any>('SELECT COALESCE(MAX(sort_order),0) m FROM car_images WHERE car_model_id = ?', [req.params.id])?.m) || 0;
+  const created: string[] = [];
+  transaction(() => {
+    valid.forEach((img: any, i: number) => {
+      const id = uuid();
+      run('INSERT INTO car_images (id,car_model_id,url,caption,sort_order) VALUES (?,?,?,?,?)',
+        [id, req.params.id, img.url, img.caption || null, base + i + 1]);
+      created.push(id);
+    });
+  });
+  res.status(201).json({ ok: true, ids: created });
+});
+
+/** DELETE /api/cars/:id/images/:imageId — Admin xóa 1 ảnh. */
+router.delete('/:id/images/:imageId', authenticate, requireRole('Admin'), (req, res) => {
+  run('DELETE FROM car_images WHERE id = ? AND car_model_id = ?', [req.params.imageId, req.params.id]);
+  persist();
+  res.json({ ok: true });
+});
+
 /** PATCH /api/cars/:id — Admin cập nhật thông tin xe (kèm ảnh) (FR-03/FR-08). */
 router.patch('/:id', authenticate, requireRole('Admin'), (req, res) => {
   const car = get<any>('SELECT * FROM car_models WHERE id = ?', [req.params.id]);
@@ -53,7 +87,8 @@ router.get('/:id', (req, res) => {
      WHERE ci.car_model_id = ?`,
     [req.params.id]
   );
-  res.json({ ...car, inventory });
+  const images = all('SELECT * FROM car_images WHERE car_model_id = ? ORDER BY sort_order ASC, rowid ASC', [req.params.id]);
+  res.json({ ...car, inventory, images });
 });
 
 // ------------- Lái thử -------------

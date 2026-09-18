@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { publicApi } from '../../lib/api';
 import { formatVnd } from '../../lib/format';
 import QuickLeadForm from './QuickLeadForm';
+import CarGallery from '../../components/CarGallery';
 
 export default function PublicCarDetail() {
   const { id } = useParams();
@@ -40,12 +41,11 @@ export default function PublicCarDetail() {
       {/* Hero xe */}
       <section className="bg-gray-900 text-white">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-8 md:grid-cols-2">
-          <div className="overflow-hidden rounded-2xl bg-gray-800">
-            {car.image_url ? (
-              <img src={car.image_url} alt={`${car.brand} ${car.name}`} className="aspect-[16/10] w-full object-cover" />
-            ) : (
-              <div className="flex aspect-[16/10] items-center justify-center text-7xl text-gray-600">🚗</div>
-            )}
+          <div>
+            <CarGallery
+              images={(car.images && car.images.length ? car.images : (car.image_url ? [{ url: car.image_url, caption: 'Ngoại thất' }] : []))}
+              alt={`${car.brand} ${car.name}`}
+            />
           </div>
           <div>
             <button onClick={() => nav('/site/cars')} className="mb-3 text-sm text-brand-300">← Danh mục xe</button>

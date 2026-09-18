@@ -1,24 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { Car } from '../lib/types';
 import { Modal, Spinner, Field } from '../components/ui';
 import { formatVnd, formatDate } from '../lib/format';
+import CarGallery from '../components/CarGallery';
+import { fileToCompressedDataUrl } from '../lib/image';
 
 export default function CarDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const [car, setCar] = useState<Car | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
+  const [car, setCar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showBook, setShowBook] = useState(false);
-  useEffect(() => { api.get<Car>(`/cars/${id}`).then(setCar).finally(() => setLoading(false)); }, [id]);
+  const [manageImg, setManageImg] = useState(false);
+
+  function load() {
+    api.get<any>(`/cars/${id}`).then(setCar).finally(() => setLoading(false));
+  }
+  useEffect(() => { load(); }, [id]);
 
   if (loading || !car) return <Spinner />;
-  const inStock = (car.inventory || []).some((i) => i.quantity > 0);
+  const inStock = (car.inventory || []).some((i: any) => i.quantity > 0);
 
   return (
     <div className="mx-auto max-w-2xl">
       <button onClick={() => nav('/cars')} className="mb-3 text-sm text-brand-700">← Danh sách xe</button>
+
+      {/* Thư viện ảnh xe */}
+      <div className="mb-4">
+        <CarGallery images={car.images || []} alt={`${car.brand} ${car.name}`} />
+        {isAdmin && (
+          <div className="mt-2 text-right">
+            <button onClick={() => setManageImg(true)} className="rounded-full bg-amber-400 px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-300">🖼️ Quản lý ảnh ({(car.images || []).length})</button>
+          </div>
+        )}
+      </div>
+
       <div className="card">
         <div className="flex items-start justify-between">
           <div>
@@ -33,7 +54,7 @@ export default function CarDetail() {
         <h2 className="mt-5 mb-2 font-semibold">Tồn kho theo showroom</h2>
         <table className="w-full text-sm">
           <tbody>
-            {(car.inventory || []).map((i) => (
+            {(car.inventory || []).map((i: any) => (
               <tr key={i.showroom_id} className="border-t">
                 <td className="py-2">{i.showroom_name}</td>
                 <td className="py-2 text-gray-500">{i.address}</td>
@@ -52,7 +73,90 @@ export default function CarDetail() {
         </div>
       </div>
       {showBook && <BookModal car={car} onClose={() => setShowBook(false)} onDone={() => { setShowBook(false); alert('Đã đặt lịch lái thử'); }} />}
+      {manageImg && <ManageImagesModal car={car} onClose={() => setManageImg(false)} onChanged={load} />}
     </div>
+  );
+}
+
+const CAPTIONS = ['Ngoại thất', 'Ngoại thất phía sau', 'Nội thất - khoang lái', 'Vô lăng & bảng đồng hồ', 'Bánh xe & mâm', 'Khoang máy', 'Cốp xe', 'Khác'];
+
+function ManageImagesModal({ car, onClose, onChanged }: { car: any; onClose: () => void; onChanged: () => void }) {
+  const [images, setImages] = useState<any[]>(car.images || []);
+  const [caption, setCaption] = useState('Ngoại thất');
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function reload() {
+    const list = await api.get<any[]>(`/cars/${car.id}/images`);
+    setImages(list);
+    onChanged();
+  }
+
+  async function addByUrl() {
+    if (!url) return;
+    setBusy(true); setErr('');
+    try {
+      await api.post(`/cars/${car.id}/images`, { url, caption });
+      setUrl('');
+      await reload();
+    } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }
+
+  async function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setBusy(true); setErr('');
+    try {
+      const imgs: any[] = [];
+      for (const f of files) {
+        const dataUrl = await fileToCompressedDataUrl(f, 1000, 0.8);
+        imgs.push({ url: dataUrl, caption });
+      }
+      await api.post(`/cars/${car.id}/images`, { images: imgs });
+      await reload();
+    } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }
+
+  async function remove(imgId: string) {
+    if (!confirm('Xóa ảnh này?')) return;
+    await api.del(`/cars/${car.id}/images/${imgId}`);
+    await reload();
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Ảnh xe: ${car.brand} ${car.name}`}>
+      <div className="mb-3 rounded-lg bg-gray-50 p-3">
+        <Field label="Loại ảnh">
+          <select className="input" value={caption} onChange={(e) => setCaption(e.target.value)}>
+            {CAPTIONS.map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </Field>
+        <div className="mb-2">
+          <label className="label">Tải ảnh từ máy (chọn nhiều được)</label>
+          <input type="file" accept="image/*" multiple onChange={onPickFiles} className="text-sm" />
+        </div>
+        <div className="text-center text-xs text-gray-400">hoặc</div>
+        <div className="flex gap-2">
+          <input className="input flex-1" placeholder="Dán link ảnh (https://...)" value={url} onChange={(e) => setUrl(e.target.value)} />
+          <button onClick={addByUrl} disabled={busy} className="btn-primary">Thêm</button>
+        </div>
+        {busy && <div className="mt-1 text-xs text-gray-500">Đang xử lý...</div>}
+        {err && <div className="mt-1 rounded bg-red-50 p-2 text-xs text-red-600">{err}</div>}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {images.map((img) => (
+          <div key={img.id} className="relative overflow-hidden rounded-lg border">
+            <img src={img.url} alt={img.caption || ''} className="aspect-square w-full object-cover" />
+            <div className="truncate px-1 py-0.5 text-[10px] text-gray-500">{img.caption}</div>
+            <button onClick={() => remove(img.id)} className="absolute right-1 top-1 rounded-full bg-red-600 px-1.5 text-xs text-white">✕</button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 text-xs text-gray-400">Gợi ý: mỗi xe nên có tối thiểu 7 ảnh (ngoại thất, nội thất, vô lăng, bánh xe, khoang máy, cốp).</div>
+      <div className="mt-3 flex justify-end"><button onClick={onClose} className="btn-secondary">Đóng</button></div>
+    </Modal>
   );
 }
 

@@ -18,11 +18,12 @@ router.get('/cars', (req, res) => {
   res.json(all(`SELECT * FROM car_models WHERE ${conds.join(' AND ')} ORDER BY price ASC`, params));
 });
 
-/** GET /api/public/cars/:id — chi tiết xe công khai. */
+/** GET /api/public/cars/:id — chi tiết xe công khai (kèm thư viện ảnh). */
 router.get('/cars/:id', (req, res) => {
   const car = get<any>("SELECT * FROM car_models WHERE id = ? AND status IN ('Available','In-transit')", [req.params.id]);
   if (!car) return res.status(404).json({ error: 'Không tìm thấy xe' });
-  res.json(car);
+  const images = all('SELECT id,url,caption FROM car_images WHERE car_model_id = ? ORDER BY sort_order ASC, rowid ASC', [req.params.id]);
+  res.json({ ...car, images });
 });
 
 /** GET /api/public/loan-rates — bảng lãi suất tham khảo (FR-07.2). */

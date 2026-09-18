@@ -46,6 +46,16 @@ CREATE TABLE IF NOT EXISTS car_models (
   last_synced_at TEXT
 );
 
+-- Thư viện ảnh của xe (nhiều ảnh mỗi xe: ngoại thất, nội thất, bánh, máy, cốp...) (FR-07)
+CREATE TABLE IF NOT EXISTS car_images (
+  id TEXT PRIMARY KEY,
+  car_model_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  caption TEXT,              -- nhãn ảnh: Ngoại thất, Nội thất, Bánh xe, Khoang máy, Cốp xe...
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (car_model_id) REFERENCES car_models(id)
+);
+
 -- Tồn kho theo showroom
 CREATE TABLE IF NOT EXISTS car_inventory (
   id TEXT PRIMARY KEY,
@@ -273,4 +283,5 @@ CREATE INDEX IF NOT EXISTS idx_reminders_lead ON reminders(lead_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_slot ON test_drive_bookings(slot_id);
 CREATE INDEX IF NOT EXISTS idx_contracts_lead ON contracts(lead_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_car_images_car ON car_images(car_model_id, sort_order);
 `;

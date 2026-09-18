@@ -86,6 +86,31 @@ async function seed() {
   }
   const carIds = cars.map((c) => c[0]);
 
+  // ---------- Thư viện ảnh xe (>= 7 ảnh / xe) ----------
+  // Ảnh 1: ngoại thất chính (đúng mẫu, = image_url của xe).
+  // 6 ảnh còn lại: ảnh minh họa theo bộ phận (dùng chung), Admin có thể thay ảnh thật sau.
+  const partImages: [string, string][] = [
+    ['Ngoại thất phía sau', 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=800&q=70'],
+    ['Nội thất - khoang lái', 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&q=70'],
+    ['Vô lăng & bảng đồng hồ', 'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&q=70'],
+    ['Bánh xe & mâm', 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=70'],
+    ['Khoang máy', 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&q=70'],
+    ['Cốp xe', 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=800&q=70'],
+  ];
+  for (const c of cars) {
+    const cid = c[0];
+    const mainImg = c[9]; // image_url
+    let order = 0;
+    if (mainImg) {
+      run('INSERT INTO car_images (id,car_model_id,url,caption,sort_order) VALUES (?,?,?,?,?)',
+        [uuid(), cid, mainImg, 'Ngoại thất', order++]);
+    }
+    for (const [caption, url] of partImages) {
+      run('INSERT INTO car_images (id,car_model_id,url,caption,sort_order) VALUES (?,?,?,?,?)',
+        [uuid(), cid, url, caption, order++]);
+    }
+  }
+
   // Tồn kho theo showroom
   for (const cid of carIds) {
     for (const sid of [shrThuDuc, shrQ1, shrHanoi]) {
