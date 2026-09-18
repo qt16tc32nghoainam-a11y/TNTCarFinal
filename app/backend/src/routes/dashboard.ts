@@ -104,6 +104,49 @@ router.get('/lost-leads', (req, res) => {
   res.json(rows);
 });
 
+/** GET /api/dashboard/leads?filter=all|won — danh sách lead theo scope (drill-down ô Tổng Lead / Won). */
+router.get('/leads', (req, res) => {
+  const { filter } = req.query as Record<string, string>;
+  const scope = getVisibleSalesIds(req.user!);
+  const clause = scope ? ` AND l.assigned_sales_id IN (${scope.map(() => '?').join(',')})` : '';
+  let statusClause = '';
+  if (filter === 'won') statusClause = " AND l.status_detail = 'Thành công'";
+  const rows = all(
+    `SELECT l.id, l.full_name, l.phone, l.source, l.status_detail, l.updated_at,
+            u.full_name AS sales_name, c.brand AS car_brand, c.name AS car_name
+     FROM leads l
+     LEFT JOIN users u ON u.id = l.assigned_sales_id
+     LEFT JOIN car_models c ON c.id = l.car_model_id
+     WHERE 1=1 ${statusClause} ${clause}
+     ORDER BY l.updated_at DESC`,
+    scope || []
+  );
+  res.json(rows);
+});
+
+/** GET /api/dashboard/contracts?filter=active|cancelled — danh sách hợp đồng theo scope (drill-down Doanh thu / Hợp đồng / Hủy cọc). */
+router.get('/contracts', (req, res) => {
+  const { filter } = req.query as Record<string, string>;
+  const scope = getVisibleSalesIds(req.user!);
+  const clause = scope ? ` AND ct.created_by IN (${scope.map(() => '?').join(',')})` : '';
+  let statusClause = '';
+  if (filter === 'active') statusClause = " AND ct.status != 'Đã hủy cọc'";
+  else if (filter === 'cancelled') statusClause = " AND ct.status = 'Đã hủy cọc'";
+  const rows = all(
+    `SELECT ct.id, ct.contract_code, ct.value, ct.status, ct.signed_date, ct.payment_method,
+            l.full_name AS customer_name, l.phone AS customer_phone,
+            c.brand AS car_brand, c.name AS car_name, u.full_name AS sales_name
+     FROM contracts ct
+     JOIN leads l ON l.id = ct.lead_id
+     JOIN car_models c ON c.id = ct.car_model_id
+     LEFT JOIN users u ON u.id = ct.created_by
+     WHERE 1=1 ${statusClause} ${clause}
+     ORDER BY ct.created_at DESC`,
+    scope || []
+  );
+  res.json(rows);
+});
+
 /** GET /api/dashboard/ranking — bảng xếp hạng Sales/Showroom (US-05.1). */
 router.get('/ranking', (req, res) => {
   const scope = getVisibleSalesIds(req.user!);

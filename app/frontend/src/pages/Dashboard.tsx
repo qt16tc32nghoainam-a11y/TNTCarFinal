@@ -9,15 +9,14 @@ export default function Dashboard() {
   const [kpi, setKpi] = useState<any>(null);
   const [ranking, setRanking] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showLost, setShowLost] = useState(false);
-  const [lostLeads, setLostLeads] = useState<any[] | null>(null);
+  const [drill, setDrill] = useState<{ title: string; kind: 'lead' | 'lost' | 'contract' } | null>(null);
+  const [drillData, setDrillData] = useState<any[] | null>(null);
 
-  async function openLost() {
-    setShowLost(true);
-    if (lostLeads === null) {
-      try { setLostLeads(await api.get<any[]>('/dashboard/lost-leads')); }
-      catch { setLostLeads([]); }
-    }
+  async function openDrill(title: string, kind: 'lead' | 'lost' | 'contract', url: string) {
+    setDrill({ title, kind });
+    setDrillData(null);
+    try { setDrillData(await api.get<any[]>(url)); }
+    catch { setDrillData([]); }
   }
 
   useEffect(() => {
@@ -48,14 +47,15 @@ export default function Dashboard() {
 
   if (loading || !kpi) return <Spinner />;
 
-  const cards = [
-    { label: 'Tổng Lead', value: kpi.totalLeads, color: 'text-blue-600' },
-    { label: 'Won', value: kpi.won, color: 'text-green-600' },
-    { label: 'Lost', value: kpi.lost, color: 'text-red-600' },
+  // drill: [tiêu đề, loại hiển thị, url]. undefined = không bấm được (số dẫn xuất).
+  const cards: { label: string; value: any; color: string; drill?: [string, 'lead' | 'lost' | 'contract', string] }[] = [
+    { label: 'Tổng Lead', value: kpi.totalLeads, color: 'text-blue-600', drill: ['Tất cả Lead', 'lead', '/dashboard/leads?filter=all'] },
+    { label: 'Won', value: kpi.won, color: 'text-green-600', drill: ['Lead thành công (Won)', 'lead', '/dashboard/leads?filter=won'] },
+    { label: 'Lost', value: kpi.lost, color: 'text-red-600', drill: ['Chi tiết Lead thất bại', 'lost', '/dashboard/lost-leads'] },
     { label: 'Tỷ lệ chốt', value: kpi.winRate + '%', color: 'text-brand-700' },
-    { label: 'Doanh thu', value: formatVnd(kpi.revenue), color: 'text-emerald-600' },
-    { label: 'Hợp đồng', value: kpi.contracts, color: 'text-indigo-600' },
-    { label: 'Tỷ lệ hủy cọc', value: kpi.cancelRate + '%', color: 'text-amber-600' },
+    { label: 'Doanh thu', value: formatVnd(kpi.revenue), color: 'text-emerald-600', drill: ['Hợp đồng có doanh thu', 'contract', '/dashboard/contracts?filter=active'] },
+    { label: 'Hợp đồng', value: kpi.contracts, color: 'text-indigo-600', drill: ['Danh sách hợp đồng', 'contract', '/dashboard/contracts?filter=active'] },
+    { label: 'Tỷ lệ hủy cọc', value: kpi.cancelRate + '%', color: 'text-amber-600', drill: ['Hợp đồng đã hủy cọc', 'contract', '/dashboard/contracts?filter=cancelled'] },
   ];
 
   return (
@@ -73,16 +73,16 @@ export default function Dashboard() {
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         {cards.map((c) => {
-          const clickable = c.label === 'Lost';
+          const clickable = !!c.drill;
           return (
             <div
               key={c.label}
-              onClick={clickable ? openLost : undefined}
-              className={`card text-center ${clickable ? 'cursor-pointer ring-1 ring-transparent hover:ring-red-300' : ''}`}
-              title={clickable ? 'Bấm để xem chi tiết Lead thất bại' : ''}
+              onClick={clickable ? () => openDrill(c.drill![0], c.drill![1], c.drill![2]) : undefined}
+              className={`card text-center ${clickable ? 'cursor-pointer ring-1 ring-transparent transition hover:ring-brand-300' : ''}`}
+              title={clickable ? 'Bấm để xem chi tiết' : ''}
             >
               <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-              <div className="text-xs text-gray-500">{c.label}{clickable && Number(c.value) > 0 && ' 🔍'}</div>
+              <div className="text-xs text-gray-500">{c.label}{clickable && ' 🔍'}</div>
             </div>
           );
         })}
@@ -125,31 +125,64 @@ export default function Dashboard() {
         </div>
       )}
 
-      {showLost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowLost(false)}>
+      {drill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDrill(null)}>
           <div className="max-h-[85vh] w-full max-w-3xl overflow-auto rounded-xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Chi tiết Lead thất bại ({lostLeads?.length ?? '...'})</h3>
-              <button onClick={() => setShowLost(false)} className="text-gray-400 hover:text-gray-700">✕</button>
+              <h3 className="text-lg font-semibold">{drill.title} ({drillData?.length ?? '...'})</h3>
+              <button onClick={() => setDrill(null)} className="text-gray-400 hover:text-gray-700">✕</button>
             </div>
-            {lostLeads === null ? <Spinner /> : lostLeads.length === 0 ? (
-              <div className="p-6 text-center text-gray-400">Chưa có Lead thất bại</div>
-            ) : (
+            {drillData === null ? <Spinner /> : drillData.length === 0 ? (
+              <div className="p-6 text-center text-gray-400">Không có dữ liệu</div>
+            ) : drill.kind === 'contract' ? (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                  <tr><th className="p-2">Mã HĐ</th><th className="p-2">Khách</th><th className="p-2">Xe</th><th className="p-2">Sales</th><th className="p-2 text-right">Giá trị</th><th className="p-2">Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                  {drillData.map((c) => (
+                    <tr key={c.id} className="border-t align-top">
+                      <td className="p-2 font-mono text-xs">{c.contract_code}</td>
+                      <td className="p-2"><div className="font-medium">{c.customer_name}</div><div className="text-xs text-gray-400">{c.customer_phone}</div></td>
+                      <td className="p-2 text-gray-600">{c.car_brand} {c.car_name}</td>
+                      <td className="p-2 text-gray-600">{c.sales_name || '-'}</td>
+                      <td className="p-2 text-right font-medium">{formatVnd(c.value)}</td>
+                      <td className="p-2 text-xs">{c.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : drill.kind === 'lost' ? (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
                   <tr><th className="p-2">Khách hàng</th><th className="p-2">Xe</th><th className="p-2">Sales</th><th className="p-2">Lý do thất bại</th><th className="p-2">Ngày</th></tr>
                 </thead>
                 <tbody>
-                  {lostLeads.map((l) => (
+                  {drillData.map((l) => (
                     <tr key={l.id} className="border-t align-top">
                       <td className="p-2"><div className="font-medium">{l.full_name}</div><div className="text-xs text-gray-400">{l.phone}</div></td>
                       <td className="p-2 text-gray-600">{l.car_brand ? `${l.car_brand} ${l.car_name}` : '-'}</td>
                       <td className="p-2 text-gray-600">{l.sales_name || '-'}</td>
-                      <td className="p-2">
-                        <span className="text-gray-800">{l.lost_reason || 'Không ghi'}</span>
-                        {l.lost_reason_note && <div className="text-xs text-gray-500">{l.lost_reason_note}</div>}
-                      </td>
+                      <td className="p-2"><span className="text-gray-800">{l.lost_reason || 'Không ghi'}</span>{l.lost_reason_note && <div className="text-xs text-gray-500">{l.lost_reason_note}</div>}</td>
                       <td className="p-2 text-xs text-gray-400">{new Date(l.updated_at).toLocaleDateString('vi-VN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              // lead (all / won)
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                  <tr><th className="p-2">Khách hàng</th><th className="p-2">Xe</th><th className="p-2">Nguồn</th><th className="p-2">Sales</th><th className="p-2">Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                  {drillData.map((l) => (
+                    <tr key={l.id} className="border-t align-top">
+                      <td className="p-2"><div className="font-medium">{l.full_name}</div><div className="text-xs text-gray-400">{l.phone}</div></td>
+                      <td className="p-2 text-gray-600">{l.car_brand ? `${l.car_brand} ${l.car_name}` : '-'}</td>
+                      <td className="p-2 text-gray-500">{l.source}</td>
+                      <td className="p-2 text-gray-600">{l.sales_name || '-'}</td>
+                      <td className="p-2 text-xs">{l.status_detail}</td>
                     </tr>
                   ))}
                 </tbody>
