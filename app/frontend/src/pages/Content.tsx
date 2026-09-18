@@ -57,7 +57,9 @@ export default function Content() {
             <div key={c.id} className={`card ${c.active ? '' : 'opacity-60'}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex gap-3">
-                  {c.image_url && <img src={c.image_url} alt="" className="h-16 w-24 rounded object-cover" />}
+                  {c.image_url && (/^https?:\/\//.test(c.image_url)
+                    ? <img src={c.image_url} alt="" className="h-16 w-24 shrink-0 rounded object-cover" />
+                    : <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded bg-gray-50 text-3xl">{c.image_url}</div>)}
                   <div>
                     <span className="badge bg-brand-50 text-brand-700">{info?.label || c.content_type}</span>
                     {!c.active && <span className="ml-2 badge bg-gray-100 text-gray-500">Đang ẩn</span>}
@@ -108,11 +110,13 @@ function ContentModal({ item, onClose, onDone }: any) {
       <Field label="Tiêu đề"><input className="input" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
       <Field label="Nội dung"><textarea className="input" rows={3} value={form.body || ''} onChange={(e) => setForm({ ...form, body: e.target.value })} /></Field>
       {info?.hasImage && (
-        <Field label="Ảnh (dán đường dẫn URL)">
-          <input className="input" placeholder="https://..." value={form.image_url || ''} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+        <Field label={form.content_type === 'promo' ? 'Biểu tượng (emoji) hoặc link ảnh (https://...)' : 'Ảnh (dán đường dẫn URL)'}>
+          <input className="input" placeholder={form.content_type === 'promo' ? 'VD: 🚗 hoặc https://...' : 'https://...'} value={form.image_url || ''} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
         </Field>
       )}
-      {info?.hasImage && form.image_url && <img src={form.image_url} alt="" className="mb-3 h-28 w-full rounded object-cover" />}
+      {info?.hasImage && form.image_url && (/^https?:\/\//.test(form.image_url)
+        ? <img src={form.image_url} alt="" className="mb-3 h-28 w-full rounded object-cover" />
+        : <div className="mb-3 flex h-20 items-center justify-center rounded bg-gray-50 text-5xl">{form.image_url}</div>)}
       <div className="flex justify-end gap-2">
         <button onClick={onClose} className="btn-secondary">Hủy</button>
         <button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Lưu'}</button>
