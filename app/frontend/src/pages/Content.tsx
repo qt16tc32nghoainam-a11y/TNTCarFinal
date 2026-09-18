@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Modal, Spinner, Field } from '../components/ui';
+import { PROMO_ICONS, PromoVisual } from '../lib/promoIcons';
 
 /**
  * Quản lý nội dung website công khai (FR-08).
@@ -59,7 +60,7 @@ export default function Content() {
                 <div className="flex gap-3">
                   {c.image_url && (/^https?:\/\//.test(c.image_url)
                     ? <img src={c.image_url} alt="" className="h-16 w-24 shrink-0 rounded object-cover" />
-                    : <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded bg-gray-50 text-3xl">{c.image_url}</div>)}
+                    : <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded bg-brand-50 text-brand-700"><PromoVisual value={c.image_url} size={26} /></div>)}
                   <div>
                     <span className="badge bg-brand-50 text-brand-700">{info?.label || c.content_type}</span>
                     {!c.active && <span className="ml-2 badge bg-gray-100 text-gray-500">Đang ẩn</span>}
@@ -109,14 +110,34 @@ function ContentModal({ item, onClose, onDone }: any) {
       {info && <div className="mb-3 rounded bg-brand-50 p-2 text-xs text-brand-700">Vị trí hiển thị: {info.where}</div>}
       <Field label="Tiêu đề"><input className="input" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
       <Field label="Nội dung"><textarea className="input" rows={3} value={form.body || ''} onChange={(e) => setForm({ ...form, body: e.target.value })} /></Field>
-      {info?.hasImage && (
-        <Field label={form.content_type === 'promo' ? 'Biểu tượng (emoji) hoặc link ảnh (https://...)' : 'Ảnh (dán đường dẫn URL)'}>
-          <input className="input" placeholder={form.content_type === 'promo' ? 'VD: 🚗 hoặc https://...' : 'https://...'} value={form.image_url || ''} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+      {/* Promo: chọn icon từ danh sách lucide. Banner: nhập link ảnh nền. */}
+      {form.content_type === 'promo' ? (
+        <Field label="Chọn biểu tượng">
+          <div className="grid grid-cols-6 gap-2">
+            {PROMO_ICONS.map(({ key, label, Icon }) => {
+              const selected = form.image_url === `icon:${key}`;
+              return (
+                <button
+                  type="button"
+                  key={key}
+                  title={label}
+                  onClick={() => setForm({ ...form, image_url: `icon:${key}` })}
+                  className={`flex h-12 items-center justify-center rounded-lg border ${selected ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                >
+                  <Icon size={20} />
+                </button>
+              );
+            })}
+          </div>
         </Field>
-      )}
-      {info?.hasImage && form.image_url && (/^https?:\/\//.test(form.image_url)
-        ? <img src={form.image_url} alt="" className="mb-3 h-28 w-full rounded object-cover" />
-        : <div className="mb-3 flex h-20 items-center justify-center rounded bg-gray-50 text-5xl">{form.image_url}</div>)}
+      ) : info?.hasImage ? (
+        <>
+          <Field label="Ảnh nền (dán đường dẫn URL)">
+            <input className="input" placeholder="https://..." value={form.image_url || ''} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+          </Field>
+          {form.image_url && /^https?:\/\//.test(form.image_url) && <img src={form.image_url} alt="" className="mb-3 h-28 w-full rounded object-cover" />}
+        </>
+      ) : null}
       <div className="flex justify-end gap-2">
         <button onClick={onClose} className="btn-secondary">Hủy</button>
         <button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Lưu'}</button>

@@ -7,6 +7,7 @@ import QuickLeadForm from './QuickLeadForm';
 import { EditButton } from './InlineEdit';
 import { useIsContentAdmin } from './InlineEdit';
 import { Car, Wallet, Wrench, ArrowLeftRight } from 'lucide-react';
+import { PromoVisual } from '../../lib/promoIcons';
 
 export default function PublicHome() {
   const [contents, setContents] = useState<any[]>([]);
@@ -92,16 +93,11 @@ export default function PublicHome() {
         <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-center sm:grid-cols-2 lg:grid-cols-4">
           {promoItems.map((p: any, i: number) => {
             const Icon = p.icon; // chỉ có ở default
-            const isUrl = typeof p.image_url === 'string' && /^https?:\/\//.test(p.image_url);
             return (
               <div key={p.id || i} className="relative flex flex-col items-center">
-                {Icon ? (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700"><Icon size={26} /></div>
-                ) : isUrl ? (
-                  <img src={p.image_url} alt="" className="h-14 w-14 rounded-full object-cover" />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-3xl">{p.image_url || '⭐'}</div>
-                )}
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
+                  {Icon ? <Icon size={26} /> : <PromoVisual value={p.image_url} size={26} />}
+                </div>
                 <div className="mt-2 font-semibold text-gray-800">{p.title}</div>
                 <div className="text-xs text-gray-500">{p.body}</div>
                 {isAdmin && p.id && (
