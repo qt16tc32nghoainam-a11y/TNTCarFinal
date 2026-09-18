@@ -184,8 +184,16 @@ CREATE TABLE IF NOT EXISTS contracts (
   car_model_id TEXT NOT NULL,
   value REAL NOT NULL,
   signed_date TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Hiệu lực' CHECK (status IN ('Hiệu lực','Đã hủy cọc')),
+  status TEXT NOT NULL DEFAULT 'Đã cọc',  -- Hiệu lực/Đã cọc/Đã thanh toán đủ/Đã giao xe/Hoàn tất/Đã hủy cọc (validate ở API)
   note TEXT,
+  payment_method TEXT,          -- Trả thẳng / Trả góp / Đặt cọc
+  bank_name TEXT,               -- ngân hàng (nếu trả góp)
+  expected_delivery TEXT,       -- ngày giao dự kiến
+  delivered_at TEXT,            -- ngày giao thực tế
+  delivered_by TEXT,            -- người giao
+  vin TEXT,                     -- số khung VIN
+  plate_number TEXT,            -- biển số xe giao
+  delivery_note TEXT,           -- ghi chú bàn giao
   created_by TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (lead_id) REFERENCES leads(id),

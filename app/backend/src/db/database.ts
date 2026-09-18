@@ -40,10 +40,42 @@ export async function initDb(): Promise<void> {
   }
   db.run('PRAGMA foreign_keys = ON;');
 
+  // Migration nhẹ cho DB đã tồn tại: thêm cột hợp đồng còn thiếu (không phá dữ liệu).
+  runLightMigrations();
+
   // Ghi định kỳ nếu có thay đổi (an toàn dữ liệu)
   setInterval(() => {
     if (dirty) persist();
   }, 2000);
+}
+
+/** Thêm cột mới cho các bảng đã tồn tại (an toàn với DB cũ trên server). */
+function runLightMigrations(): void {
+  if (!db) return;
+  // Chỉ áp dụng khi bảng contracts đã tồn tại (DB cũ)
+  let hasContracts = false;
+  try {
+    const r = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='contracts'");
+    hasContracts = r.length > 0 && r[0].values.length > 0;
+  } catch { /* ignore */ }
+  if (!hasContracts) return;
+
+  const existing = new Set<string>();
+  try {
+    const r = db.exec('PRAGMA table_info(contracts)');
+    if (r.length) for (const row of r[0].values) existing.add(String(row[1])); // cột name ở index 1
+  } catch { /* ignore */ }
+
+  const newCols: [string, string][] = [
+    ['payment_method', 'TEXT'], ['bank_name', 'TEXT'], ['expected_delivery', 'TEXT'],
+    ['delivered_at', 'TEXT'], ['delivered_by', 'TEXT'], ['vin', 'TEXT'],
+    ['plate_number', 'TEXT'], ['delivery_note', 'TEXT'],
+  ];
+  for (const [col, type] of newCols) {
+    if (!existing.has(col)) {
+      try { db.run(`ALTER TABLE contracts ADD COLUMN ${col} ${type}`); dirty = true; } catch { /* ignore */ }
+    }
+  }
 }
 
 function ensure(): SqlJsDatabase {

@@ -262,25 +262,50 @@ async function seed() {
   // +2 ngày: chờ xác nhận
   mkBooking(2, 0, 5, 'Đặng Văn Giang', '0987100006', 6, 'Chờ xác nhận');
 
-  // ---------- Contracts + Payments (cho lead Won) ----------
+  // ---------- Contracts + Payments (cho lead Won), đa dạng trạng thái vòng đời ----------
+  // Kịch bản cho từng hợp đồng: [trạng thái, hình thức, đã thu %, có giao xe?]
+  const scenarios: { status: string; method: string; paidPct: number; bank?: string; delivered?: boolean; note?: string }[] = [
+    { status: 'Đã cọc', method: 'Đặt cọc', paidPct: 0.2 },                                   // mới cọc 20%
+    { status: 'Đã cọc', method: 'Trả góp', paidPct: 0.3, bank: 'Techcombank' },              // cọc 30%, chờ giải ngân
+    { status: 'Đã thanh toán đủ', method: 'Trả thẳng', paidPct: 1 },                          // trả đủ, chờ giao
+    { status: 'Đã giao xe', method: 'Trả thẳng', paidPct: 1, delivered: true },               // đã giao xe
+    { status: 'Hoàn tất', method: 'Trả góp', paidPct: 1, bank: 'Vietcombank', delivered: true }, // hoàn tất
+    { status: 'Đã hủy cọc', method: 'Đặt cọc', paidPct: 0.2, note: 'cancel' },                // hủy cọc
+  ];
   for (let i = 0; i < wonLeadIds.length; i++) {
     const cid = uuid();
     const val = cars[i % cars.length][3];
-    const signed = daysFromNow(-(i * 3));
+    const signed = daysFromNow(-(i * 5 + 2));
+    const sc = scenarios[i % scenarios.length];
+    const paid = Math.round(val * sc.paidPct);
+    const deposit = sc.method === 'Trả thẳng' ? null : Math.round(val * 0.2);
+
+    const delivered = sc.delivered;
     run(
-      `INSERT INTO contracts (id,contract_code,lead_id,car_model_id,value,signed_date,status,note,created_by,created_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      [cid, 'HD' + (1000 + i), wonLeadIds[i], carIds[i % carIds.length], val, signed, 'Hiệu lực', 'Hợp đồng mẫu', salesList[i % salesList.length], signed]
+      `INSERT INTO contracts (id,contract_code,lead_id,car_model_id,value,signed_date,status,note,payment_method,bank_name,expected_delivery,delivered_at,delivered_by,vin,plate_number,delivery_note,created_by,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [cid, 'HD' + (1000 + i), wonLeadIds[i], carIds[i % carIds.length], val, signed,
+       sc.note === 'cancel' ? 'Đã hủy cọc' : sc.status, 'Hợp đồng mẫu',
+       sc.method, sc.bank || null,
+       daysFromNow(i + 3),
+       delivered ? daysFromNow(-(i)) : null,
+       delivered ? salesList[i % salesList.length] : null,
+       delivered ? `RLXFAKE${1000 + i}VIN` : null,
+       delivered ? `51K-${100 + i}.${10 + i}` : null,
+       delivered ? 'Giao đủ giấy tờ, phụ kiện chính hãng' : null,
+       salesList[i % salesList.length], signed]
     );
-    const method = ['Đặt cọc', 'Trả góp', 'Trả thẳng'][i % 3];
-    const deposit = method === 'Trả thẳng' ? null : Math.round(val * 0.2);
-    run(
-      `INSERT INTO payments (id,contract_id,method,amount,deposit_amount,paid_at,is_cancelled) VALUES (?,?,?,?,?,?,?)`,
-      [uuid(), cid, method, method === 'Trả thẳng' ? val : (deposit || 0), deposit, signed, 0]
-    );
-    // 1 hợp đồng bị hủy cọc để test KPI hủy cọc
-    if (i === wonLeadIds.length - 1) {
-      run("UPDATE contracts SET status='Đã hủy cọc' WHERE id=?", [cid]);
+    // Thanh toán: nếu trả đủ thì có thể tách 2 đợt (cọc + tất toán) cho thực tế
+    if (sc.paidPct >= 1 && sc.method !== 'Trả thẳng') {
+      run(`INSERT INTO payments (id,contract_id,method,amount,deposit_amount,paid_at,is_cancelled) VALUES (?,?,?,?,?,?,?)`,
+        [uuid(), cid, 'Đặt cọc', deposit || 0, deposit, signed, 0]);
+      run(`INSERT INTO payments (id,contract_id,method,amount,deposit_amount,paid_at,is_cancelled) VALUES (?,?,?,?,?,?,?)`,
+        [uuid(), cid, sc.method, val - (deposit || 0), null, daysFromNow(-(i) - 1), 0]);
+    } else {
+      run(`INSERT INTO payments (id,contract_id,method,amount,deposit_amount,paid_at,is_cancelled) VALUES (?,?,?,?,?,?,?)`,
+        [uuid(), cid, sc.method, paid, deposit, signed, sc.note === 'cancel' ? 1 : 0]);
+    }
+    if (sc.note === 'cancel') {
       run("UPDATE payments SET is_cancelled=1, cancel_reason='Khách đổi ý', cancelled_at=? WHERE contract_id=?", [now(), cid]);
     }
   }
