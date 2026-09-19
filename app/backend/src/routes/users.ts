@@ -111,4 +111,30 @@ router.post('/:id/reset-password', requireRole('Admin'), (req, res) => {
 /** GET /api/users/showrooms — danh sách showroom. */
 router.get('/meta/showrooms', (_req, res) => res.json(all('SELECT * FROM showrooms')));
 
+/**
+ * POST /api/users/bootstrap-web-sales — Admin tạo 2 Sales phụ trách Lead website
+ * (An + Thành) vào DB đang chạy nếu chưa có. Chạy 1 lần, không xóa dữ liệu.
+ */
+router.post('/bootstrap-web-sales', requireRole('Admin'), (_req, res) => {
+  const hash = bcrypt.hashSync('123456', 8);
+  const showroom = get<any>('SELECT id FROM showrooms LIMIT 1')?.id || null;
+  const wanted = [
+    { full_name: 'Nguyễn Thiện An', email: 'annt@tntcar.vn', phone: '0911111116' },
+    { full_name: 'Nguyễn Đại Thành', email: 'thanhnd@tntcar.vn', phone: '0911111117' },
+  ];
+  let created = 0;
+  for (const w of wanted) {
+    const exists = get<any>('SELECT id FROM users WHERE email = ?', [w.email]);
+    if (exists) continue;
+    run(
+      `INSERT INTO users (id,full_name,email,phone,password_hash,role,showroom_id,manager_id,status,onboarded,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [uuid(), w.full_name, w.email, w.phone, hash, 'Sales', showroom, null, 'Hoạt động', 1, nowIso()]
+    );
+    created++;
+  }
+  persist();
+  res.json({ ok: true, created, message: `Đã tạo ${created} Sales website (An, Thành). Mật khẩu: 123456` });
+});
+
 export default router;

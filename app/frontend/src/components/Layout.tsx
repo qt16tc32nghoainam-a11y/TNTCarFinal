@@ -6,7 +6,7 @@ import { startAutoSync, runSync } from '../lib/sync';
 import { api } from '../lib/api';
 import InstallButton from './InstallButton';
 import {
-  Users, Bell, Car, CalendarClock, FileText, BarChart3, UserCog, Settings, Globe, LogOut, Menu,
+  Users, Bell, Car, CalendarClock, BarChart3, UserCog, Settings, Globe, LogOut, Menu,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -18,13 +18,11 @@ const navByRole: Record<string, NavItem[]> = {
     { to: '/reminders', label: 'Lịch hẹn', short: 'Lịch hẹn', icon: Bell },
     { to: '/cars', label: 'Tra cứu xe', short: 'Xe', icon: Car },
     { to: '/test-drives', label: 'Lịch lái thử', short: 'Lái thử', icon: CalendarClock },
-    { to: '/contracts', label: 'Hợp đồng', short: 'Hợp đồng', icon: FileText },
     { to: '/dashboard', label: 'KPI của tôi', short: 'KPI', icon: BarChart3 },
   ],
   Manager: [
     { to: '/dashboard', label: 'Dashboard KPI', short: 'KPI', icon: BarChart3 },
     { to: '/leads', label: 'Lead của nhóm', short: 'Lead', icon: Users },
-    { to: '/contracts', label: 'Hợp đồng', short: 'Hợp đồng', icon: FileText },
   ],
   Admin: [
     { to: '/dashboard', label: 'Dashboard KPI', short: 'KPI', icon: BarChart3 },
@@ -33,7 +31,6 @@ const navByRole: Record<string, NavItem[]> = {
     { to: '/cars', label: 'Tra cứu xe', short: 'Xe', icon: Car },
     { to: '/test-drives', label: 'Lịch lái thử', short: 'Lái thử', icon: CalendarClock },
     { to: '/slots', label: 'Cấu hình slot', short: 'Slot', icon: Settings },
-    { to: '/contracts', label: 'Hợp đồng', short: 'Hợp đồng', icon: FileText },
     { to: '/content', label: 'Nội dung Web', short: 'Nội dung', icon: Globe },
   ],
 };

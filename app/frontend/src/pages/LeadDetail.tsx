@@ -17,7 +17,6 @@ export default function LeadDetail() {
   const [showActivity, setShowActivity] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [showContract, setShowContract] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [offline, setOffline] = useState(false);
 
@@ -73,7 +72,7 @@ export default function LeadDetail() {
           <button onClick={() => setShowActivity(true)} className="btn-primary text-xs">Ghi hoạt động</button>
           <button onClick={() => setShowReminder(true)} className="btn-secondary text-xs">Tạo lịch hẹn</button>
           <button onClick={() => setShowResult(true)} className="btn-secondary text-xs">{isResult ? 'Sửa kết quả' : 'Chốt Won/Lost'}</button>
-          {lead.status_detail === 'Thành công' && <button onClick={() => setShowContract(true)} className="btn-secondary text-xs">Tạo hợp đồng</button>}
+
           {user?.role === 'Admin' && <button onClick={() => setShowAssign(true)} className="btn-secondary text-xs">Gán Sales</button>}
           <button onClick={archive} className="btn-danger text-xs">Lưu trữ</button>
         </div>
@@ -142,7 +141,6 @@ export default function LeadDetail() {
       {showActivity && <ActivityModal leadId={lead.id} onClose={() => setShowActivity(false)} onDone={() => { setShowActivity(false); load(); }} />}
       {showReminder && <ReminderModal leadId={lead.id} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
       {showResult && <ResultModal lead={lead} onClose={() => setShowResult(false)} onDone={() => { setShowResult(false); load(); }} />}
-      {showContract && <ContractModal lead={lead} onClose={() => setShowContract(false)} onDone={() => { setShowContract(false); load(); }} />}
       {showAssign && <AssignModal leadId={lead.id} onClose={() => setShowAssign(false)} onDone={() => { setShowAssign(false); load(); }} />}
     </div>
   );
@@ -304,33 +302,6 @@ function ResultModal({ lead, onClose, onDone }: any) {
       {isResult && <Field label="Lý do thay đổi *"><input className="input" value={changeReason} onChange={(e) => setChangeReason(e.target.value)} /></Field>}
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
       <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Lưu</button></div>
-    </Modal>
-  );
-}
-
-function ContractModal({ lead, onClose, onDone }: any) {
-  const [value, setValue] = useState('');
-  const [method, setMethod] = useState('Đặt cọc');
-  const [deposit, setDeposit] = useState('');
-  const [err, setErr] = useState('');
-  async function save() {
-    setErr('');
-    try {
-      const c = await api.post<any>('/contracts', { lead_id: lead.id, car_model_id: lead.car_model_id, value: Number(value) });
-      await api.post(`/contracts/${c.id}/payments`, {
-        method, amount: method === 'Trả thẳng' ? Number(value) : Number(deposit || value),
-        deposit_amount: method === 'Trả thẳng' ? undefined : Number(deposit),
-      });
-      onDone();
-    } catch (e: any) { setErr(e.message); }
-  }
-  return (
-    <Modal open onClose={onClose} title="Tạo hợp đồng bán xe">
-      <Field label="Giá trị hợp đồng (đ) *"><input type="number" className="input" value={value} onChange={(e) => setValue(e.target.value)} /></Field>
-      <Field label="Phương thức thanh toán"><select className="input" value={method} onChange={(e) => setMethod(e.target.value)}><option>Đặt cọc</option><option>Trả góp</option><option>Trả thẳng</option></select></Field>
-      {method !== 'Trả thẳng' && <Field label="Số tiền cọc (đ) *"><input type="number" className="input" value={deposit} onChange={(e) => setDeposit(e.target.value)} /></Field>}
-      {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
-      <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Tạo</button></div>
     </Modal>
   );
 }

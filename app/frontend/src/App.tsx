@@ -12,7 +12,6 @@ import Reminders from './pages/Reminders';
 import Cars from './pages/Cars';
 import CarDetail from './pages/CarDetail';
 import TestDrives from './pages/TestDrives';
-import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Slots from './pages/Slots';
@@ -46,7 +45,6 @@ export default function App() {
       <Route path="/cars" element={<Protected><Cars /></Protected>} />
       <Route path="/cars/:id" element={<Protected><CarDetail /></Protected>} />
       <Route path="/test-drives" element={<Protected><TestDrives /></Protected>} />
-      <Route path="/contracts" element={<Protected><Contracts /></Protected>} />
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/users" element={<Protected><Users /></Protected>} />
       <Route path="/slots" element={<Protected><Slots /></Protected>} />

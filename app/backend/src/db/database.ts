@@ -6,6 +6,8 @@
 import initSqlJs, { Database as SqlJsDatabase, SqlValue } from 'sql.js';
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/tntcar.db');
 
@@ -42,6 +44,8 @@ export async function initDb(): Promise<void> {
 
   // Migration nhẹ cho DB đã tồn tại: thêm cột hợp đồng còn thiếu (không phá dữ liệu).
   runLightMigrations();
+  // Đảm bảo 2 Sales phụ trách Lead website (An, Thành) tồn tại (không xóa dữ liệu).
+  ensureWebSales();
 
   // Ghi định kỳ nếu có thay đổi (an toàn dữ liệu)
   setInterval(() => {
@@ -75,6 +79,46 @@ function runLightMigrations(): void {
     if (!existing.has(col)) {
       try { db.run(`ALTER TABLE contracts ADD COLUMN ${col} ${type}`); dirty = true; } catch { /* ignore */ }
     }
+  }
+}
+
+/** Tạo 2 Sales phụ trách Lead website (An, Thành) nếu chưa có. Chạy khi khởi động, không xóa dữ liệu. */
+function ensureWebSales(): void {
+  if (!db) return;
+  // Chỉ chạy khi bảng users tồn tại
+  let hasUsers = false;
+  try {
+    const r = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+    hasUsers = r.length > 0 && r[0].values.length > 0;
+  } catch { /* ignore */ }
+  if (!hasUsers) return;
+
+  const hash = bcrypt.hashSync('123456', 8);
+  let showroom: string | null = null;
+  try {
+    const r = db.exec('SELECT id FROM showrooms LIMIT 1');
+    if (r.length && r[0].values.length) showroom = String(r[0].values[0][0]);
+  } catch { /* ignore */ }
+
+  const wanted = [
+    { full_name: 'Nguyễn Thiện An', email: 'annt@tntcar.vn', phone: '0911111116' },
+    { full_name: 'Nguyễn Đại Thành', email: 'thanhnd@tntcar.vn', phone: '0911111117' },
+  ];
+  for (const w of wanted) {
+    let exists = false;
+    try {
+      const r = db.exec(`SELECT id FROM users WHERE email='${w.email}'`);
+      exists = r.length > 0 && r[0].values.length > 0;
+    } catch { /* ignore */ }
+    if (exists) continue;
+    try {
+      db.run(
+        `INSERT INTO users (id,full_name,email,phone,password_hash,role,showroom_id,manager_id,status,onboarded,created_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [uuid(), w.full_name, w.email, w.phone, hash, 'Sales', showroom, null, 'Hoạt động', 1, new Date().toISOString()]
+      );
+      dirty = true;
+    } catch { /* ignore */ }
   }
 }
 

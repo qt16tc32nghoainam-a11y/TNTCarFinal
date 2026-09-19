@@ -41,8 +41,15 @@ router.post('/requests', (req, res) => {
     return res.status(400).json({ error: 'Loại yêu cầu không hợp lệ' });
   }
 
-  // Gán ngẫu nhiên cho một Sales đang hoạt động (BR-18)
-  const salesList = all<any>("SELECT id FROM users WHERE role='Sales' AND status='Hoạt động'");
+  // Gán ngẫu nhiên khi có Lead mới từ website (BR-18).
+  // Ưu tiên chỉ gán cho 2 Sales phụ trách Lead website: An (annt) + Thành (thanhnd).
+  // Nếu 2 user này chưa tồn tại/không hoạt động thì fallback về mọi Sales đang hoạt động.
+  let salesList = all<any>(
+    "SELECT id FROM users WHERE role='Sales' AND status='Hoạt động' AND email IN ('annt@tntcar.vn','thanhnd@tntcar.vn')"
+  );
+  if (salesList.length === 0) {
+    salesList = all<any>("SELECT id FROM users WHERE role='Sales' AND status='Hoạt động'");
+  }
   if (salesList.length === 0) return res.status(500).json({ error: 'Chưa có Sales để tiếp nhận' });
   const randomSale = salesList[Math.floor(Math.random() * salesList.length)].id;
 

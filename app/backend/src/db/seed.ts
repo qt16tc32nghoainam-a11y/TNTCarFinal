@@ -42,6 +42,8 @@ async function seed() {
   const sale3 = uuid();
   const sale4 = uuid();
   const sale5 = uuid();
+  const saleAn = uuid();
+  const saleThanh = uuid();
 
   const users: any[] = [
     [admin, 'Nguyễn Quản Trị', 'admin@tntcar.vn', '0900000001', pass, 'Admin', null, null, 1],
@@ -52,6 +54,9 @@ async function seed() {
     [sale3, 'Đặng Minh Tuấn', 'tuan.sales@tntcar.vn', '0911111113', pass, 'Sales', shrQ1, mgr1, 0],
     [sale4, 'Bùi Thu Trang', 'trang.sales@tntcar.vn', '0911111114', pass, 'Sales', shrHanoi, mgr2, 1],
     [sale5, 'Hoàng Văn Nghỉ', 'nghi.sales@tntcar.vn', '0911111115', pass, 'Sales', shrHanoi, mgr2, 1],
+    // 2 Sales phụ trách Lead từ website (random gán cho 2 người này)
+    [saleAn, 'Nguyễn Thiện An', 'annt@tntcar.vn', '0911111116', pass, 'Sales', shrThuDuc, mgr1, 1],
+    [saleThanh, 'Nguyễn Đại Thành', 'thanhnd@tntcar.vn', '0911111117', pass, 'Sales', shrHanoi, mgr2, 1],
   ];
   for (const u of users) {
     run(
