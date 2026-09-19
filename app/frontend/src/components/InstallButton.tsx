@@ -9,7 +9,7 @@ import { Download } from 'lucide-react';
  * - iOS Safari: iOS không có API cài tự động -> hiện hướng dẫn "Thêm vào MH chính".
  * - Chưa sẵn sàng (vd mới mở trang / HTTP): hiện hướng dẫn qua menu trình duyệt.
  */
-type HelpKind = null | 'ios' | 'android' | 'desktop' | 'http';
+type HelpKind = null | 'ios' | 'android' | 'desktop' | 'edge' | 'safari-mac' | 'firefox' | 'http';
 
 export default function InstallButton() {
   const [deferred, setDeferred] = useState<any>(null);
@@ -40,6 +40,11 @@ export default function InstallButton() {
   const isIos = /iphone|ipad|ipod/i.test(ua);
   const isAndroid = /android/i.test(ua);
   const secure = window.isSecureContext;
+  // Nhận diện trình duyệt để hiện đúng hướng dẫn
+  const isEdge = /\bEdg\//i.test(ua);
+  const isChrome = /\bChrome\//i.test(ua) && !isEdge && !/OPR\//i.test(ua);
+  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+  const isFirefox = /firefox|fxios/i.test(ua);
 
   async function handleClick() {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -56,7 +61,10 @@ export default function InstallButton() {
     if (!secure) return setHelp('http');
     if (isIos) return setHelp('ios');
     if (isAndroid) return setHelp('android');
-    return setHelp('desktop');
+    if (isFirefox) return setHelp('firefox');
+    if (isEdge) return setHelp('edge');
+    if (isSafari) return setHelp('safari-mac');
+    return setHelp('desktop'); // Chrome desktop / khác
   }
 
   const label = isIos ? 'Thêm vào màn hình' : 'Cài đặt ứng dụng';
@@ -87,37 +95,68 @@ export default function InstallButton() {
           <div className="max-h-[85vh] w-full max-w-sm overflow-auto rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             {help === 'android' && (
               <>
-                <h3 className="mb-2 text-base font-semibold">Cài đặt trên Android</h3>
-                <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-600">
-                  <li>Mở trang này bằng trình duyệt <b>Chrome</b>.</li>
-                  <li>Bấm menu <b>⋮</b> ở góc trên bên phải.</li>
-                  <li>Chọn <b>Cài đặt ứng dụng</b> (hoặc <b>Thêm vào Màn hình chính</b>).</li>
-                  <li>Bấm <b>Cài đặt</b> — biểu tượng TNT CAR xuất hiện ngoài màn hình chính.</li>
+                <h3 className="mb-2 text-base font-semibold">📱 Cài trên Android (Chrome)</h3>
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm text-gray-600">
+                  <li>Mở trang bằng <b>Chrome</b>.</li>
+                  <li>Bấm menu <b>⋮</b> (góc trên bên phải).</li>
+                  <li>Chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào Màn hình chính</b>.</li>
+                  <li>Bấm <b>Cài đặt</b> → biểu tượng TNT CAR hiện ngoài màn hình chính.</li>
                 </ol>
-                <p className="mt-3 text-xs text-gray-400">Mẹo: nếu vừa mở trang, chờ vài giây rồi bấm lại nút "Cài đặt ứng dụng" — hộp thoại cài thường tự bung.</p>
+                <p className="mt-3 rounded bg-amber-50 p-2 text-xs text-amber-700">Mẹo: nếu vừa mở trang, chờ 3-5 giây rồi bấm lại nút "Cài đặt ứng dụng" — hộp thoại cài thường tự bung.</p>
               </>
             )}
             {help === 'ios' && (
               <>
-                <h3 className="mb-2 text-base font-semibold">Cài đặt trên iPhone/iPad</h3>
-                <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-600">
-                  <li>Mở trang này bằng trình duyệt <b>Safari</b>.</li>
-                  <li>Bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên lên).</li>
-                  <li>Chọn <b>Thêm vào MH chính</b> (Add to Home Screen).</li>
-                  <li>Bấm <b>Thêm</b> — biểu tượng ứng dụng xuất hiện ngoài màn hình.</li>
+                <h3 className="mb-2 text-base font-semibold">🍎 Cài trên iPhone/iPad (Safari)</h3>
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm text-gray-600">
+                  <li>Mở trang bằng <b>Safari</b> (không dùng Chrome trên iPhone).</li>
+                  <li>Bấm nút <b>Chia sẻ</b> ⬆️ (ô vuông có mũi tên hướng lên, ở thanh dưới).</li>
+                  <li>Kéo xuống chọn <b>Thêm vào MH chính</b> (Add to Home Screen).</li>
+                  <li>Bấm <b>Thêm</b> (góc trên phải) → biểu tượng hiện ngoài màn hình.</li>
                 </ol>
+                <p className="mt-3 rounded bg-amber-50 p-2 text-xs text-amber-700">iOS chỉ cài được qua Safari. Chrome/Firefox trên iPhone không có tính năng này.</p>
               </>
             )}
             {help === 'desktop' && (
               <>
-                <h3 className="mb-2 text-base font-semibold">Cài đặt trên máy tính</h3>
-                <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-600">
-                  <li>Dùng trình duyệt <b>Chrome</b> hoặc <b>Edge</b>.</li>
-                  <li>Bấm biểu tượng cài đặt <b>⊕</b> ở cuối thanh địa chỉ.</li>
-                  <li>Hoặc mở menu <b>⋮</b> &gt; <b>Cài đặt ứng dụng</b>.</li>
-                  <li>Bấm <b>Cài đặt</b> — shortcut tạo ra desktop.</li>
+                <h3 className="mb-2 text-base font-semibold">💻 Cài trên máy tính (Chrome)</h3>
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm text-gray-600">
+                  <li>Nhìn <b>cuối thanh địa chỉ</b>, bấm biểu tượng cài đặt <b>⊕</b> (màn hình có mũi tên xuống).</li>
+                  <li>Hoặc mở menu <b>⋮</b> (góc trên phải) → <b>Truyền, lưu và chia sẻ</b> → <b>Cài ứng dụng...</b></li>
+                  <li>Bấm <b>Cài đặt</b> trong hộp thoại → shortcut TNT CAR tạo ra desktop + menu Start.</li>
                 </ol>
-                <p className="mt-3 text-xs text-gray-400">Nếu vừa mở trang, chờ vài giây rồi bấm lại nút — hộp thoại cài sẽ tự hiện.</p>
+                <p className="mt-3 rounded bg-amber-50 p-2 text-xs text-amber-700">Không thấy biểu tượng ⊕? Chờ vài giây rồi bấm lại nút này. Nếu vẫn không có, app có thể đã được cài rồi.</p>
+              </>
+            )}
+            {help === 'edge' && (
+              <>
+                <h3 className="mb-2 text-base font-semibold">💻 Cài trên máy tính (Microsoft Edge)</h3>
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm text-gray-600">
+                  <li>Bấm menu <b>⋯</b> (góc trên bên phải).</li>
+                  <li>Chọn <b>Ứng dụng</b> (Apps) → <b>Cài đặt trang này dưới dạng ứng dụng</b>.</li>
+                  <li>Hoặc bấm biểu tượng cài đặt ở <b>cuối thanh địa chỉ</b>.</li>
+                  <li>Bấm <b>Cài đặt</b> → shortcut tạo ra desktop + taskbar.</li>
+                </ol>
+              </>
+            )}
+            {help === 'safari-mac' && (
+              <>
+                <h3 className="mb-2 text-base font-semibold">🍎 Cài trên máy Mac (Safari)</h3>
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm text-gray-600">
+                  <li>Cần <b>Safari 17+ (macOS Sonoma trở lên)</b>.</li>
+                  <li>Trên thanh menu bấm <b>File</b> → <b>Add to Dock…</b> (Thêm vào Dock).</li>
+                  <li>Hoặc bấm nút <b>Chia sẻ</b> ⬆️ trên thanh công cụ → <b>Add to Dock</b>.</li>
+                  <li>Bấm <b>Add</b> → app TNT CAR xuất hiện ở Dock.</li>
+                </ol>
+                <p className="mt-3 rounded bg-amber-50 p-2 text-xs text-amber-700">Safari cũ hơn không hỗ trợ cài. Muốn chắc chắn, dùng <b>Chrome</b> hoặc <b>Edge</b> trên máy Mac.</p>
+              </>
+            )}
+            {help === 'firefox' && (
+              <>
+                <h3 className="mb-2 text-base font-semibold">🦊 Firefox chưa hỗ trợ cài PWA</h3>
+                <p className="text-sm text-gray-600">Firefox trên máy tính không có tính năng cài ứng dụng web.</p>
+                <p className="mt-2 text-sm text-gray-600">Để cài TNT CAR, hãy mở trang bằng <b>Chrome</b> hoặc <b>Microsoft Edge</b> rồi bấm lại nút này.</p>
+                <p className="mt-2 text-sm text-gray-600">Trên điện thoại Android, Firefox có thể "Thêm vào màn hình chính" qua menu ⋮.</p>
               </>
             )}
             {help === 'http' && (
