@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Download } from 'lucide-react';
 
 /**
@@ -74,13 +75,14 @@ export default function InstallButton() {
         </button>
       )}
 
-      {toast && (
-        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-green-600 px-4 py-2 text-sm text-white shadow-lg">
+      {toast && createPortal(
+        <div className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 rounded-lg bg-green-600 px-4 py-2 text-sm text-white shadow-lg">
           {toast}
-        </div>
+        </div>,
+        document.body
       )}
 
-      {help && (
+      {help && createPortal(
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4" onClick={() => setHelp(null)}>
           <div className="max-h-[85vh] w-full max-w-sm overflow-auto rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             {help === 'android' && (
@@ -131,7 +133,8 @@ export default function InstallButton() {
             )}
             <button onClick={() => setHelp(null)} className="btn-primary mt-4 w-full">Đã hiểu</button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
