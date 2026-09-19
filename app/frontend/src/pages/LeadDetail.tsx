@@ -64,6 +64,11 @@ export default function LeadDetail() {
             </div>
             <div className="text-sm text-gray-500">{lead.phone} · {lead.source}</div>
             {lead.car_name && <div className="text-sm text-gray-500">Quan tâm: {lead.car_brand} {lead.car_name}</div>}
+            <div className="mt-1 text-sm">
+              Sales phụ trách: {lead.sales_name
+                ? <span className="font-medium text-brand-700">{lead.sales_name}</span>
+                : <span className="text-gray-400">Chưa gán</span>}
+            </div>
           </div>
           <span className={`badge ${statusColor(lead.status_detail)}`}>{lead.status_detail}</span>
         </div>
@@ -141,7 +146,7 @@ export default function LeadDetail() {
       {showActivity && <ActivityModal leadId={lead.id} onClose={() => setShowActivity(false)} onDone={() => { setShowActivity(false); load(); }} />}
       {showReminder && <ReminderModal leadId={lead.id} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
       {showResult && <ResultModal lead={lead} onClose={() => setShowResult(false)} onDone={() => { setShowResult(false); load(); }} />}
-      {showAssign && <AssignModal leadId={lead.id} onClose={() => setShowAssign(false)} onDone={() => { setShowAssign(false); load(); }} />}
+      {showAssign && <AssignModal leadId={lead.id} currentSalesId={lead.assigned_sales_id} onClose={() => setShowAssign(false)} onDone={() => { setShowAssign(false); load(); }} />}
     </div>
   );
 }
@@ -306,14 +311,14 @@ function ResultModal({ lead, onClose, onDone }: any) {
   );
 }
 
-function AssignModal({ leadId, onClose, onDone }: any) {
+function AssignModal({ leadId, currentSalesId, onClose, onDone }: any) {
   const [sales, setSales] = useState<any[]>([]);
-  const [salesId, setSalesId] = useState('');
+  const [salesId, setSalesId] = useState(currentSalesId || '');
   useEffect(() => { api.get<any[]>('/users/sales').then(setSales); }, []);
   async function save() { await api.post(`/leads/${leadId}/assign`, { sales_id: salesId }); onDone(); }
   return (
     <Modal open onClose={onClose} title="Gán / chuyển Lead cho Sales">
-      <Field label="Sales"><select className="input" value={salesId} onChange={(e) => setSalesId(e.target.value)}><option value="">-- Chọn --</option>{sales.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></Field>
+      <Field label="Sales đang phụ trách (chọn để đổi)"><select className="input" value={salesId} onChange={(e) => setSalesId(e.target.value)}><option value="">-- Chọn --</option>{sales.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></Field>
       <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Gán</button></div>
     </Modal>
   );

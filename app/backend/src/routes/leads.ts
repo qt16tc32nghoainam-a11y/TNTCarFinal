@@ -65,7 +65,14 @@ router.get('/duplicates', (req, res) => {
 
 /** GET /api/leads/:id — chi tiết Lead kèm lịch sử chăm sóc + lịch hẹn + lịch sử trạng thái. */
 router.get('/:id', (req, res) => {
-  const lead = get<any>('SELECT * FROM leads WHERE id = ?', [req.params.id]);
+  const lead = get<any>(
+    `SELECT l.*, c.name AS car_name, c.brand AS car_brand, u.full_name AS sales_name
+     FROM leads l
+     LEFT JOIN car_models c ON c.id = l.car_model_id
+     LEFT JOIN users u ON u.id = l.assigned_sales_id
+     WHERE l.id = ?`,
+    [req.params.id]
+  );
   if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
   const interactions = all('SELECT * FROM interactions WHERE lead_id = ? ORDER BY created_at DESC', [req.params.id]);
   const reminders = all('SELECT * FROM reminders WHERE lead_id = ? ORDER BY remind_at ASC', [req.params.id]);
