@@ -46,25 +46,48 @@ export default function InstallButton() {
   const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
   const isFirefox = /firefox|fxios/i.test(ua);
 
+  const [waiting, setWaiting] = useState(false);
+
+  /** Bung hộp thoại xác nhận cài đặt của trình duyệt (Chrome/Edge). Trả về true nếu đã bung được. */
+  async function tryPrompt(promptEvent: any): Promise<boolean> {
+    if (!promptEvent) return false;
+    promptEvent.prompt();
+    const choice = await promptEvent.userChoice.catch(() => null);
+    if (choice?.outcome === 'accepted') setInstalled(true);
+    setDeferred(null);
+    return true;
+  }
+
   async function handleClick() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().catch(() => {});
     }
-    if (deferred) {
-      // Android + Chrome/Edge desktop: bung hộp thoại cài -> bấm "Cài đặt" là tự tạo shortcut.
-      deferred.prompt();
-      const choice = await deferred.userChoice.catch(() => null);
-      if (choice?.outcome === 'accepted') setInstalled(true);
-      setDeferred(null);
-      return;
+    // Đã có sự kiện -> bung hộp thoại xác nhận cài ngay
+    if (deferred) { await tryPrompt(deferred); return; }
+
+    // Chrome/Edge nhưng sự kiện chưa "chín": chờ tối đa 3 giây cho beforeinstallprompt đến rồi bung
+    if (secure && (isChrome || isEdge || isAndroid)) {
+      setWaiting(true);
+      const e = await new Promise<any>((resolve) => {
+        let done = false;
+        const onP = (ev: Event) => { if (done) return; done = true; ev.preventDefault(); resolve(ev); };
+        window.addEventListener('beforeinstallprompt', onP, { once: true });
+        setTimeout(() => { if (!done) { done = true; window.removeEventListener('beforeinstallprompt', onP); resolve(null); } }, 3000);
+      });
+      setWaiting(false);
+      if (e) { await tryPrompt(e); return; }
+      // Vẫn không có -> hướng dẫn tay theo trình duyệt
+      if (isAndroid) return setHelp('android');
+      if (isEdge) return setHelp('edge');
+      return setHelp('desktop');
     }
+
+    // Các trường hợp không dùng được prompt tự động
     if (!secure) return setHelp('http');
     if (isIos) return setHelp('ios');
-    if (isAndroid) return setHelp('android');
     if (isFirefox) return setHelp('firefox');
-    if (isEdge) return setHelp('edge');
     if (isSafari) return setHelp('safari-mac');
-    return setHelp('desktop'); // Chrome desktop / khác
+    return setHelp('desktop');
   }
 
   const label = isIos ? 'Thêm vào màn hình' : 'Cài đặt ứng dụng';
@@ -76,10 +99,11 @@ export default function InstallButton() {
       {!installed && (
         <button
           onClick={handleClick}
-          className="flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-1 text-xs text-white hover:bg-brand-700"
+          disabled={waiting}
+          className="flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-1 text-xs text-white hover:bg-brand-700 disabled:opacity-60"
           title="Cài đặt ứng dụng để dùng offline, tạo shortcut ngoài màn hình"
         >
-          <Download size={13} /> <span className="hidden sm:inline">{label}</span><span className="sm:hidden">Cài</span>
+          <Download size={13} /> <span className="hidden sm:inline">{waiting ? 'Đang chuẩn bị...' : label}</span><span className="sm:hidden">{waiting ? '...' : 'Cài'}</span>
         </button>
       )}
 
