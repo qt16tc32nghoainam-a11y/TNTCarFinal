@@ -81,8 +81,8 @@ export default function InstallButton() {
       )}
 
       {help && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center" onClick={() => setHelp(null)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4" onClick={() => setHelp(null)}>
+          <div className="max-h-[85vh] w-full max-w-sm overflow-auto rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             {help === 'android' && (
               <>
                 <h3 className="mb-2 text-base font-semibold">Cài đặt trên Android</h3>
