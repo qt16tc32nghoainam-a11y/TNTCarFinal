@@ -62,7 +62,7 @@ export default function LeadDetail() {
               <h1 className="text-xl font-bold">{lead.full_name}</h1>
               {offline && <span className="badge bg-amber-100 text-amber-700">offline</span>}
             </div>
-            <div className="text-sm text-gray-500">{lead.phone} · {lead.source}</div>
+            <div className="text-sm text-gray-500">{lead.phone} · {lead.source}{lead.request_type ? ` · ${lead.request_type}` : ''}</div>
             {lead.car_name && <div className="text-sm text-gray-500">Quan tâm: {lead.car_brand} {lead.car_name}</div>}
             <div className="mt-1 text-sm">
               Sales phụ trách: {lead.sales_name

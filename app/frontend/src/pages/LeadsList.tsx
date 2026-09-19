@@ -105,6 +105,7 @@ export default function LeadsList() {
                 <th className="p-3">SĐT</th>
                 <th className="p-3">Xe</th>
                 <th className="p-3">Nguồn</th>
+                <th className="p-3">Loại yêu cầu</th>
                 <th className="p-3">Trạng thái</th>
                 {user?.role !== 'Sales' && <th className="p-3">Sales</th>}
                 <th className="p-3">Cập nhật</th>
@@ -121,6 +122,7 @@ export default function LeadsList() {
                   <td className="p-3">{l.phone}</td>
                   <td className="p-3">{l.car_name || '-'}</td>
                   <td className="p-3 text-gray-500">{l.source}</td>
+                  <td className="p-3 text-gray-500">{(l as any).request_type ? <span className="badge bg-indigo-50 text-indigo-700">{(l as any).request_type}</span> : '-'}</td>
                   <td className="p-3"><span className={`badge ${statusColor(l.status_detail)}`}>{l.status_detail}</span></td>
                   {user?.role !== 'Sales' && <td className="p-3 text-gray-500">{l.sales_name}</td>}
                   <td className="p-3 text-xs text-gray-400">{formatDate(l.updated_at)}</td>

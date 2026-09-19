@@ -18,6 +18,7 @@ export interface Lead {
   car_name?: string;
   car_brand?: string;
   source: string;
+  request_type?: string | null;
   status_detail: string;
   lost_reason_id?: string | null;
   lost_reason_note?: string | null;
