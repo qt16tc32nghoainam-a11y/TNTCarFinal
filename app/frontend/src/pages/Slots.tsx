@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Modal, Spinner, Field } from '../components/ui';
 import { formatDate } from '../lib/format';
@@ -8,6 +9,7 @@ export default function Slots() {
   const [showroomId, setShowroomId] = useState('');
   const [slots, setSlots] = useState<any[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [bookSlot, setBookSlot] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { api.get<any[]>('/meta/showrooms').then((s) => { setShowrooms(s); if (s[0]) setShowroomId(s[0].id); }); }, []);
@@ -53,11 +55,12 @@ export default function Slots() {
                 <th className="p-3">Trạng thái</th>
                 <th className="p-3">Khách đặt</th>
                 <th className="p-3">Xe</th>
+                <th className="p-3"></th>
               </tr>
             </thead>
             <tbody>
               {upcoming.length === 0 ? (
-                <tr><td colSpan={4} className="p-6 text-center text-gray-400">Chưa có khung giờ nào</td></tr>
+                <tr><td colSpan={5} className="p-6 text-center text-gray-400">Chưa có khung giờ nào</td></tr>
               ) : upcoming.map((s) => (
                 <tr key={s.id} className="border-t">
                   <td className="p-3">{formatDate(s.start_time)}</td>
@@ -72,13 +75,22 @@ export default function Slots() {
                   </td>
                   <td className="p-3">
                     {s.booking_id
-                      ? <span>{s.customer_name}<span className="block text-xs text-gray-400">{s.customer_phone} · {s.booking_code}</span></span>
+                      ? (s.lead_id
+                          ? <Link to={`/leads/${s.lead_id}`} className="text-brand-700 hover:underline">{s.customer_name}<span className="block text-xs text-gray-400">{s.customer_phone} · {s.booking_code}</span></Link>
+                          : <span>{s.customer_name}<span className="block text-xs text-gray-400">{s.customer_phone} · {s.booking_code}</span></span>)
                       : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="p-3 text-gray-600">
                     {s.booking_id
                       ? (s.booked_car_brand ? `${s.booked_car_brand} ${s.booked_car_name}` : '-')
                       : (s.slot_car_brand ? `${s.slot_car_brand} ${s.slot_car_name}` : <span className="text-gray-400">(mọi xe)</span>)}
+                  </td>
+                  <td className="p-3 text-right">
+                    {s.booking_id
+                      ? <Link to="/test-drives" className="text-xs text-brand-700 hover:underline">Xem lịch lái thử →</Link>
+                      : (!s.is_holiday && s.is_available
+                          ? <button onClick={() => setBookSlot(s)} className="text-xs font-medium text-brand-700 hover:underline">+ Đặt cho khách</button>
+                          : <span className="text-xs text-gray-300">—</span>)}
                   </td>
                 </tr>
               ))}
@@ -87,7 +99,111 @@ export default function Slots() {
         </div>
       )}
       {showCreate && <CreateSlotModal showroomId={showroomId} onClose={() => setShowCreate(false)} onDone={() => { setShowCreate(false); load(); }} />}
+      {bookSlot && <BookLeadModal slot={bookSlot} onClose={() => setBookSlot(null)} onDone={() => { setBookSlot(null); load(); }} />}
     </div>
+  );
+}
+
+function BookLeadModal({ slot, onClose, onDone }: any) {
+  const [q, setQ] = useState('');
+  const [leads, setLeads] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any>(null);
+  const [cars, setCars] = useState<any[]>([]);
+  const [carId, setCarId] = useState('');
+  const [email, setEmail] = useState('');
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Tải danh sách lead ban đầu + khi gõ tìm kiếm (debounce nhẹ).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      api.get<any[]>(`/cars/leads/search?q=${encodeURIComponent(q)}`).then(setLeads).catch(() => setLeads([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  // Nếu slot đã gán cho 1 xe cụ thể thì khóa xe theo slot; nếu chưa, cho chọn xe khi lead chưa có xe.
+  useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
+
+  function pick(l: any) {
+    setSelected(l);
+    setEmail(l.email || '');
+    setCarId(slot.slot_car_name ? '' : (l.car_model_id || ''));
+  }
+
+  const slotHasCar = !!slot.slot_car_name; // slot cấu hình cho 1 xe cụ thể
+  const needCar = !slotHasCar && selected && !selected.car_model_id; // lead chưa có xe & slot mọi xe
+
+  async function save() {
+    setErr('');
+    if (!selected) return setErr('Vui lòng chọn một Lead');
+    if (needCar && !carId) return setErr('Lead này chưa có xe quan tâm — vui lòng chọn xe cho lịch lái thử');
+    setSaving(true);
+    try {
+      await api.post(`/cars/slots/${slot.id}/book-lead`, {
+        lead_id: selected.id,
+        car_model_id: slotHasCar ? undefined : (carId || undefined),
+        customer_email: email || undefined,
+      });
+      onDone();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Đặt lịch lái thử cho khách">
+      <div className="mb-2 rounded bg-brand-50 p-2 text-xs text-brand-700">
+        Khung giờ: <b>{formatDate(slot.start_time)}</b>
+        {slotHasCar ? <> · Xe: <b>{slot.slot_car_brand} {slot.slot_car_name}</b></> : ' · Áp dụng mọi xe'}
+      </div>
+
+      <Field label="Tìm Lead (theo tên hoặc số điện thoại)">
+        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nhập tên hoặc SĐT..." />
+      </Field>
+
+      <div className="mb-3 max-h-48 overflow-auto rounded-lg border">
+        {leads.length === 0 ? (
+          <div className="p-3 text-center text-sm text-gray-400">Không tìm thấy Lead</div>
+        ) : leads.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => pick(l)}
+            className={`flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-brand-50 ${selected?.id === l.id ? 'bg-brand-100' : ''}`}
+          >
+            <span>
+              <span className="font-medium">{l.full_name}</span>
+              <span className="block text-xs text-gray-500">{l.phone}{l.car_name ? ` · ${l.car_brand} ${l.car_name}` : ' · chưa có xe'}</span>
+            </span>
+            {selected?.id === l.id && <span className="text-brand-700">✓</span>}
+          </button>
+        ))}
+      </div>
+
+      {selected && (
+        <>
+          {needCar && (
+            <Field label="Xe lái thử * (Lead chưa có xe quan tâm)">
+              <select className="input" value={carId} onChange={(e) => setCarId(e.target.value)}>
+                <option value="">-- Chọn xe --</option>
+                {cars.map((c) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}
+              </select>
+            </Field>
+          )}
+          <Field label="Email khách nhận xác nhận (nếu có)">
+            <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="khach@email.com" />
+          </Field>
+        </>
+      )}
+
+      {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="btn-secondary">Hủy</button>
+        <button onClick={save} disabled={saving || !selected} className="btn-primary">{saving ? 'Đang đặt...' : 'Đặt lịch'}</button>
+      </div>
+    </Modal>
   );
 }
 

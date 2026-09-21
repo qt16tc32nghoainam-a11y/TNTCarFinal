@@ -322,6 +322,95 @@ router.post('/slots', authenticate, requireRole('Admin'), (req, res) => {
 });
 
 /**
+ * POST /api/cars/slots/:slotId/book-lead — Đặt lịch lái thử cho một Lead CÓ SẴN vào khung giờ này.
+ * Dùng ở trang Cấu hình khung giờ: chọn khung giờ trống -> chọn Lead -> tạo booking (không tạo Lead mới).
+ * Thông tin khách lấy từ Lead; xe lấy từ Lead (hoặc body car_model_id nếu Lead chưa có xe).
+ */
+router.post('/slots/:slotId/book-lead', authenticate, (req, res) => {
+  const { lead_id, car_model_id: bodyCar, customer_email: bodyEmail } = req.body || {};
+  if (!lead_id) return res.status(400).json({ error: 'Vui lòng chọn Lead' });
+
+  const lead = get<any>('SELECT * FROM leads WHERE id = ? AND is_archived = 0', [lead_id]);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
+
+  const slot = get<any>('SELECT * FROM slots WHERE id = ?', [req.params.slotId]);
+  if (!slot) return res.status(404).json({ error: 'Không tìm thấy khung giờ' });
+  if (!slot.is_available) return res.status(409).json({ error: 'Khung giờ đã có người đặt' });
+  if (slot.is_holiday) return res.status(400).json({ error: 'Khung giờ này là ngày nghỉ' });
+  if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
+    return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ' });
+  }
+
+  // Xe: ưu tiên xe của khung giờ (nếu slot cấu hình cho 1 xe), rồi xe của Lead, rồi body.
+  const carModelId = slot.car_model_id || lead.car_model_id || bodyCar || null;
+  if (!carModelId) return res.status(400).json({ error: 'Lead chưa có xe quan tâm — vui lòng chọn xe cho lịch lái thử' });
+  if (slot.car_model_id && slot.car_model_id !== carModelId) {
+    return res.status(400).json({ error: 'Khung giờ này được cấu hình cho một xe khác' });
+  }
+  if (!get('SELECT id FROM car_models WHERE id = ?', [carModelId])) {
+    return res.status(400).json({ error: 'Xe không hợp lệ' });
+  }
+
+  const customerEmail = bodyEmail || lead.email || null;
+
+  // BR-TD-01: tối đa 3 lịch active của cùng SĐT
+  const activeCount = get<any>(
+    `SELECT COUNT(*) c FROM test_drive_bookings WHERE customer_phone = ? AND status IN ('Chờ xác nhận','Đã xác nhận')`,
+    [lead.phone]
+  );
+  if ((activeCount?.c || 0) >= 3) return res.status(409).json({ error: 'Khách đã có tối đa 3 lịch lái thử đang hoạt động' });
+
+  const bookingId = uuid();
+  const code = 'TD' + Date.now().toString().slice(-8);
+  transaction(() => {
+    run(
+      `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,customer_email,lead_id,status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [bookingId, code, carModelId, slot.showroom_id, slot.id, lead.full_name, lead.phone, customerEmail, lead.id, 'Đã xác nhận', nowIso()]
+    );
+    run('UPDATE slots SET is_available = 0 WHERE id = ?', [slot.id]);
+    // Đánh dấu Lead đang có nhu cầu (không ép nếu đã Won/Lost)
+    if (!['Thành công', 'Lead thất bại'].includes(lead.status_detail)) {
+      run("UPDATE leads SET status_detail = 'Có nhu cầu ngay', updated_at = ? WHERE id = ?", [nowIso(), lead.id]);
+    }
+  });
+  persist();
+
+  // Gửi email xác nhận cho khách nếu có email
+  if (customerEmail) {
+    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [carModelId]);
+    const sr = get<any>('SELECT name FROM showrooms WHERE id = ?', [slot.showroom_id]);
+    const mail = testDriveEmail({
+      customerName: lead.full_name,
+      carName: car ? `${car.brand} ${car.name}` : 'xe',
+      showroomName: sr?.name || '',
+      startTime: slot.start_time,
+      bookingCode: code,
+    });
+    sendMail(customerEmail, mail.subject, mail.html).catch(() => {});
+  }
+
+  res.status(201).json({ id: bookingId, booking_code: code, lead_id: lead.id });
+});
+
+/** GET /api/cars/leads/search — tìm Lead để gán vào khung giờ (theo tên/SĐT). */
+router.get('/leads/search', authenticate, (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const like = `%${q}%`;
+  const rows = all(
+    `SELECT l.id, l.full_name, l.phone, l.email, l.car_model_id,
+            c.brand AS car_brand, c.name AS car_name, l.status_detail
+     FROM leads l
+     LEFT JOIN car_models c ON c.id = l.car_model_id
+     WHERE l.is_archived = 0 AND (? = '' OR l.full_name LIKE ? OR l.phone LIKE ?)
+     ORDER BY l.updated_at DESC
+     LIMIT 20`,
+    [q, like, like]
+  );
+  res.json(rows);
+});
+
+/**
  * GET /api/cars/slots/manage — danh sách slot cho trang Cấu hình (Admin):
  * kèm thông tin đã có ai đặt chưa (tên khách, xe), còn trống hay đã đặt.
  */
@@ -333,7 +422,7 @@ router.get('/slots/manage', authenticate, requireRole('Admin'), (req, res) => {
     `SELECT sl.id, sl.start_time, sl.end_time, sl.is_available, sl.is_holiday,
             sr.name AS showroom_name,
             cm.brand AS slot_car_brand, cm.name AS slot_car_name,
-            b.id AS booking_id, b.booking_code, b.customer_name, b.customer_phone, b.status AS booking_status,
+            b.id AS booking_id, b.booking_code, b.customer_name, b.customer_phone, b.status AS booking_status, b.lead_id,
             bc.brand AS booked_car_brand, bc.name AS booked_car_name
      FROM slots sl
      LEFT JOIN showrooms sr ON sr.id = sl.showroom_id
