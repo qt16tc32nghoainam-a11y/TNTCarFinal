@@ -414,6 +414,82 @@ router.get('/leads/search', authenticate, (req, res) => {
 });
 
 /**
+ * POST /api/cars/test-drives/quick — Sale tự chọn giờ hẹn (không cần Admin cấu hình sẵn slot).
+ * Tự tạo 1 khung giờ mới (60 phút) tại showroom cho đúng giờ Sale chọn, rồi đặt lịch cho Lead đó luôn.
+ * Vẫn đi qua bảng slots để đảm bảo chống trùng giờ (BR-TD-01/02) như các luồng đặt lịch khác.
+ */
+router.post('/test-drives/quick', authenticate, (req, res) => {
+  const { lead_id, showroom_id, start_time, car_model_id: bodyCar, customer_email: bodyEmail } = req.body || {};
+  if (!lead_id || !showroom_id || !start_time) return res.status(400).json({ error: 'Thiếu Lead, Showroom hoặc thời gian hẹn' });
+
+  const lead = get<any>('SELECT * FROM leads WHERE id = ? AND is_archived = 0', [lead_id]);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
+  if (!get('SELECT id FROM showrooms WHERE id = ?', [showroom_id])) return res.status(400).json({ error: 'Showroom không hợp lệ' });
+
+  const startMs = new Date(start_time).getTime();
+  if (!Number.isFinite(startMs)) return res.status(400).json({ error: 'Thời gian hẹn không hợp lệ' });
+  if (startMs < Date.now() + 2 * 3600000) return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ' });
+  // Chuẩn hóa về đúng 1 định dạng ISO để lưu DB và so sánh overlap (tránh lệch định dạng chuỗi client gửi lên).
+  const startIso = new Date(startMs).toISOString();
+  const endIso = new Date(startMs + 60 * 60000).toISOString(); // khung giờ 60 phút
+
+  const carModelId = bodyCar || lead.car_model_id || null;
+  if (!carModelId) return res.status(400).json({ error: 'Lead chưa có xe quan tâm — vui lòng chọn xe cho lịch lái thử' });
+  if (!get('SELECT id FROM car_models WHERE id = ?', [carModelId])) return res.status(400).json({ error: 'Xe không hợp lệ' });
+
+  // Chống trùng giờ tại showroom (giống logic tạo slot của Admin)
+  const overlap = get<any>(
+    `SELECT id FROM slots WHERE showroom_id = ?
+       AND (car_model_id IS NULL OR car_model_id = ?)
+       AND start_time < ? AND end_time > ?`,
+    [showroom_id, carModelId, endIso, startIso]
+  );
+  if (overlap) return res.status(409).json({ error: 'Đã có lịch khác trùng giờ này tại showroom. Vui lòng chọn giờ khác.' });
+
+  const customerEmail = bodyEmail || lead.email || null;
+  const activeCount = get<any>(
+    `SELECT COUNT(*) c FROM test_drive_bookings WHERE customer_phone = ? AND status IN ('Chờ xác nhận','Đã xác nhận')`,
+    [lead.phone]
+  );
+  if ((activeCount?.c || 0) >= 3) return res.status(409).json({ error: 'Khách đã có tối đa 3 lịch lái thử đang hoạt động' });
+
+  const slotId = uuid();
+  const bookingId = uuid();
+  const code = 'TD' + Date.now().toString().slice(-8);
+  transaction(() => {
+    run(
+      `INSERT INTO slots (id,showroom_id,car_model_id,start_time,end_time,is_available,is_holiday) VALUES (?,?,?,?,?,?,?)`,
+      [slotId, showroom_id, carModelId, startIso, endIso, 0, 0] // is_available=0: đặt luôn, không lộ ra danh sách "còn trống"
+    );
+    run(
+      `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,customer_email,lead_id,status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [bookingId, code, carModelId, showroom_id, slotId, lead.full_name, lead.phone, customerEmail, lead.id, 'Đã xác nhận', nowIso()]
+    );
+    if (!['Thành công', 'Lead thất bại'].includes(lead.status_detail)) {
+      run("UPDATE leads SET status_detail = 'Có nhu cầu ngay', updated_at = ? WHERE id = ?", [nowIso(), lead.id]);
+    }
+  });
+  persist();
+
+  if (customerEmail) {
+    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [carModelId]);
+    const sr = get<any>('SELECT name FROM showrooms WHERE id = ?', [showroom_id]);
+    const mail = testDriveEmail({
+      customerName: lead.full_name,
+      carName: car ? `${car.brand} ${car.name}` : 'xe',
+      showroomName: sr?.name || '',
+      startTime: startIso,
+      bookingCode: code,
+      salesName: req.user?.full_name,
+    });
+    sendMail(customerEmail, mail.subject, mail.html).catch(() => {});
+  }
+
+  res.status(201).json({ id: bookingId, booking_code: code, lead_id: lead.id, slot_id: slotId });
+});
+
+/**
  * GET /api/cars/slots/manage — danh sách slot cho trang Cấu hình (Admin):
  * kèm thông tin đã có ai đặt chưa (tên khách, xe), còn trống hay đã đặt.
  */

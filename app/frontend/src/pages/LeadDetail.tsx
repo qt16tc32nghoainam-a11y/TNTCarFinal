@@ -338,6 +338,10 @@ function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) 
   const [showroomId, setShowroomId] = useState('');
   const [slots, setSlots] = useState<any[]>([]);
   const [slotId, setSlotId] = useState('');
+  // Khi Admin chưa cấu hình khung giờ phù hợp: cho Sale tự chọn giờ hẹn (hệ thống tự tạo khung giờ tương ứng)
+  const [customTime, setCustomTime] = useState(false);
+  const [customStart, setCustomStart] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const isTestDrive = purpose === 'Lái thử';
 
@@ -348,36 +352,69 @@ function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) 
   }, [isTestDrive]);
 
   useEffect(() => {
-    if (isTestDrive && showroomId) {
+    if (isTestDrive && showroomId && !customTime) {
       const carQuery = carModelId ? `?car_model_id=${encodeURIComponent(carModelId)}` : '';
       api.get<any[]>(`/cars/slots/available/${showroomId}${carQuery}`).then(setSlots).catch(() => setSlots([]));
     } else {
       setSlots([]); setSlotId('');
     }
-  }, [showroomId, isTestDrive]);
+  }, [showroomId, isTestDrive, customTime]);
 
   async function save() {
     setErr('');
-    // Khi lái thử, thời gian lấy trực tiếp từ slot (không nhập 2 giờ khác nhau).
+    if (!isTestDrive) {
+      if (!remind_at) return setErr('Vui lòng chọn thời gian hẹn');
+      if (new Date(remind_at).getTime() <= Date.now()) return setErr('Thời gian nhắc việc phải ở tương lai');
+      setSaving(true);
+      try {
+        const id = uuid();
+        const payload: any = { id, lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location };
+        if (navigator.onLine) {
+          await api.post('/care/reminders', payload);
+        } else {
+          await enqueue({ id, entity_type: 'reminder', payload: { lead_id: leadId, remind_at: payload.remind_at, purpose, location, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
+          alert('Đã lưu lịch hẹn cục bộ (offline), sẽ đồng bộ khi có mạng.');
+        }
+        onDone();
+      } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
+      return;
+    }
+
+    // Luồng Lái thử
+    if (!showroomId) return setErr('Vui lòng chọn Showroom');
+    if (!customerEmail) return setErr('Vui lòng nhập email khách để gửi xác nhận lịch lái thử');
+    if (!navigator.onLine) return setErr('Cần có mạng để khóa khung giờ lái thử. Vui lòng kết nối mạng rồi thử lại.');
+
+    if (customTime) {
+      // Sale tự chọn giờ: hệ thống tự tạo khung giờ và đặt lịch luôn.
+      if (!customStart) return setErr('Vui lòng chọn thời gian hẹn');
+      if (new Date(customStart).getTime() < Date.now() + 2 * 3600000) return setErr('Khung giờ phải cách hiện tại tối thiểu 2 giờ');
+      setSaving(true);
+      try {
+        await api.post('/cars/test-drives/quick', {
+          lead_id: leadId,
+          showroom_id: showroomId,
+          start_time: new Date(customStart).toISOString(),
+          car_model_id: carModelId || undefined,
+          customer_email: customerEmail,
+        });
+        onDone();
+      } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
+      return;
+    }
+
+    // Chọn khung giờ có sẵn do Admin cấu hình
     const selectedSlot = slots.find((s) => s.id === slotId);
-    const effectiveTime = isTestDrive ? selectedSlot?.start_time : remind_at;
-    if (!effectiveTime) return setErr(isTestDrive ? 'Vui lòng chọn Showroom và Khung giờ' : 'Vui lòng chọn thời gian hẹn');
-    if (new Date(effectiveTime).getTime() <= Date.now()) return setErr('Thời gian nhắc việc phải ở tương lai');
-    if (isTestDrive && (!showroomId || !slotId)) return setErr('Với lịch lái thử, vui lòng chọn Showroom và Khung giờ');
-    if (isTestDrive && !customerEmail) return setErr('Vui lòng nhập email khách để gửi xác nhận lịch lái thử');
-    if (isTestDrive && !navigator.onLine) return setErr('Cần có mạng để khóa khung giờ lái thử. Vui lòng kết nối mạng rồi thử lại.');
+    if (!selectedSlot) return setErr('Vui lòng chọn Khung giờ');
+    setSaving(true);
     try {
       const id = uuid();
-      const payload: any = { id, lead_id: leadId, remind_at: new Date(effectiveTime).toISOString(), purpose, location };
-      if (isTestDrive) { payload.showroom_id = showroomId; payload.slot_id = slotId; payload.customer_email = customerEmail; }
-      if (navigator.onLine) {
-        await api.post('/care/reminders', payload);
-      } else {
-        await enqueue({ id, entity_type: 'reminder', payload: { lead_id: leadId, remind_at: payload.remind_at, purpose, location, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
-        alert('Đã lưu lịch hẹn cục bộ (offline), sẽ đồng bộ khi có mạng.');
-      }
+      await api.post('/care/reminders', {
+        id, lead_id: leadId, remind_at: new Date(selectedSlot.start_time).toISOString(), purpose, location,
+        showroom_id: showroomId, slot_id: slotId, customer_email: customerEmail,
+      });
       onDone();
-    } catch (e: any) { setErr(e.message); }
+    } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
   }
 
   return (
@@ -397,19 +434,42 @@ function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) 
               {showrooms.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
-          <Field label="Khung giờ lái thử *">
-            <select className="input" value={slotId} onChange={(e) => setSlotId(e.target.value)}>
-              <option value="">-- Chọn khung giờ --</option>
-              {slots.map((s) => <option key={s.id} value={s.id}>{formatDate(s.start_time)}</option>)}
-            </select>
-            {showroomId && slots.length === 0 && <div className="mt-1 text-xs text-amber-600">Không còn khung giờ trống (cách hiện tại &ge;2h), thử showroom khác.</div>}
-          </Field>
+
+          {!customTime ? (
+            <>
+              <Field label="Khung giờ lái thử *">
+                <select className="input" value={slotId} onChange={(e) => setSlotId(e.target.value)}>
+                  <option value="">-- Chọn khung giờ --</option>
+                  {slots.map((s) => <option key={s.id} value={s.id}>{formatDate(s.start_time)}</option>)}
+                </select>
+                {showroomId && slots.length === 0 && (
+                  <div className="mt-1 text-xs text-amber-600">Không còn khung giờ trống (cách hiện tại &ge;2h) tại showroom này.</div>
+                )}
+              </Field>
+              <button type="button" onClick={() => setCustomTime(true)} className="mb-3 text-xs text-brand-700 hover:underline">
+                Không có khung giờ phù hợp? Tự chọn giờ hẹn khác →
+              </button>
+            </>
+          ) : (
+            <>
+              <Field label="Thời gian hẹn (tự chọn) *">
+                <input type="datetime-local" className="input" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+                <div className="mt-1 text-xs text-gray-500">Phải cách hiện tại tối thiểu 2 giờ. Hệ thống sẽ tự tạo khung giờ tương ứng.</div>
+              </Field>
+              <button type="button" onClick={() => setCustomTime(false)} className="mb-3 text-xs text-brand-700 hover:underline">
+                ← Chọn từ khung giờ đã cấu hình
+              </button>
+            </>
+          )}
         </>
       )}
 
       <Field label="Địa điểm / ghi chú"><input className="input" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
-      <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Lưu</button></div>
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="btn-secondary">Hủy</button>
+        <button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Lưu'}</button>
+      </div>
     </Modal>
   );
 }
