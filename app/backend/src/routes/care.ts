@@ -66,6 +66,7 @@ router.post('/reminders', (req, res) => {
   const contactEmail = customer_email || lead.email || null;
   let bookingId: string | null = null;
   let testDriveSlot: any = null;
+  let testDriveCarId: string | null = null;
 
   if (purpose === 'Lái thử' && !isTestDrive) {
     return res.status(400).json({ error: 'Lịch lái thử bắt buộc chọn Showroom và Khung giờ' });
@@ -81,11 +82,12 @@ router.post('/reminders', (req, res) => {
     if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
       return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ (BR-TD-02)' });
     }
-    if (!lead.car_model_id) {
+    // Xe của lịch lái thử: ưu tiên xe của khung giờ (nếu slot cấu hình cho 1 xe cụ thể),
+    // rồi mới tới xe Lead đang quan tâm. Cho phép khác nhau (khách có thể đổi ý lái thử xe khác)
+    // — đồng bộ với luồng "Đặt cho khách" ở trang Cấu hình slot (book-lead).
+    testDriveCarId = slot.car_model_id || lead.car_model_id;
+    if (!testDriveCarId) {
       return res.status(400).json({ error: 'Lead chưa gắn dòng xe quan tâm, không thể đặt lịch lái thử' });
-    }
-    if (slot.car_model_id && slot.car_model_id !== lead.car_model_id) {
-      return res.status(400).json({ error: 'Khung giờ này được cấu hình cho một xe khác' });
     }
     const activeCount = get<any>(
       `SELECT COUNT(*) c FROM test_drive_bookings WHERE customer_phone = ? AND status = 'Đã xác nhận'`,
@@ -114,7 +116,7 @@ router.post('/reminders', (req, res) => {
       run(
         `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,customer_email,lead_id,status,created_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-        [bookingId, code, lead.car_model_id, showroom_id, slot_id, lead.full_name, lead.phone, contactEmail, lead_id, 'Đã xác nhận', nowIso()]
+        [bookingId, code, testDriveCarId, showroom_id, slot_id, lead.full_name, lead.phone, contactEmail, lead_id, 'Đã xác nhận', nowIso()]
       );
       run('UPDATE slots SET is_available = 0 WHERE id = ?', [slot_id]);
     }
@@ -123,7 +125,7 @@ router.post('/reminders', (req, res) => {
 
   // Sale chốt giờ lái thử: gửi email xác nhận thật nếu Lead có email.
   if (isTestDrive && contactEmail) {
-    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [lead.car_model_id]);
+    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [testDriveCarId]);
     const showroom = get<any>('SELECT name FROM showrooms WHERE id = ?', [showroom_id]);
     const mail = testDriveEmail({
       customerName: lead.full_name,

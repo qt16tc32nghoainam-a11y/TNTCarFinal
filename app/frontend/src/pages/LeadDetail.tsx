@@ -440,11 +440,22 @@ function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) 
               <Field label="Khung giờ lái thử *">
                 <select className="input" value={slotId} onChange={(e) => setSlotId(e.target.value)}>
                   <option value="">-- Chọn khung giờ --</option>
-                  {slots.map((s) => <option key={s.id} value={s.id}>{formatDate(s.start_time)}</option>)}
+                  {slots.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {formatDate(s.start_time)} — {s.car_name ? `${s.car_brand} ${s.car_name}` : 'Mọi xe'}
+                    </option>
+                  ))}
                 </select>
                 {showroomId && slots.length === 0 && (
-                  <div className="mt-1 text-xs text-amber-600">Không còn khung giờ trống (cách hiện tại &ge;2h) tại showroom này.</div>
+                  <div className="mt-1 text-xs text-amber-600">Chưa có khung giờ nào được cấu hình tại showroom này (cách hiện tại &ge;2h). Vào mục "Cấu hình slot" để tạo thêm, hoặc tự chọn giờ khác bên dưới.</div>
                 )}
+                {(() => {
+                  const picked = slots.find((s) => s.id === slotId);
+                  if (picked && picked.car_model_id && carModelId && picked.car_model_id !== carModelId) {
+                    return <div className="mt-1 text-xs text-amber-600">⚠ Khung giờ này cấu hình cho xe khác với xe Lead đang quan tâm ({picked.car_brand} {picked.car_name}). Vẫn có thể chọn nếu khách đổi ý.</div>;
+                  }
+                  return null;
+                })()}
               </Field>
               <button type="button" onClick={() => setCustomTime(true)} className="mb-3 text-xs text-brand-700 hover:underline">
                 Không có khung giờ phù hợp? Tự chọn giờ hẹn khác →

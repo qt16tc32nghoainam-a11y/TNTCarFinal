@@ -129,17 +129,32 @@ router.get('/:id', (req, res) => {
 
 // ------------- Lái thử -------------
 
-/** GET /api/cars/slots/:showroomId — khung giờ lái thử còn trống (cách hiện tại >=2h, không ngày nghỉ). */
+/**
+ * GET /api/cars/slots/:showroomId — khung giờ lái thử còn trống (cách hiện tại >=2h, không ngày nghỉ).
+ * Trả về TẤT CẢ khung giờ còn trống của showroom (kèm tên xe áp dụng, nếu có), không ẩn khung giờ
+ * cấu hình cho xe khác — để Sale luôn thấy đủ những gì Admin đã tạo và tự chọn đúng, tránh dropdown
+ * trống oan do lệch car_model_id giữa Lead và Slot (Admin chọn nhầm xe, Lead đổi xe quan tâm sau...).
+ * car_model_id truyền vào (nếu có) chỉ dùng để ưu tiên sắp xếp slot đúng xe lên đầu danh sách.
+ */
 router.get('/slots/available/:showroomId', authenticate, (req, res) => {
   const minTime = new Date(Date.now() + 2 * 3600 * 1000).toISOString(); // BR-TD-02
   const carModelId = typeof req.query.car_model_id === 'string' ? req.query.car_model_id : '';
-  const carClause = carModelId ? ' AND (car_model_id IS NULL OR car_model_id = ?)' : '';
-  const params: any[] = [req.params.showroomId, minTime];
-  if (carModelId) params.push(carModelId);
-  const slots = all(
-    `SELECT * FROM slots WHERE showroom_id = ? AND is_available = 1 AND is_holiday = 0 AND start_time >= ?${carClause} ORDER BY start_time ASC`,
-    params
+  const slots = all<any>(
+    `SELECT sl.*, cm.brand AS car_brand, cm.name AS car_name
+     FROM slots sl
+     LEFT JOIN car_models cm ON cm.id = sl.car_model_id
+     WHERE sl.showroom_id = ? AND sl.is_available = 1 AND sl.is_holiday = 0 AND sl.start_time >= ?
+     ORDER BY sl.start_time ASC`,
+    [req.params.showroomId, minTime]
   );
+  if (carModelId) {
+    // Ưu tiên hiển thị slot đúng xe của Lead lên đầu, nhưng vẫn giữ các slot khác xe/mọi xe phía sau.
+    slots.sort((a, b) => {
+      const aMatch = !a.car_model_id || a.car_model_id === carModelId ? 0 : 1;
+      const bMatch = !b.car_model_id || b.car_model_id === carModelId ? 0 : 1;
+      return aMatch - bMatch;
+    });
+  }
   res.json(slots);
 });
 
