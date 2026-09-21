@@ -25,9 +25,13 @@ export default function Slots() {
   useEffect(() => { load(); }, [showroomId]);
 
   const now = Date.now();
+  const MIN_LEAD_MS = 2 * 3600 * 1000; // BR-TD-02: phải đặt trước tối thiểu 2 giờ (đồng bộ với backend)
   const upcoming = slots.filter((s) => new Date(s.start_time).getTime() >= now - 3600000);
   const booked = upcoming.filter((s) => s.booking_id);
-  const free = upcoming.filter((s) => !s.booking_id && s.is_available && !s.is_holiday);
+  // "Còn trống" thực sự đặt được: chưa có khách, chưa phải ngày nghỉ, và còn cách hiện tại >= 2h.
+  const free = upcoming.filter((s) => !s.booking_id && s.is_available && !s.is_holiday && new Date(s.start_time).getTime() >= now + MIN_LEAD_MS);
+  // Còn trống nhưng đã cận giờ (< 2h) -> không thể đặt lịch được nữa, cần hiển thị khác để khỏi nhầm.
+  const isBookable = (s: any) => !s.is_holiday && s.is_available && new Date(s.start_time).getTime() >= now + MIN_LEAD_MS;
 
   return (
     <div>
@@ -69,9 +73,11 @@ export default function Slots() {
                       ? <span className="badge bg-blue-100 text-blue-700">Đã đặt · {s.booking_status}</span>
                       : s.is_holiday
                         ? <span className="badge bg-gray-100 text-gray-600">Ngày nghỉ</span>
-                        : s.is_available
-                          ? <span className="badge bg-green-100 text-green-700">Còn trống</span>
-                          : <span className="badge bg-gray-100 text-gray-500">Không nhận</span>}
+                        : !s.is_available
+                          ? <span className="badge bg-gray-100 text-gray-500">Không nhận</span>
+                          : isBookable(s)
+                            ? <span className="badge bg-green-100 text-green-700">Còn trống</span>
+                            : <span className="badge bg-amber-100 text-amber-700" title="Đã qua mốc tối thiểu 2 giờ trước giờ hẹn, không thể đặt lịch">Còn trống · Đã cận giờ (&lt;2h)</span>}
                   </td>
                   <td className="p-3">
                     {s.booking_id
@@ -88,7 +94,7 @@ export default function Slots() {
                   <td className="p-3 text-right">
                     {s.booking_id
                       ? <Link to="/test-drives" className="text-xs text-brand-700 hover:underline">Xem lịch lái thử →</Link>
-                      : (!s.is_holiday && s.is_available
+                      : (isBookable(s)
                           ? <button onClick={() => setBookSlot(s)} className="text-xs font-medium text-brand-700 hover:underline">+ Đặt cho khách</button>
                           : <span className="text-xs text-gray-300">—</span>)}
                   </td>
