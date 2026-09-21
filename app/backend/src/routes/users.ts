@@ -68,9 +68,9 @@ router.patch('/:id/assign', requireRole('Admin'), (req, res) => {
   res.json({ ok: true });
 });
 
-/** PATCH /api/users/:id — cập nhật hồ sơ & vai trò (US-04.3). */
+/** PATCH /api/users/:id — cập nhật hồ sơ, email & vai trò (US-04.3). */
 router.patch('/:id', requireRole('Admin'), (req, res) => {
-  const { full_name, phone, role, showroom_id, manager_id } = req.body || {};
+  const { full_name, email, phone, role, showroom_id, manager_id } = req.body || {};
   const u = get<any>('SELECT * FROM users WHERE id = ?', [req.params.id]);
   if (!u) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
   if (role && !['Admin', 'Manager', 'Sales'].includes(role)) return res.status(400).json({ error: 'Vai trò không hợp lệ' });
@@ -83,10 +83,16 @@ router.patch('/:id', requireRole('Admin'), (req, res) => {
     const dup = get<any>('SELECT id FROM users WHERE phone = ? AND id != ?', [phone, req.params.id]);
     if (dup) return res.status(409).json({ error: 'Số điện thoại đã tồn tại' });
   }
+  // Cho phép Admin sửa email; kiểm tra trùng với người khác.
+  if (email && email !== u.email) {
+    const dup = get<any>('SELECT id FROM users WHERE email = ? AND id != ?', [email, req.params.id]);
+    if (dup) return res.status(409).json({ error: 'Email đã tồn tại' });
+  }
   run(
-    'UPDATE users SET full_name = ?, phone = ?, role = ?, showroom_id = ?, manager_id = ? WHERE id = ?',
+    'UPDATE users SET full_name = ?, email = ?, phone = ?, role = ?, showroom_id = ?, manager_id = ? WHERE id = ?',
     [
       full_name ?? u.full_name,
+      email ?? u.email,
       phone ?? u.phone,
       role ?? u.role,
       showroom_id !== undefined ? (showroom_id || null) : u.showroom_id,
@@ -120,7 +126,7 @@ router.post('/bootstrap-web-sales', requireRole('Admin'), (_req, res) => {
   const showroom = get<any>('SELECT id FROM showrooms LIMIT 1')?.id || null;
   const wanted = [
     { full_name: 'Nguyễn Thiện An', email: 'annt@tntcar.vn', phone: '0911111116' },
-    { full_name: 'Nguyễn Đại Thành', email: 'thanhnd@tntcar.vn', phone: '0911111117' },
+    { full_name: 'Võ Đại Thành', email: 'thanhvd@tntcar.vn', phone: '0911111117' },
   ];
   let created = 0;
   for (const w of wanted) {

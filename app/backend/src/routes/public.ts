@@ -48,10 +48,10 @@ router.post('/requests', (req, res) => {
   }
 
   // Gán ngẫu nhiên khi có Lead mới từ website (BR-18).
-  // Ưu tiên chỉ gán cho 2 Sales phụ trách Lead website: An (annt) + Thành (thanhnd).
+  // Ưu tiên chỉ gán cho 2 Sales phụ trách Lead website: An (annt) + Võ Đại Thành (thanhvd).
   // Nếu 2 user này chưa tồn tại/không hoạt động thì fallback về mọi Sales đang hoạt động.
   let salesList = all<any>(
-    "SELECT id FROM users WHERE role='Sales' AND status='Hoạt động' AND email IN ('annt@tntcar.vn','thanhnd@tntcar.vn')"
+    "SELECT id FROM users WHERE role='Sales' AND status='Hoạt động' AND email IN ('annt@tntcar.vn','thanhvd@tntcar.vn')"
   );
   if (salesList.length === 0) {
     salesList = all<any>("SELECT id FROM users WHERE role='Sales' AND status='Hoạt động'");

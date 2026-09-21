@@ -56,7 +56,7 @@ async function seed() {
     [sale5, 'Hoàng Văn Nghỉ', 'nghi.sales@tntcar.vn', '0911111115', pass, 'Sales', shrHanoi, mgr2, 1],
     // 2 Sales phụ trách Lead từ website (random gán cho 2 người này)
     [saleAn, 'Nguyễn Thiện An', 'annt@tntcar.vn', '0911111116', pass, 'Sales', shrThuDuc, mgr1, 1],
-    [saleThanh, 'Nguyễn Đại Thành', 'thanhnd@tntcar.vn', '0911111117', pass, 'Sales', shrHanoi, mgr2, 1],
+    [saleThanh, 'Võ Đại Thành', 'thanhvd@tntcar.vn', '0911111117', pass, 'Sales', shrHanoi, mgr2, 1],
   ];
   for (const u of users) {
     run(

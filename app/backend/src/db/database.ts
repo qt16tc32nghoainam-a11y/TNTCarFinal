@@ -129,9 +129,23 @@ export function ensureWebSales(): void {
     if (r.length && r[0].values.length) showroom = String(r[0].values[0][0]);
   } catch { /* ignore */ }
 
+  // Đổi tên user Sale website thứ 2: Nguyễn Đại Thành (thanhnd) -> Võ Đại Thành (thanhvd).
+  // Giữ nguyên dữ liệu/Lead đã gán, chỉ cập nhật email + tên nếu email mới chưa bị dùng.
+  try {
+    const hasOld = db.exec("SELECT id FROM users WHERE email='thanhnd@tntcar.vn'");
+    const hasNew = db.exec("SELECT id FROM users WHERE email='thanhvd@tntcar.vn'");
+    const oldExists = hasOld.length > 0 && hasOld[0].values.length > 0;
+    const newExists = hasNew.length > 0 && hasNew[0].values.length > 0;
+    if (oldExists && !newExists) {
+      db.run("UPDATE users SET email='thanhvd@tntcar.vn', full_name='Võ Đại Thành' WHERE email='thanhnd@tntcar.vn'");
+      dirty = true;
+      console.log('[migration] Đã đổi Sale website: thanhnd -> thanhvd (Võ Đại Thành)');
+    }
+  } catch { /* ignore */ }
+
   const wanted = [
     { full_name: 'Nguyễn Thiện An', email: 'annt@tntcar.vn', phone: '0911111116' },
-    { full_name: 'Nguyễn Đại Thành', email: 'thanhnd@tntcar.vn', phone: '0911111117' },
+    { full_name: 'Võ Đại Thành', email: 'thanhvd@tntcar.vn', phone: '0911111117' },
   ];
   for (const w of wanted) {
     let exists = false;

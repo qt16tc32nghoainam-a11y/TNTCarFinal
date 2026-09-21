@@ -118,6 +118,7 @@ function CreateUserModal({ onClose, onCreated }: any) {
 function EditUserModal({ user, onClose, onSaved }: any) {
   const [form, setForm] = useState({
     full_name: user.full_name || '',
+    email: user.email || '',
     phone: user.phone || '',
     role: user.role || 'Sales',
     showroom_id: user.showroom_id || '',
@@ -139,6 +140,7 @@ function EditUserModal({ user, onClose, onSaved }: any) {
     try {
       await api.patch(`/users/${user.id}`, {
         full_name: form.full_name,
+        email: form.email,
         phone: form.phone,
         role: form.role,
         showroom_id: form.showroom_id || null,
@@ -154,7 +156,7 @@ function EditUserModal({ user, onClose, onSaved }: any) {
 
   return (
     <Modal open onClose={onClose} title={`Sửa: ${user.full_name}`}>
-      <Field label="Email"><input className="input bg-gray-100" value={user.email} disabled /></Field>
+      <Field label="Email *"><input className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@tntcar.vn" /></Field>
       <Field label="Họ tên *"><input className="input" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
       <Field label="Số điện thoại *"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
       <Field label="Vai trò">
