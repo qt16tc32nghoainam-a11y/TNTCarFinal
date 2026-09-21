@@ -1,0 +1,239 @@
+<mxfile host="app.diagrams.net" agent="TNT CAR" version="24.0.0">
+
+  <!-- ============ MODULE 1: LEAD & CHAM SOC - AS IS ============ -->
+  <diagram id="m1-asis" name="1. Lead &amp; Chăm sóc - AS-IS">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" guides="1" connect="1" arrows="1" page="1" pageWidth="1600" pageHeight="700">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="AS-IS · Tiếp nhận &amp; chăm sóc Lead (thủ công)" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="700" height="30" as="geometry"/></mxCell>
+        <mxCell id="pool" value="Quy trình hiện tại" style="shape=table;startSize=30;horizontal=0;whiteSpace=wrap;html=1;fillColor=none;" vertex="1" parent="1"><mxGeometry x="40" y="70" width="1520" height="480" as="geometry"/></mxCell>
+        <mxCell id="l1" value="Khách hàng" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="30" width="1520" height="140" as="geometry"/></mxCell>
+        <mxCell id="l2" value="Sales" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="170" width="1520" height="160" as="geometry"/></mxCell>
+        <mxCell id="l3" value="Quản lý (Excel/Sổ)" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="330" width="1520" height="120" as="geometry"/></mxCell>
+
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="90" y="120" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="a1" value="Khách gọi điện /&#10;nhắn tin / đến showroom" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="170" y="110" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="a2" value="Sales ghi thông tin&#10;ra giấy / Excel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="370" y="260" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="a3" value="Tự nhớ / ghi chú&#10;lịch gọi lại" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="570" y="260" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="g1" value="Có phản&#10;hồi?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="780" y="255" width="80" height="70" as="geometry"/></mxCell>
+        <mxCell id="a4" value="Chăm sóc tiếp&#10;(dễ quên, trùng lặp)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="910" y="260" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="a5" value="Tổng hợp báo cáo&#10;bằng tay cuối tháng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="910" y="380" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="1200" y="400" width="40" height="40" as="geometry"/></mxCell>
+
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="a1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="a1" target="a2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="a2" target="a3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="a3" target="g1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" value="Có" style="endArrow=block;html=1;" edge="1" parent="1" source="g1" target="a4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f6" value="Không" style="endArrow=block;html=1;" edge="1" parent="1" source="g1" target="a5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f7" style="endArrow=block;html=1;" edge="1" parent="1" source="a4" target="a5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f8" style="endArrow=block;html=1;" edge="1" parent="1" source="a5" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pain" value="Hạn chế: dữ liệu phân tán, dễ trùng/mất Lead, quên chăm sóc, báo cáo thủ công chậm, khó phân quyền." style="text;html=1;fontColor=#b85450;fontSize=11;" vertex="1" parent="1"><mxGeometry x="60" y="560" width="1400" height="30" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 1: LEAD & CHAM SOC - TO BE ============ -->
+  <diagram id="m1-tobe" name="1. Lead &amp; Chăm sóc - TO-BE">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" guides="1" connect="1" arrows="1" page="1" pageWidth="1700" pageHeight="760">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="TO-BE · Tiếp nhận &amp; chăm sóc Lead (hệ thống TNT CAR)" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="800" height="30" as="geometry"/></mxCell>
+        <mxCell id="pool" value="TNT CAR" style="shape=table;startSize=30;horizontal=0;whiteSpace=wrap;html=1;fillColor=none;" vertex="1" parent="1"><mxGeometry x="40" y="70" width="1620" height="600" as="geometry"/></mxCell>
+        <mxCell id="l1" value="Khách / Website" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="30" width="1620" height="130" as="geometry"/></mxCell>
+        <mxCell id="l2" value="Hệ thống" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="160" width="1620" height="150" as="geometry"/></mxCell>
+        <mxCell id="l3" value="Sales" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="310" width="1620" height="150" as="geometry"/></mxCell>
+        <mxCell id="l4" value="Manager/Admin" style="shape=tableRow;horizontal=0;html=1;fillColor=none;" vertex="1" parent="pool"><mxGeometry y="460" width="1620" height="110" as="geometry"/></mxCell>
+
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="90" y="110" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="b1" value="Điền form đăng ký&#10;trên website" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="170" y="100" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="b2" value="Tạo Lead tự động&#10;(nguồn Website)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="370" y="230" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="b3" value="Random gán Sales&#10;+ gửi thông báo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="570" y="230" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="b4" value="Nhận Lead + chăm sóc&#10;(ghi hoạt động, đổi trạng thái)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="770" y="375" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b5" value="Đặt lịch hẹn&#10;(hệ thống tự nhắc)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="980" y="375" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="g1" value="Kết quả?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="1180" y="370" width="90" height="70" as="geometry"/></mxCell>
+        <mxCell id="b6" value="Chốt Won" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1320" y="330" width="130" height="50" as="geometry"/></mxCell>
+        <mxCell id="b7" value="Chốt Lost (kèm lý do)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="1320" y="420" width="130" height="50" as="geometry"/></mxCell>
+        <mxCell id="b8" value="Dashboard KPI cập nhật&#10;thời gian thực + xuất CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="770" y="490" width="220" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="1490" y="380" width="40" height="40" as="geometry"/></mxCell>
+
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="b1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="b1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="b3" target="b4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" style="endArrow=block;html=1;" edge="1" parent="1" source="b4" target="b5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f6" style="endArrow=block;html=1;" edge="1" parent="1" source="b5" target="g1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f7" value="Thành công" style="endArrow=block;html=1;" edge="1" parent="1" source="g1" target="b6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f8" value="Thất bại" style="endArrow=block;html=1;" edge="1" parent="1" source="g1" target="b7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f9" style="endArrow=block;html=1;" edge="1" parent="1" source="b6" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f10" style="endArrow=block;html=1;" edge="1" parent="1" source="b7" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f11" style="endArrow=block;dashed=1;html=1;" edge="1" parent="1" source="b6" target="b8"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 2: LAI THU - AS IS ============ -->
+  <diagram id="m2-asis" name="2. Lái thử - AS-IS">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1500" pageHeight="500">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="AS-IS · Đặt lịch lái thử (thủ công)" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="600" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="140" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="a1" value="Khách hỏi lịch lái thử&#10;qua điện thoại" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="140" y="130" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="a2" value="Sales ghi sổ,&#10;tự kiểm xe/giờ trống" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="350" y="130" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="a3" value="Gọi lại xác nhận&#10;(dễ trùng giờ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="560" y="130" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="a4" value="Nhắc khách bằng tay&#10;(hay quên)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="770" y="130" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="990" y="140" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="a1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="a1" target="a2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="a2" target="a3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="a3" target="a4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" style="endArrow=block;html=1;" edge="1" parent="1" source="a4" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pain" value="Hạn chế: không có lịch chung, dễ trùng khung giờ, không tự nhắc, khó theo dõi kết quả lái thử." style="text;html=1;fontColor=#b85450;fontSize=11;" vertex="1" parent="1"><mxGeometry x="60" y="260" width="1200" height="30" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 2: LAI THU - TO BE ============ -->
+  <diagram id="m2-tobe" name="2. Lái thử - TO-BE">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="520">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="TO-BE · Đặt &amp; quản lý lịch lái thử (hệ thống)" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="700" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="b1" value="Chọn xe + showroom&#10;+ khung giờ trống (≥2h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="130" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b2" value="Hệ thống tạo booking&#10;+ khóa slot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="350" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b3" value="Xác nhận /&#10;đổi / hủy (trước 4h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="570" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b4" value="Scheduler tự nhắc&#10;(trước 24h &amp; 2h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="790" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b5" value="Ghi kết quả lái thử&#10;(Hoàn thành/Vắng mặt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1010" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="1240" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="b1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="b1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="b3" target="b4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" style="endArrow=block;html=1;" edge="1" parent="1" source="b4" target="b5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f6" style="endArrow=block;html=1;" edge="1" parent="1" source="b5" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="gain" value="Lợi ích: lịch tập trung, chặn trùng slot, ràng buộc 2h/4h tự động, nhắc tự động, theo dõi kết quả." style="text;html=1;fontColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="60" y="270" width="1300" height="30" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 3: XE & NOI DUNG WEB - AS IS ============ -->
+  <diagram id="m3-asis" name="3. Xe &amp; Nội dung Web - AS-IS">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1400" pageHeight="460">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="AS-IS · Thông tin xe &amp; nội dung (rời rạc)" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="600" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="a1" value="Giá/thông số xe&#10;trên giấy tờ, tờ rơi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="140" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="a2" value="Nội dung web nhờ&#10;IT/bên thứ 3 sửa" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="360" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="a3" value="Thông tin không đồng bộ&#10;giữa web &amp; nội bộ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="580" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="810" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="a1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="a1" target="a2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="a2" target="a3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="a3" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 3: XE & NOI DUNG WEB - TO BE ============ -->
+  <diagram id="m3-tobe" name="3. Xe &amp; Nội dung Web - TO-BE">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1500" pageHeight="460">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="TO-BE · Admin quản lý xe &amp; nội dung, khách xem ngay" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="800" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="b1" value="Admin sửa xe / upload ảnh&#10;/ nội dung web trong app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="130" y="140" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="b2" value="Lưu vào 1 CSDL&#10;dùng chung" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="370" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b3" value="Website công khai&#10;hiển thị ngay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="590" y="90" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b4" value="App nội bộ tra cứu&#10;cùng dữ liệu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="590" y="190" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="830" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="b1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="b1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" style="endArrow=block;html=1;" edge="1" parent="1" source="b3" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f6" style="endArrow=block;html=1;" edge="1" parent="1" source="b4" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 4: BAO CAO KPI - AS IS ============ -->
+  <diagram id="m4-asis" name="4. Báo cáo KPI - AS-IS">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1400" pageHeight="440">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="AS-IS · Báo cáo KPI thủ công" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="600" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="a1" value="Sales gửi số liệu&#10;rời rạc cuối kỳ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="140" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="a2" value="Quản lý tổng hợp&#10;Excel bằng tay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="360" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="a3" value="Báo cáo chậm,&#10;dễ sai số" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="580" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="810" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="a1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="a1" target="a2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="a2" target="a3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="a3" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 4: BAO CAO KPI - TO BE ============ -->
+  <diagram id="m4-tobe" name="4. Báo cáo KPI - TO-BE">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1500" pageHeight="440">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="TO-BE · Dashboard KPI thời gian thực" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="700" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="b1" value="Hệ thống tự tổng hợp&#10;từ Lead/kết quả" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="140" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b2" value="Dashboard theo phân quyền&#10;(Admin/Manager/Sales)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="360" y="140" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="b3" value="Drill-down chi tiết&#10;(Lead/Won/Lost)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="600" y="90" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b4" value="Xuất CSV / khóa số liệu kỳ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="600" y="190" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="840" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="b1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="b1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" style="endArrow=block;html=1;" edge="1" parent="1" source="b3" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f6" style="endArrow=block;html=1;" edge="1" parent="1" source="b4" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 5: QUAN TRI NGUOI DUNG - AS IS ============ -->
+  <diagram id="m5-asis" name="5. Quản trị người dùng - AS-IS">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1300" pageHeight="420">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="AS-IS · Phân công nhân sự thủ công" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="600" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="a1" value="Phân công Lead&#10;bằng miệng/giấy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="140" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="a2" value="Không rõ ai phụ trách,&#10;khó kiểm soát quyền" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="360" y="140" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="620" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="a1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="a1" target="a2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="a2" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============ MODULE 5: QUAN TRI NGUOI DUNG - TO BE ============ -->
+  <diagram id="m5-tobe" name="5. Quản trị người dùng - TO-BE">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1400" pageHeight="420">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="TO-BE · Quản lý người dùng &amp; phân quyền tập trung" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="800" height="30" as="geometry"/></mxCell>
+        <mxCell id="s0" value="" style="ellipse;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="b1" value="Admin tạo user&#10;+ gán vai trò (3 mức)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="130" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b2" value="Gán/chuyển Lead,&#10;khóa/mở tài khoản" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="350" y="140" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="b3" value="Hệ thống áp phân quyền&#10;dữ liệu theo vai trò" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="570" y="140" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="820" y="150" width="40" height="40" as="geometry"/></mxCell>
+        <mxCell id="f1" style="endArrow=block;html=1;" edge="1" parent="1" source="s0" target="b1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;" edge="1" parent="1" source="b1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;" edge="1" parent="1" source="b2" target="b3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;" edge="1" parent="1" source="b3" target="e0"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

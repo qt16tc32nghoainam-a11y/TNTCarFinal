@@ -15,9 +15,17 @@ export default function Slots() {
   async function load() {
     if (!showroomId) return;
     setLoading(true);
-    try { setSlots(await api.get<any[]>(`/cars/slots/available/${showroomId}`)); } finally { setLoading(false); }
+    try {
+      // Lấy tất cả slot (kèm ai đặt / xe gì / còn trống) cho showroom đang chọn
+      setSlots(await api.get<any[]>(`/cars/slots/manage?showroom_id=${showroomId}`));
+    } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, [showroomId]);
+
+  const now = Date.now();
+  const upcoming = slots.filter((s) => new Date(s.start_time).getTime() >= now - 3600000);
+  const booked = upcoming.filter((s) => s.booking_id);
+  const free = upcoming.filter((s) => !s.booking_id && s.is_available);
 
   return (
     <div>
@@ -28,14 +36,52 @@ export default function Slots() {
       <div className="card mb-4">
         <Field label="Showroom"><select className="input" value={showroomId} onChange={(e) => setShowroomId(e.target.value)}>{showrooms.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
       </div>
+
+      {/* Tổng quan */}
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        <div className="rounded-xl border bg-white p-3 text-center"><div className="text-2xl font-bold text-gray-800">{upcoming.length}</div><div className="text-xs text-gray-500">Tổng khung giờ</div></div>
+        <div className="rounded-xl border bg-white p-3 text-center"><div className="text-2xl font-bold text-green-600">{free.length}</div><div className="text-xs text-gray-500">Còn trống</div></div>
+        <div className="rounded-xl border bg-white p-3 text-center"><div className="text-2xl font-bold text-blue-600">{booked.length}</div><div className="text-xs text-gray-500">Đã có khách đặt</div></div>
+      </div>
+
       {loading ? <Spinner /> : (
-        <div className="card">
-          <h2 className="mb-2 font-semibold">Khung giờ còn trống</h2>
-          {slots.length === 0 ? <div className="text-sm text-gray-400">Chưa có khung giờ trống</div> : (
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              {slots.map((s) => <div key={s.id} className="rounded-lg border p-2 text-center text-sm">{formatDate(s.start_time)}</div>)}
-            </div>
-          )}
+        <div className="overflow-x-auto rounded-xl border bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+              <tr>
+                <th className="p-3">Khung giờ</th>
+                <th className="p-3">Trạng thái</th>
+                <th className="p-3">Khách đặt</th>
+                <th className="p-3">Xe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcoming.length === 0 ? (
+                <tr><td colSpan={4} className="p-6 text-center text-gray-400">Chưa có khung giờ nào</td></tr>
+              ) : upcoming.map((s) => (
+                <tr key={s.id} className="border-t">
+                  <td className="p-3">{formatDate(s.start_time)}</td>
+                  <td className="p-3">
+                    {s.booking_id
+                      ? <span className="badge bg-blue-100 text-blue-700">Đã đặt</span>
+                      : s.is_available
+                        ? <span className="badge bg-green-100 text-green-700">Còn trống</span>
+                        : <span className="badge bg-gray-100 text-gray-500">Không nhận</span>}
+                  </td>
+                  <td className="p-3">
+                    {s.booking_id
+                      ? <span>{s.customer_name}<span className="block text-xs text-gray-400">{s.customer_phone} · {s.booking_code}</span></span>
+                      : <span className="text-gray-400">-</span>}
+                  </td>
+                  <td className="p-3 text-gray-600">
+                    {s.booking_id
+                      ? (s.booked_car_brand ? `${s.booked_car_brand} ${s.booked_car_name}` : '-')
+                      : (s.slot_car_brand ? `${s.slot_car_brand} ${s.slot_car_name}` : <span className="text-gray-400">(mọi xe)</span>)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {showCreate && <CreateSlotModal showroomId={showroomId} onClose={() => setShowCreate(false)} onDone={() => { setShowCreate(false); load(); }} />}

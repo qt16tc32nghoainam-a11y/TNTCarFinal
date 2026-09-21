@@ -88,7 +88,7 @@ router.post('/reminders', (req, res) => {
       run(
         `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        [bookingId, code, lead.car_model_id, showroom_id, slot_id, lead.full_name, lead.phone, lead_id, 'Chờ xác nhận', nowIso()]
+        [bookingId, code, lead.car_model_id, showroom_id, slot_id, lead.full_name, lead.phone, lead_id, 'Đã xác nhận', nowIso()]
       );
       run('UPDATE slots SET is_available = 0 WHERE id = ?', [slot_id]);
     }

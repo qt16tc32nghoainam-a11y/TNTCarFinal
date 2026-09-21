@@ -1,0 +1,174 @@
+<mxfile host="app.diagrams.net" agent="TNT CAR" version="24.0.0">
+  <diagram id="usecase-tntcar" name="Use Case - TNT CAR">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Tiêu đề -->
+        <mxCell id="title" value="SƠ ĐỒ USE CASE - HỆ THỐNG TNT CAR (CRM bán xe)" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="440" y="20" width="720" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ACTORS ===== -->
+        <mxCell id="actKhach" value="Khách hàng&#10;(Website)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="50" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="actSales" value="Sales" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="50" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="actManager" value="Manager" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="50" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="actAdmin" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="880" width="50" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="actScheduler" value="Hệ thống&#10;(Scheduler)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="120" width="50" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===== SYSTEM BOUNDARY ===== -->
+        <mxCell id="boundary" value="Hệ thống TNT CAR" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=14;arcSize=3;strokeColor=#6c8ebf;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="260" y="90" width="1180" height="960" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USE CASES: Website cong khai ===== -->
+        <mxCell id="ucXemXe" value="Xem danh mục / chi tiết xe" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="130" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucSoSanh" value="So sánh xe / tính trả góp" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="210" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucDangKy" value="Đăng ký tư vấn / lái thử&#10;(tạo Lead từ website)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="290" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USE CASES: Sales - Lead & cham soc ===== -->
+        <mxCell id="ucQLLead" value="Quản lý Lead&#10;(tạo/lọc/tìm)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="380" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucChamSoc" value="Ghi hoạt động chăm sóc&#10;/ đổi trạng thái" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="450" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucChot" value="Chốt Won / Lost" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="520" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucGop" value="Gộp Lead trùng" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="585" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ucLichHen" value="Tạo lịch hẹn / nhắc việc" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="645" width="170" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USE CASES: Xe & lai thu ===== -->
+        <mxCell id="ucTraCuu" value="Tra cứu xe (nội bộ)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="800" y="380" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucDatLichTD" value="Đặt lịch lái thử" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="800" y="445" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucQLLichTD" value="Xác nhận / hủy / đổi&#10;lịch lái thử" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="800" y="510" width="170" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USE CASES: Dashboard ===== -->
+        <mxCell id="ucDashboard" value="Xem Dashboard KPI&#10;(theo phân quyền)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="380" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucDrill" value="Xem chi tiết KPI&#10;(Lead/Won/Lost...)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="450" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucExport" value="Xuất báo cáo CSV" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="515" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ucKhoaKy" value="Khóa số liệu KPI theo kỳ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="575" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USE CASES: Admin quan tri ===== -->
+        <mxCell id="ucQLUser" value="Quản lý người dùng&#10;/ phân vai trò" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="560" y="820" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucGanLead" value="Gán / chuyển Lead cho Sales" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="560" y="890" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucSlot" value="Cấu hình khung giờ lái thử" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="820" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucQLXe" value="Sửa xe / upload ảnh xe" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="885" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucNoiDung" value="Quản lý nội dung website" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="820" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USE CASES: chung / he thong ===== -->
+        <mxCell id="ucDangNhap" value="Đăng nhập / phân quyền" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="380" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucNoti" value="Nhận thông báo (chuông)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="445" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucOffline" value="Dùng offline / đồng bộ (PWA)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="510" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ucNhacLich" value="Tự động nhắc việc / lái thử" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="130" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LIEN KET actor - use case ===== -->
+        <!-- Khach -->
+        <mxCell id="e1" style="endArrow=none;html=1;" edge="1" parent="1" source="actKhach" target="ucXemXe"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=none;html=1;" edge="1" parent="1" source="actKhach" target="ucSoSanh"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=none;html=1;" edge="1" parent="1" source="actKhach" target="ucDangKy"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Sales -->
+        <mxCell id="s0" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucDangNhap"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s1" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucQLLead"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s2" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucChamSoc"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s3" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucChot"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s4" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucGop"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s5" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucLichHen"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s6" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucTraCuu"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s7" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucDatLichTD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s8" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucQLLichTD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s9" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucDashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s10" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucNoti"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s11" style="endArrow=none;html=1;" edge="1" parent="1" source="actSales" target="ucOffline"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Manager -->
+        <mxCell id="m0" style="endArrow=none;html=1;" edge="1" parent="1" source="actManager" target="ucDangNhap"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m1" style="endArrow=none;html=1;" edge="1" parent="1" source="actManager" target="ucDashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m2" style="endArrow=none;html=1;" edge="1" parent="1" source="actManager" target="ucQLLead"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m3" style="endArrow=none;html=1;" edge="1" parent="1" source="actManager" target="ucDrill"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m4" style="endArrow=none;html=1;" edge="1" parent="1" source="actManager" target="ucExport"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Admin -->
+        <mxCell id="a0" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucDangNhap"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a1" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucQLUser"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a2" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucGanLead"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a3" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucSlot"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a4" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucQLXe"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a5" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucNoiDung"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a6" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucKhoaKy"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a7" style="endArrow=none;html=1;" edge="1" parent="1" source="actAdmin" target="ucDashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Scheduler -->
+        <mxCell id="sc1" style="endArrow=none;html=1;" edge="1" parent="1" source="actScheduler" target="ucNhacLich"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===== Quan he include/extend ===== -->
+        <mxCell id="inc1" value="&#171;include&#187;" style="endArrow=open;dashed=1;html=1;fontSize=10;" edge="1" parent="1" source="ucDangKy" target="ucGanLead"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc2" value="&#171;include&#187;" style="endArrow=open;dashed=1;html=1;fontSize=10;" edge="1" parent="1" source="ucDangKy" target="ucNoti"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc3" value="&#171;extend&#187;" style="endArrow=open;dashed=1;html=1;fontSize=10;" edge="1" parent="1" source="ucLichHen" target="ucDatLichTD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc4" value="&#171;include&#187;" style="endArrow=open;dashed=1;html=1;fontSize=10;" edge="1" parent="1" source="ucDashboard" target="ucDrill"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc5" value="&#171;include&#187;" style="endArrow=open;dashed=1;html=1;fontSize=10;" edge="1" parent="1" source="ucNhacLich" target="ucNoti"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Ghi chu -->
+        <mxCell id="note" value="Ghi chú: Admin kế thừa mọi quyền; Manager xem phạm vi nhóm; Sales xem của mình. Tính năng Hợp đồng đã ẩn khỏi UI." style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="280" y="990" width="1100" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

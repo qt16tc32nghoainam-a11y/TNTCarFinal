@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import { Spinner, Empty } from '../components/ui';
 import { formatDate, statusColor } from '../lib/format';
 
-const TD_STATUSES = ['Chờ xác nhận', 'Đã xác nhận', 'Hoàn thành', 'Vắng mặt', 'Từ chối', 'Hủy'];
+const TD_STATUSES = ['Đã xác nhận', 'Hoàn thành', 'Vắng mặt', 'Hủy'];
 
 // So sánh 2 mốc thời gian theo NGÀY (bỏ giờ), trả về số ngày lệch (0 = cùng ngày)
 function dayDiff(iso: string, base: Date): number {
@@ -31,9 +31,10 @@ export default function TestDrives() {
   }
   useEffect(() => { load(); }, []);
 
+  const [reschedule, setReschedule] = useState<any>(null);
+
   async function update(id: string, status: string) {
     let note: string | undefined;
-    if (status === 'Từ chối') { note = prompt('Lý do từ chối?') || ''; if (!note) return; }
     if (status === 'Hủy' && !confirm('Xác nhận hủy lịch lái thử này?')) return;
     if (status === 'Hoàn thành' || status === 'Vắng mặt') note = prompt('Ghi chú kết quả (tùy chọn):') || '';
     try {
@@ -114,18 +115,20 @@ export default function TestDrives() {
           {groups.map((g) => (
             <div key={g.offset}>
               <div className="mb-2 text-sm font-semibold text-brand-700">{dayLabel(g.offset, g.date)} ({g.items.length})</div>
-              <BookingTable rows={g.items} update={update} tdStatusColor={tdStatusColor} />
+              <BookingTable rows={g.items} update={update} tdStatusColor={tdStatusColor} onReschedule={setReschedule} />
             </div>
           ))}
         </div>
       ) : (
-        <BookingTable rows={filtered} update={update} tdStatusColor={tdStatusColor} />
+        <BookingTable rows={filtered} update={update} tdStatusColor={tdStatusColor} onReschedule={setReschedule} />
       )}
+
+      {reschedule && <RescheduleModal booking={reschedule} onClose={() => setReschedule(null)} onDone={() => { setReschedule(null); load(); }} />}
     </div>
   );
 }
 
-function BookingTable({ rows, update, tdStatusColor }: { rows: any[]; update: (id: string, s: string) => void; tdStatusColor: (s: string) => string }) {
+function BookingTable({ rows, update, tdStatusColor, onReschedule }: { rows: any[]; update: (id: string, s: string) => void; tdStatusColor: (s: string) => string; onReschedule: (r: any) => void }) {
   return (
     <div className="overflow-x-auto rounded-xl border bg-white">
       <table className="w-full text-sm">
@@ -142,16 +145,11 @@ function BookingTable({ rows, update, tdStatusColor }: { rows: any[]; update: (i
                   <td className="p-3 text-xs">{formatDate(r.start_time)}</td>
                   <td className="p-3"><span className={`badge ${tdStatusColor(r.status)}`}>{r.status}</span></td>
                   <td className="p-3">
-                    {r.status === 'Chờ xác nhận' && (
-                      <div className="flex gap-1">
-                        <button onClick={() => update(r.id, 'Đã xác nhận')} className="badge bg-blue-100 text-blue-700">Xác nhận</button>
-                        <button onClick={() => update(r.id, 'Từ chối')} className="badge bg-red-100 text-red-700">Từ chối</button>
-                      </div>
-                    )}
                     {r.status === 'Đã xác nhận' && (
                       <div className="flex flex-wrap gap-1">
                         <button onClick={() => update(r.id, 'Hoàn thành')} className="badge bg-green-100 text-green-700">Hoàn thành</button>
                         <button onClick={() => update(r.id, 'Vắng mặt')} className="badge bg-gray-100 text-gray-600">Vắng mặt</button>
+                        <button onClick={() => onReschedule(r)} className="badge bg-blue-100 text-blue-700">Đổi lịch</button>
                         <button onClick={() => update(r.id, 'Hủy')} className="badge bg-red-100 text-red-700">Hủy</button>
                       </div>
                     )}
@@ -160,6 +158,67 @@ function BookingTable({ rows, update, tdStatusColor }: { rows: any[]; update: (i
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function RescheduleModal({ booking, onClose, onDone }: { booking: any; onClose: () => void; onDone: () => void }) {
+  const [showrooms, setShowrooms] = useState<any[]>([]);
+  const [showroomId, setShowroomId] = useState(booking.showroom_id || '');
+  const [slots, setSlots] = useState<any[]>([]);
+  const [slotId, setSlotId] = useState('');
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { api.get<any[]>('/meta/showrooms').then(setShowrooms).catch(() => {}); }, []);
+  useEffect(() => {
+    if (showroomId) api.get<any[]>(`/cars/slots/available/${showroomId}`).then(setSlots).catch(() => setSlots([]));
+    else setSlots([]);
+    setSlotId('');
+  }, [showroomId]);
+
+  async function save() {
+    setErr('');
+    if (!slotId) return setErr('Vui lòng chọn khung giờ mới');
+    setSaving(true);
+    try {
+      await api.patch(`/cars/test-drives/${booking.id}/reschedule`, { new_slot_id: slotId });
+      onDone();
+    } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Đổi lịch lái thử</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">✕</button>
+        </div>
+        <div className="mb-3 rounded bg-gray-50 p-2 text-sm">
+          {booking.customer_name} · {booking.car_name}
+          <div className="text-xs text-gray-500">Hiện tại: {formatDate(booking.start_time)}</div>
+        </div>
+        <div className="mb-3">
+          <label className="label">Showroom</label>
+          <select className="input" value={showroomId} onChange={(e) => setShowroomId(e.target.value)}>
+            <option value="">-- Chọn showroom --</option>
+            {showrooms.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="label">Khung giờ mới (còn trống, cách hiện tại ≥2h)</label>
+          <select className="input" value={slotId} onChange={(e) => setSlotId(e.target.value)}>
+            <option value="">-- Chọn khung giờ --</option>
+            {slots.map((s) => <option key={s.id} value={s.id}>{formatDate(s.start_time)}</option>)}
+          </select>
+          {showroomId && slots.length === 0 && <div className="mt-1 text-xs text-amber-600">Không còn khung giờ trống, thử showroom khác.</div>}
+        </div>
+        {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="btn-secondary">Hủy</button>
+          <button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Đổi lịch'}</button>
+        </div>
+      </div>
     </div>
   );
 }

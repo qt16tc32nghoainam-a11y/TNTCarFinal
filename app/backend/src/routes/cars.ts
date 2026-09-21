@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { all, get, run, transaction, persist } from '../db/database';
 import { authenticate, requireRole } from '../middleware/auth';
+import { sendMail, testDriveEmail } from '../mailer';
 
 const router = Router();
 const nowIso = () => new Date().toISOString();
@@ -140,7 +141,7 @@ router.get('/slots/available/:showroomId', authenticate, (req, res) => {
 
 /** POST /api/cars/test-drives — đặt lịch lái thử (US-03.4). */
 router.post('/test-drives', authenticate, (req, res) => {
-  const { car_model_id, showroom_id, slot_id, customer_name, customer_phone } = req.body || {};
+  const { car_model_id, showroom_id, slot_id, customer_name, customer_phone, customer_email } = req.body || {};
   if (!car_model_id || !showroom_id || !slot_id || !customer_name || !customer_phone) {
     return res.status(400).json({ error: 'Thiếu thông tin đặt lịch' });
   }
@@ -172,10 +173,26 @@ router.post('/test-drives', authenticate, (req, res) => {
     run(
       `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
        VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      [bookingId, code, car_model_id, showroom_id, slot_id, customer_name, customer_phone, leadId, 'Chờ xác nhận', nowIso()]
+      [bookingId, code, car_model_id, showroom_id, slot_id, customer_name, customer_phone, leadId, 'Đã xác nhận', nowIso()]
     );
     run('UPDATE slots SET is_available = 0 WHERE id = ?', [slot_id]);
   });
+  persist();
+
+  // Gửi email xác nhận cho khách (nếu có email)
+  if (customer_email) {
+    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [car_model_id]);
+    const sr = get<any>('SELECT name FROM showrooms WHERE id = ?', [showroom_id]);
+    const mail = testDriveEmail({
+      customerName: customer_name,
+      carName: car ? `${car.brand} ${car.name}` : 'xe',
+      showroomName: sr?.name || '',
+      startTime: slot.start_time,
+      bookingCode: code,
+    });
+    sendMail(customer_email, mail.subject, mail.html).catch(() => {});
+  }
+
   res.status(201).json({ id: bookingId, booking_code: code, lead_id: leadId });
 });
 
@@ -195,7 +212,8 @@ router.get('/test-drives/list', authenticate, (_req, res) => {
 /** PATCH /api/cars/test-drives/:id/status — xác nhận/từ chối/hoàn thành (US-03.5, US-03.7). */
 router.patch('/test-drives/:id/status', authenticate, (req, res) => {
   const { status, note } = req.body || {};
-  const valid = ['Đã xác nhận', 'Từ chối', 'Hoàn thành', 'Vắng mặt', 'Hủy'];
+  // Bỏ luồng xác nhận/từ chối: lịch đặt xong là 'Đã xác nhận'. Sales chỉ cập nhật kết quả hoặc hủy.
+  const valid = ['Hoàn thành', 'Vắng mặt', 'Hủy'];
   if (!valid.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
   const booking = get<any>('SELECT b.*, s.start_time FROM test_drive_bookings b JOIN slots s ON s.id = b.slot_id WHERE b.id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Không tìm thấy lịch' });
@@ -207,8 +225,8 @@ router.patch('/test-drives/:id/status', authenticate, (req, res) => {
 
   transaction(() => {
     run('UPDATE test_drive_bookings SET status = ?, result_note = ? WHERE id = ?', [status, note || booking.result_note, req.params.id]);
-    // Từ chối/Hủy thì giải phóng khung giờ
-    if (status === 'Từ chối' || status === 'Hủy') {
+    // Hủy thì giải phóng khung giờ cho người khác đặt
+    if (status === 'Hủy') {
       run('UPDATE slots SET is_available = 1 WHERE id = ?', [booking.slot_id]);
     }
   });
@@ -221,7 +239,7 @@ router.patch('/test-drives/:id/reschedule', authenticate, (req, res) => {
   if (!new_slot_id) return res.status(400).json({ error: 'Thiếu khung giờ mới' });
   const booking = get<any>('SELECT b.*, s.start_time FROM test_drive_bookings b JOIN slots s ON s.id = b.slot_id WHERE b.id = ?', [req.params.id]);
   if (!booking) return res.status(404).json({ error: 'Không tìm thấy lịch' });
-  if (!['Chờ xác nhận', 'Đã xác nhận'].includes(booking.status)) {
+  if (booking.status !== 'Đã xác nhận') {
     return res.status(400).json({ error: 'Chỉ đổi được lịch đang hoạt động' });
   }
   // BR-TD-05: đổi lịch phải trước giờ hẹn tối thiểu 4 giờ
@@ -238,8 +256,25 @@ router.patch('/test-drives/:id/reschedule', authenticate, (req, res) => {
   transaction(() => {
     run('UPDATE slots SET is_available = 1 WHERE id = ?', [booking.slot_id]); // giải phóng slot cũ
     run('UPDATE slots SET is_available = 0 WHERE id = ?', [new_slot_id]);      // khóa slot mới
-    run("UPDATE test_drive_bookings SET slot_id = ?, status = 'Chờ xác nhận' WHERE id = ?", [new_slot_id, req.params.id]);
+    run("UPDATE test_drive_bookings SET slot_id = ? WHERE id = ?", [new_slot_id, req.params.id]); // giữ 'Đã xác nhận'
   });
+  persist();
+
+  // Gửi email cập nhật lịch cho khách (lấy email từ Lead gắn với booking, nếu có)
+  const leadEmail = booking.lead_id ? get<any>('SELECT email FROM leads WHERE id = ?', [booking.lead_id])?.email : null;
+  if (leadEmail) {
+    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [booking.car_model_id]);
+    const sr = get<any>('SELECT name FROM showrooms WHERE id = ?', [booking.showroom_id]);
+    const mail = testDriveEmail({
+      customerName: booking.customer_name,
+      carName: car ? `${car.brand} ${car.name}` : 'xe',
+      showroomName: sr?.name || '',
+      startTime: newSlot.start_time,
+      bookingCode: booking.booking_code,
+      rescheduled: true,
+    });
+    sendMail(leadEmail, mail.subject, mail.html).catch(() => {});
+  }
   res.json({ ok: true });
 });
 
@@ -254,6 +289,37 @@ router.post('/slots', authenticate, requireRole('Admin'), (req, res) => {
   );
   persist();
   res.status(201).json({ id });
+});
+
+/**
+ * GET /api/cars/slots/manage — danh sách slot cho trang Cấu hình (Admin):
+ * kèm thông tin đã có ai đặt chưa (tên khách, xe), còn trống hay đã đặt.
+ */
+router.get('/slots/manage', authenticate, requireRole('Admin'), (req, res) => {
+  const { showroom_id } = req.query as Record<string, string>;
+  const cond = showroom_id ? 'WHERE sl.showroom_id = ?' : '';
+  const params = showroom_id ? [showroom_id] : [];
+  const rows = all(
+    `SELECT sl.id, sl.start_time, sl.end_time, sl.is_available, sl.is_holiday,
+            sr.name AS showroom_name,
+            cm.brand AS slot_car_brand, cm.name AS slot_car_name,
+            b.id AS booking_id, b.booking_code, b.customer_name, b.customer_phone, b.status AS booking_status,
+            bc.brand AS booked_car_brand, bc.name AS booked_car_name
+     FROM slots sl
+     LEFT JOIN showrooms sr ON sr.id = sl.showroom_id
+     LEFT JOIN car_models cm ON cm.id = sl.car_model_id
+     LEFT JOIN test_drive_bookings b ON b.slot_id = sl.id AND b.status IN ('Đã xác nhận','Hoàn thành')
+     LEFT JOIN car_models bc ON bc.id = b.car_model_id
+     ${cond}
+     ORDER BY sl.start_time ASC`,
+    params
+  );
+  res.json(rows);
+});
+
+/** GET /api/cars/slots/showrooms — danh sách showroom (cho bộ lọc trang slot). */
+router.get('/slots/showrooms', authenticate, (_req, res) => {
+  res.json(all('SELECT id, name FROM showrooms ORDER BY name'));
 });
 
 export default router;
