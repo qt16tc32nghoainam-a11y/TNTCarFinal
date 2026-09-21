@@ -216,10 +216,14 @@ function EditInfoModal({ lead, onClose, onDone }: any) {
 
   useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
 
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   async function save() {
     setErr('');
     if (!form.full_name.trim()) return setErr('Vui lòng nhập họ tên');
     if (!form.phone.trim()) return setErr('Vui lòng nhập số điện thoại');
+    if (!form.email.trim()) return setErr('Vui lòng nhập địa chỉ email');
+    if (!EMAIL_RE.test(form.email.trim())) return setErr('Email không hợp lệ');
     setSaving(true);
     try {
       await api.patch(`/leads/${lead.id}`, {
@@ -249,7 +253,7 @@ function EditInfoModal({ lead, onClose, onDone }: any) {
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <Field label="Họ tên *"><input className="input" value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></Field>
         <Field label="Số điện thoại *"><input className="input" value={form.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
-        <Field label="Email"><input className="input" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="khach@email.com" /></Field>
+        <Field label="Email *"><input type="email" className="input" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="khach@email.com" /></Field>
         <Field label="Xe quan tâm">
           <select className="input" value={form.car_model_id} onChange={(e) => set('car_model_id', e.target.value)}>
             <option value="">-- Chưa xác định --</option>

@@ -9,6 +9,7 @@ const router = Router();
 router.use(authenticate);
 
 const nowIso = () => new Date().toISOString();
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** GET /api/leads — danh sách Lead (lọc theo trạng thái/nguồn/đồng bộ, tìm kiếm). */
 router.get('/', (req, res) => {
@@ -87,6 +88,8 @@ router.post('/', (req, res) => {
     address, budget, payment_method, interest_level, source_detail, note,
   } = req.body || {};
   if (!full_name || !phone) return res.status(400).json({ error: 'Thiếu Họ tên hoặc Số điện thoại' });
+  if (!email || !String(email).trim()) return res.status(400).json({ error: 'Vui lòng nhập địa chỉ email' });
+  if (!EMAIL_RE.test(String(email).trim())) return res.status(400).json({ error: 'Email không hợp lệ' });
   if (!source) return res.status(400).json({ error: 'Thiếu Nguồn Lead' });
   if (!LEAD_SOURCES.includes(source)) return res.status(400).json({ error: 'Nguồn Lead không hợp lệ' });
 
@@ -126,6 +129,11 @@ router.patch('/:id', (req, res) => {
   if (full_name !== undefined && !String(full_name).trim()) return res.status(400).json({ error: 'Họ tên không được để trống' });
   if (phone !== undefined && !String(phone).trim()) return res.status(400).json({ error: 'Số điện thoại không được để trống' });
 
+  // Bắt buộc email khi sửa thông tin Lead trên web (dù Lead cũ đã có email hay chưa).
+  const finalEmail = email !== undefined ? String(email).trim() : String(lead.email || '').trim();
+  if (!finalEmail) return res.status(400).json({ error: 'Vui lòng nhập địa chỉ email' });
+  if (!EMAIL_RE.test(finalEmail)) return res.status(400).json({ error: 'Email không hợp lệ' });
+
   // Helper: giữ giá trị cũ nếu field không được gửi lên (undefined).
   const keep = (val: any, old: any) => (val === undefined ? old : (val === '' ? null : val));
 
@@ -138,7 +146,7 @@ router.patch('/:id', (req, res) => {
     [
       full_name ?? lead.full_name,
       phone ?? lead.phone,
-      keep(email, lead.email),
+      finalEmail,
       car_model_id === undefined ? lead.car_model_id : (car_model_id || null),
       source ?? lead.source,
       keep(address, lead.address),

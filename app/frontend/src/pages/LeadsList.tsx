@@ -151,6 +151,8 @@ function CreateLeadModal({ sources, cars, onClose, onCreated }: any) {
   async function save() {
     setErr('');
     if (!form.full_name || !form.phone) return setErr('Vui lòng nhập Họ tên và Số điện thoại');
+    if (!form.email.trim()) return setErr('Vui lòng nhập địa chỉ email');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return setErr('Email không hợp lệ');
     if (!form.source) return setErr('Vui lòng chọn Nguồn Lead');
     setSaving(true);
     const id = uuid();
@@ -179,7 +181,7 @@ function CreateLeadModal({ sources, cars, onClose, onCreated }: any) {
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <Field label="Họ tên *"><input className="input" value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></Field>
         <Field label="Số điện thoại *"><input className="input" value={form.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
-        <Field label="Email"><input className="input" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="khach@email.com" /></Field>
+        <Field label="Email *"><input type="email" className="input" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="khach@email.com" /></Field>
         <Field label="Dòng xe quan tâm">
           <select className="input" value={form.car_model_id} onChange={(e) => set('car_model_id', e.target.value)}>
             <option value="">-- Chọn xe --</option>

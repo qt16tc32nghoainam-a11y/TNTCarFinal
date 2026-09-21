@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Modal, Spinner, Field } from '../components/ui';
@@ -104,9 +104,103 @@ export default function Slots() {
   );
 }
 
-function BookLeadModal({ slot, onClose, onDone }: any) {
+/**
+ * Dropdown tìm & chọn Lead (dùng chung cho Thêm khung giờ / Đặt cho khách).
+ * - Gõ để tìm -> danh sách nổi phía dưới; chọn xong danh sách đóng lại và hiện thẻ Lead đã chọn ở trên.
+ * - Có nút "Đổi" để chọn lại; hiển thị rõ Lead có/chưa có email (bắt buộc có email để gửi mail xác nhận).
+ */
+function LeadPicker({ selected, onSelect, onClear, label = 'Đặt cho khách (Lead)' }: {
+  selected: any;
+  onSelect: (l: any) => void;
+  onClear: () => void;
+  label?: string;
+}) {
   const [q, setQ] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => {
+      api.get<any[]>(`/cars/leads/search?q=${encodeURIComponent(q)}`).then(setLeads).catch(() => setLeads([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, open]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  function handlePick(l: any) {
+    onSelect(l);
+    setOpen(false);
+    setQ('');
+  }
+
+  if (selected) {
+    return (
+      <div className="mb-3">
+        <div className="label">{label}</div>
+        <div className="flex items-center justify-between rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
+          <div className="text-sm">
+            <div className="font-medium text-brand-800">{selected.full_name} <span className="text-gray-500">· {selected.phone}</span></div>
+            <div className="text-xs">
+              {selected.email
+                ? <span className="text-gray-500">{selected.email}</span>
+                : <span className="text-amber-600">⚠ Lead chưa có email</span>}
+              {selected.car_name && <span className="text-gray-400"> · {selected.car_brand} {selected.car_name}</span>}
+            </div>
+          </div>
+          <button type="button" onClick={onClear} className="text-xs font-medium text-brand-700 hover:underline">Đổi</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative mb-3" ref={boxRef}>
+      <div className="label">{label}</div>
+      <input
+        className="input"
+        value={q}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+        placeholder="Nhập tên hoặc SĐT khách để tìm Lead..."
+      />
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-52 w-full overflow-auto rounded-lg border bg-white shadow-lg">
+          {leads.length === 0 ? (
+            <div className="p-3 text-center text-sm text-gray-400">Không tìm thấy Lead</div>
+          ) : leads.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => handlePick(l)}
+              className="flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-brand-50"
+            >
+              <span>
+                <span className="font-medium">{l.full_name}</span>
+                <span className="block text-xs text-gray-500">
+                  {l.phone}
+                  {l.email ? ` · ${l.email}` : ' · chưa có email'}
+                  {l.car_name ? ` · ${l.car_brand} ${l.car_name}` : ' · chưa có xe'}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BookLeadModal({ slot, onClose, onDone }: any) {
   const [selected, setSelected] = useState<any>(null);
   const [cars, setCars] = useState<any[]>([]);
   const [carId, setCarId] = useState('');
@@ -114,15 +208,6 @@ function BookLeadModal({ slot, onClose, onDone }: any) {
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Tải danh sách lead ban đầu + khi gõ tìm kiếm (debounce nhẹ).
-  useEffect(() => {
-    const t = setTimeout(() => {
-      api.get<any[]>(`/cars/leads/search?q=${encodeURIComponent(q)}`).then(setLeads).catch(() => setLeads([]));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [q]);
-
-  // Nếu slot đã gán cho 1 xe cụ thể thì khóa xe theo slot; nếu chưa, cho chọn xe khi lead chưa có xe.
   useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
 
   function pick(l: any) {
@@ -138,12 +223,13 @@ function BookLeadModal({ slot, onClose, onDone }: any) {
     setErr('');
     if (!selected) return setErr('Vui lòng chọn một Lead');
     if (needCar && !carId) return setErr('Lead này chưa có xe quan tâm — vui lòng chọn xe cho lịch lái thử');
+    if (!email.trim()) return setErr('Vui lòng nhập email khách để gửi xác nhận lịch lái thử');
     setSaving(true);
     try {
       await api.post(`/cars/slots/${slot.id}/book-lead`, {
         lead_id: selected.id,
         car_model_id: slotHasCar ? undefined : (carId || undefined),
-        customer_email: email || undefined,
+        customer_email: email,
       });
       onDone();
     } catch (e: any) {
@@ -160,27 +246,7 @@ function BookLeadModal({ slot, onClose, onDone }: any) {
         {slotHasCar ? <> · Xe: <b>{slot.slot_car_brand} {slot.slot_car_name}</b></> : ' · Áp dụng mọi xe'}
       </div>
 
-      <Field label="Tìm Lead (theo tên hoặc số điện thoại)">
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nhập tên hoặc SĐT..." />
-      </Field>
-
-      <div className="mb-3 max-h-48 overflow-auto rounded-lg border">
-        {leads.length === 0 ? (
-          <div className="p-3 text-center text-sm text-gray-400">Không tìm thấy Lead</div>
-        ) : leads.map((l) => (
-          <button
-            key={l.id}
-            onClick={() => pick(l)}
-            className={`flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-brand-50 ${selected?.id === l.id ? 'bg-brand-100' : ''}`}
-          >
-            <span>
-              <span className="font-medium">{l.full_name}</span>
-              <span className="block text-xs text-gray-500">{l.phone}{l.car_name ? ` · ${l.car_brand} ${l.car_name}` : ' · chưa có xe'}</span>
-            </span>
-            {selected?.id === l.id && <span className="text-brand-700">✓</span>}
-          </button>
-        ))}
-      </div>
+      <LeadPicker selected={selected} onSelect={pick} onClear={() => setSelected(null)} label="Tìm Lead (theo tên hoặc số điện thoại)" />
 
       {selected && (
         <>
@@ -192,7 +258,7 @@ function BookLeadModal({ slot, onClose, onDone }: any) {
               </select>
             </Field>
           )}
-          <Field label="Email khách nhận xác nhận (nếu có)">
+          <Field label="Email khách nhận xác nhận *">
             <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="khach@email.com" />
           </Field>
         </>
@@ -217,8 +283,6 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
   const [saving, setSaving] = useState(false);
 
   // Chọn Lead ngay lúc tạo khung giờ: nếu chọn -> tạo xong sẽ đặt lịch cho khách đó luôn.
-  const [q, setQ] = useState('');
-  const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [leadEmail, setLeadEmail] = useState('');
 
@@ -228,22 +292,10 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
       .catch((e) => setCarsErr(e?.message || 'Không tải được danh mục xe'));
   }, []);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      api.get<any[]>(`/cars/leads/search?q=${encodeURIComponent(q)}`).then(setLeads).catch(() => setLeads([]));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [q]);
-
   function pickLead(l: any) {
-    setSelectedLead((cur: any) => {
-      const next = cur?.id === l.id ? null : l; // bấm lại để bỏ chọn
-      if (next) {
-        setLeadEmail(next.email || '');
-        if (!carId && next.car_model_id) setCarId(next.car_model_id);
-      }
-      return next;
-    });
+    setSelectedLead(l);
+    setLeadEmail(l.email || '');
+    if (!carId && l.car_model_id) setCarId(l.car_model_id);
   }
 
   const needCarForLead = selectedLead && !carId; // đã chọn khách nhưng chưa xác định xe
@@ -252,6 +304,7 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
     setErr('');
     if (!start || !end) return setErr('Vui lòng chọn thời gian bắt đầu và kết thúc');
     if (needCarForLead) return setErr('Khách chưa có xe quan tâm — vui lòng chọn xe cho khung giờ này');
+    if (selectedLead && !leadEmail.trim()) return setErr('Vui lòng nhập email khách để gửi xác nhận lịch lái thử');
     setSaving(true);
     try {
       const res = await api.post<{ id: string }>('/cars/slots', {
@@ -265,7 +318,7 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
         await api.post(`/cars/slots/${res.id}/book-lead`, {
           lead_id: selectedLead.id,
           car_model_id: carId || undefined,
-          customer_email: leadEmail || undefined,
+          customer_email: leadEmail,
         });
       }
       onDone();
@@ -287,36 +340,17 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
       <Field label="Bắt đầu"><input type="datetime-local" className="input" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
       <Field label="Kết thúc"><input type="datetime-local" className="input" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
 
-      <Field label="Đặt sẵn cho khách (Lead) — không bắt buộc">
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nhập tên hoặc SĐT khách để tìm Lead..." />
-      </Field>
-      {(q || leads.length > 0) && (
-        <div className="mb-3 max-h-40 overflow-auto rounded-lg border">
-          {leads.length === 0 ? (
-            <div className="p-3 text-center text-sm text-gray-400">Không tìm thấy Lead</div>
-          ) : leads.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => pickLead(l)}
-              className={`flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-brand-50 ${selectedLead?.id === l.id ? 'bg-brand-100' : ''}`}
-            >
-              <span>
-                <span className="font-medium">{l.full_name}</span>
-                <span className="block text-xs text-gray-500">{l.phone}{l.car_name ? ` · ${l.car_brand} ${l.car_name}` : ' · chưa có xe'}</span>
-              </span>
-              {selectedLead?.id === l.id && <span className="text-brand-700">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
+      <LeadPicker
+        selected={selectedLead}
+        onSelect={pickLead}
+        onClear={() => setSelectedLead(null)}
+        label="Đặt sẵn cho khách (Lead) — không bắt buộc"
+      />
+
       {selectedLead && (
         <>
-          <div className="mb-2 rounded bg-brand-50 p-2 text-xs text-brand-700">
-            Sẽ đặt lịch lái thử cho <b>{selectedLead.full_name}</b> ({selectedLead.phone}) vào khung giờ này ngay sau khi tạo.
-          </div>
           {needCarForLead && <div className="mb-2 text-xs text-amber-600">Khách chưa có xe quan tâm, vui lòng chọn xe ở ô "Xe áp dụng cho khung giờ" phía trên.</div>}
-          <Field label="Email khách nhận xác nhận (nếu có)">
+          <Field label="Email khách nhận xác nhận *">
             <input type="email" className="input" value={leadEmail} onChange={(e) => setLeadEmail(e.target.value)} placeholder="khach@email.com" />
           </Field>
         </>
