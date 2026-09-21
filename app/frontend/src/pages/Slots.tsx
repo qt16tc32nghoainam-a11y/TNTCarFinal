@@ -96,9 +96,14 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
   const [end, setEnd] = useState('');
   const [carId, setCarId] = useState('');
   const [cars, setCars] = useState<any[]>([]);
+  const [carsErr, setCarsErr] = useState('');
   const [err, setErr] = useState('');
 
-  useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
+  useEffect(() => {
+    api.get<any[]>('/meta/car-models')
+      .then((list) => { setCars(list || []); if (!list || list.length === 0) setCarsErr('Chưa có xe nào trong danh mục. Vào mục "Tra cứu xe" để thêm xe trước, hoặc để "Mọi xe".'); })
+      .catch((e) => setCarsErr(e?.message || 'Không tải được danh mục xe'));
+  }, []);
 
   async function save() {
     setErr('');
@@ -120,6 +125,7 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
           <option value="">-- Mọi xe (không giới hạn) --</option>
           {cars.map((c) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}
         </select>
+        {carsErr && <div className="mt-1 text-xs text-amber-600">{carsErr}</div>}
       </Field>
       <Field label="Bắt đầu"><input type="datetime-local" className="input" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
       <Field label="Kết thúc"><input type="datetime-local" className="input" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>

@@ -15,6 +15,7 @@ import TestDrives from './pages/TestDrives';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Slots from './pages/Slots';
+import Settings from './pages/Settings';
 import Content from './pages/Content';
 import PublicSite from './pages/public/PublicSite';
 
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/users" element={<Protected><Users /></Protected>} />
       <Route path="/slots" element={<Protected><Slots /></Protected>} />
+      <Route path="/settings" element={<Protected><Settings /></Protected>} />
       <Route path="/content" element={<Protected><Content /></Protected>} />
 
       <Route path="*" element={<Navigate to="/" />} />

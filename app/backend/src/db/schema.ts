@@ -287,6 +287,14 @@ CREATE TABLE IF NOT EXISTS sync_log (
   sync_timestamp TEXT NOT NULL
 );
 
+-- Cấu hình hệ thống dạng key-value (SMTP email, v.v.) - Admin chỉnh trong UI
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TEXT,
+  updated_by TEXT
+);
+
 -- Index tăng tốc truy vấn
 CREATE INDEX IF NOT EXISTS idx_leads_assigned ON leads(assigned_sales_id);
 CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone);

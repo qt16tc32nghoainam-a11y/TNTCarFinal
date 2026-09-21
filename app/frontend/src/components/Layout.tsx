@@ -6,7 +6,7 @@ import { startAutoSync, runSync } from '../lib/sync';
 import { api } from '../lib/api';
 import InstallButton from './InstallButton';
 import {
-  Users, Bell, Car, CalendarClock, BarChart3, UserCog, Settings, Globe, LogOut, Menu,
+  Users, Bell, Car, CalendarClock, BarChart3, UserCog, Settings, Globe, LogOut, Menu, Mail,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -31,6 +31,7 @@ const navByRole: Record<string, NavItem[]> = {
     { to: '/cars', label: 'Tra cứu xe', short: 'Xe', icon: Car },
     { to: '/test-drives', label: 'Lịch lái thử', short: 'Lái thử', icon: CalendarClock },
     { to: '/slots', label: 'Cấu hình slot', short: 'Slot', icon: Settings },
+    { to: '/settings', label: 'Cài đặt Email', short: 'Email', icon: Mail },
     { to: '/content', label: 'Nội dung Web', short: 'Nội dung', icon: Globe },
   ],
 };

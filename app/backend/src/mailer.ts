@@ -1,16 +1,48 @@
 /**
  * Gửi email qua SMTP (nodemailer).
- * - Nếu đã cấu hình SMTP (SMTP_HOST + SMTP_USER + SMTP_PASS trong .env) -> gửi thật.
- * - Nếu chưa cấu hình -> chỉ ghi log ra console (không crash), tiện dev/test.
+ * Nguồn cấu hình theo thứ tự ưu tiên:
+ *   1. Bảng app_settings (Admin cấu hình trong UI, key tiền tố "smtp.")
+ *   2. Biến môi trường .env (SMTP_*)
+ * Nếu chưa cấu hình đủ -> chỉ ghi log ra console (không crash), tiện dev/test.
  */
 import nodemailer, { Transporter } from 'nodemailer';
 import { config } from './config';
+import { getSettingsByPrefix } from './db/database';
+
+export type SmtpConfig = {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  from: string;
+};
 
 let transporter: Transporter | null = null;
 let ready = false;
+let current: SmtpConfig | null = null;
 
-function initTransporter() {
-  const s = config.smtp;
+/** Gộp cấu hình từ DB (ưu tiên) rồi tới .env. */
+export function resolveSmtpConfig(): SmtpConfig {
+  const db = getSettingsByPrefix('smtp.'); // { host, port, secure, user, pass, from }
+  const env = config.smtp;
+  const pick = (dbVal: string | undefined, envVal: string) =>
+    dbVal !== undefined && dbVal !== '' ? dbVal : envVal;
+
+  return {
+    host: pick(db.host, env.host),
+    port: db.port ? parseInt(db.port, 10) || env.port : env.port,
+    secure: db.secure !== undefined && db.secure !== '' ? db.secure === 'true' : env.secure,
+    user: pick(db.user, env.user),
+    pass: pick(db.pass, env.pass),
+    from: pick(db.from, env.from),
+  };
+}
+
+/** (Re)khởi tạo transporter từ cấu hình hiện tại. Gọi lúc khởi động và sau khi Admin lưu SMTP. */
+export function reloadMailer(): void {
+  const s = resolveSmtpConfig();
+  current = s;
   if (s.host && s.user && s.pass) {
     transporter = nodemailer.createTransport({
       host: s.host,
@@ -21,11 +53,23 @@ function initTransporter() {
     ready = true;
     console.log(`[mailer] SMTP đã cấu hình (${s.host}:${s.port}). Email sẽ gửi thật.`);
   } else {
+    transporter = null;
     ready = false;
-    console.log('[mailer] Chưa cấu hình SMTP -> email chỉ ghi log. Điền SMTP_* trong .env để gửi thật.');
+    console.log('[mailer] Chưa cấu hình SMTP -> email chỉ ghi log. Cấu hình trong trang Cài đặt Email hoặc .env.');
   }
 }
-initTransporter();
+
+/** Trạng thái mailer để hiển thị trong UI (không lộ mật khẩu). */
+export function mailerStatus(): { configured: boolean; host: string; port: number; secure: boolean; user: string; from: string; source: 'db' | 'env' | 'none' } {
+  const db = getSettingsByPrefix('smtp.');
+  const s = current || resolveSmtpConfig();
+  const source: 'db' | 'env' | 'none' = db.host
+    ? 'db'
+    : config.smtp.host
+      ? 'env'
+      : 'none';
+  return { configured: ready, host: s.host, port: s.port, secure: s.secure, user: s.user, from: s.from, source };
+}
 
 /** Gửi email. Trả về true nếu gửi (hoặc log) thành công. */
 export async function sendMail(to: string, subject: string, html: string): Promise<boolean> {
@@ -35,12 +79,45 @@ export async function sendMail(to: string, subject: string, html: string): Promi
     return true;
   }
   try {
-    await transporter.sendMail({ from: config.smtp.from, to, subject, html });
+    await transporter.sendMail({ from: (current || resolveSmtpConfig()).from, to, subject, html });
     console.log(`[mailer] Đã gửi email tới ${to}: ${subject}`);
     return true;
   } catch (e) {
     console.error('[mailer] Lỗi gửi email:', e);
     return false;
+  }
+}
+
+/**
+ * Gửi thử một email với cấu hình cho trước (không cần lưu vào DB).
+ * Dùng cho nút "Gửi thử" trong trang Cài đặt. Trả về { ok, error }.
+ */
+export async function sendTestMail(cfg: SmtpConfig, to: string): Promise<{ ok: boolean; error?: string }> {
+  if (!cfg.host || !cfg.user || !cfg.pass) {
+    return { ok: false, error: 'Thiếu Host / User / Password SMTP' };
+  }
+  if (!to) return { ok: false, error: 'Thiếu email nhận thử' };
+  try {
+    const t = nodemailer.createTransport({
+      host: cfg.host,
+      port: cfg.port,
+      secure: cfg.secure,
+      auth: { user: cfg.user, pass: cfg.pass },
+    });
+    await t.sendMail({
+      from: cfg.from || cfg.user,
+      to,
+      subject: '[TNT CAR] Email thử cấu hình SMTP',
+      html: `<div style="font-family:Arial,sans-serif">
+        <h2 style="color:#1e40af">TNT CAR</h2>
+        <p>Đây là email thử để kiểm tra cấu hình SMTP.</p>
+        <p>Nếu bạn nhận được email này, cấu hình gửi mail đã hoạt động.</p>
+        <p style="color:#999;font-size:12px">Gửi lúc: ${new Date().toLocaleString('vi-VN')}</p>
+      </div>`,
+    });
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Lỗi không xác định khi gửi email' };
   }
 }
 

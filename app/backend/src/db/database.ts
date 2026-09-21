@@ -55,6 +55,19 @@ export async function initDb(): Promise<void> {
 function runLightMigrations(): void {
   if (!db) return;
 
+  // Tạo bảng cấu hình hệ thống (SMTP...) nếu DB cũ chưa có — an toàn, không xóa dữ liệu.
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT,
+      updated_by TEXT
+    )`);
+    dirty = true;
+  } catch (e) {
+    console.error('[migration] Không tạo được app_settings:', e);
+  }
+
   const addMissingColumns = (table: string, columns: [string, string][]) => {
     let exists = false;
     try {
@@ -141,6 +154,39 @@ export function ensureWebSales(): void {
 function ensure(): SqlJsDatabase {
   if (!db) throw new Error('DB chưa được khởi tạo. Gọi initDb() trước.');
   return db;
+}
+
+/** Đọc 1 giá trị cấu hình (app_settings). Trả về undefined nếu chưa có. */
+export function getSetting(key: string): string | undefined {
+  try {
+    const row = get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', [key]);
+    return row?.value ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Đọc toàn bộ cấu hình theo tiền tố key (vd 'smtp.'). Trả về object không kèm tiền tố. */
+export function getSettingsByPrefix(prefix: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    const rows = all<{ key: string; value: string }>(
+      "SELECT key, value FROM app_settings WHERE key LIKE ?",
+      [prefix + '%']
+    );
+    for (const r of rows) out[r.key.slice(prefix.length)] = r.value ?? '';
+  } catch { /* bảng chưa tồn tại */ }
+  return out;
+}
+
+/** Ghi (upsert) 1 giá trị cấu hình. */
+export function setSetting(key: string, value: string, updatedBy?: string): void {
+  run(
+    `INSERT INTO app_settings (key, value, updated_at, updated_by) VALUES (?,?,?,?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+    [key, value, new Date().toISOString(), updatedBy || null]
+  );
+  persist();
 }
 
 /** Ghi DB ra file. */
