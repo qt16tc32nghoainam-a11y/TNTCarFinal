@@ -103,6 +103,7 @@ export default function LeadsList() {
               <tr>
                 <th className="p-3">Khách hàng</th>
                 <th className="p-3">SĐT</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Xe</th>
                 <th className="p-3">Nguồn</th>
                 <th className="p-3">Loại yêu cầu</th>
@@ -120,6 +121,9 @@ export default function LeadsList() {
                     {!!(l as any)._pendingSync && <span className="ml-1 badge bg-blue-100 text-blue-700">chờ đồng bộ</span>}
                   </td>
                   <td className="p-3">{l.phone}</td>
+                  <td className="p-3">
+                    {l.email ? <span className="text-gray-600">{l.email}</span> : <span className="badge bg-amber-100 text-amber-700">Thiếu email</span>}
+                  </td>
                   <td className="p-3">{l.car_name || '-'}</td>
                   <td className="p-3 text-gray-500">{l.source}</td>
                   <td className="p-3 text-gray-500">{(l as any).request_type ? <span className="badge bg-indigo-50 text-indigo-700">{(l as any).request_type}</span> : '-'}</td>
