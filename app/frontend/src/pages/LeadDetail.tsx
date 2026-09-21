@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { enqueue, cacheLead, getCachedLead } from '../lib/db';
+import { enqueue, cacheLead, getCachedLead, cacheMeta, getCachedMeta } from '../lib/db';
 import { v4 as uuid } from '../lib/uuid';
 import { useAuth } from '../lib/auth';
 import { Lead, PROCESSING_STATUSES, ACTIVITY_TYPES } from '../lib/types';
@@ -214,7 +214,11 @@ function EditInfoModal({ lead, onClose, onDone }: any) {
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
+  useEffect(() => {
+    api.get<any[]>('/meta/car-models')
+      .then((d) => { setCars(d); cacheMeta('car-models', d); })
+      .catch(() => { getCachedMeta('car-models').then(setCars); });
+  }, []);
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

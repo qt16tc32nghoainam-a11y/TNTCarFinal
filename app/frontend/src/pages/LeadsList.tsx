@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { v4 as uuid } from '../lib/uuid';
 import { api } from '../lib/api';
-import { enqueue, cacheLeads, getCachedLeads, getOutboxLeads } from '../lib/db';
+import { enqueue, cacheLeads, getCachedLeads, getOutboxLeads, cacheMeta, getCachedMeta } from '../lib/db';
 import { runSync } from '../lib/sync';
 import { useAuth } from '../lib/auth';
 import { Lead, PROCESSING_STATUSES } from '../lib/types';
@@ -57,8 +57,13 @@ export default function LeadsList() {
   }
 
   useEffect(() => {
-    api.get<string[]>('/leads/meta/sources').then(setSources).catch(() => {});
-    api.get<any[]>('/meta/car-models').then(setCars).catch(() => {});
+    // Danh mục ít thay đổi: tải online thì cache lại, offline thì đọc từ cache để dropdown vẫn chọn được.
+    api.get<string[]>('/leads/meta/sources')
+      .then((d) => { setSources(d); cacheMeta('lead-sources', d); })
+      .catch(() => { getCachedMeta('lead-sources').then(setSources); });
+    api.get<any[]>('/meta/car-models')
+      .then((d) => { setCars(d); cacheMeta('car-models', d); })
+      .catch(() => { getCachedMeta('car-models').then(setCars); });
   }, []);
 
   useEffect(() => { load(); }, [status, source]);

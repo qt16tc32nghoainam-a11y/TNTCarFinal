@@ -26,10 +26,16 @@ export interface CachedUser {
   data: any;
 }
 
+export interface CachedMeta {
+  key: string;   // vd: 'car-models', 'lead-sources'
+  data: any;
+}
+
 class TntDexie extends Dexie {
   outbox!: Table<OutboxItem, string>;
   leadCache!: Table<CachedLead, string>;
   userCache!: Table<CachedUser, string>;
+  metaCache!: Table<CachedMeta, string>;
 
   constructor() {
     super('tntcar');
@@ -42,6 +48,13 @@ class TntDexie extends Dexie {
       outbox: 'id, entity_type, status, created_at',
       leadCache: 'id, updated_at',
       userCache: 'id',
+    });
+    // Nâng version thêm bảng cache danh mục dùng cho dropdown (xe, nguồn Lead...) khi offline
+    this.version(3).stores({
+      outbox: 'id, entity_type, status, created_at',
+      leadCache: 'id, updated_at',
+      userCache: 'id',
+      metaCache: 'key',
     });
   }
 }
@@ -95,4 +108,15 @@ export async function cacheUsers(list: any[]) {
 export async function getCachedUsers(): Promise<any[]> {
   const rows = await db.userCache.toArray();
   return rows.map((r) => r.data);
+}
+
+/** Lưu 1 danh mục (dropdown ít đổi: xe, nguồn Lead, showroom...) vào cache offline. */
+export async function cacheMeta(key: string, data: any) {
+  await db.metaCache.put({ key, data });
+}
+
+/** Đọc 1 danh mục từ cache (dùng khi offline). Trả về [] nếu chưa từng cache. */
+export async function getCachedMeta(key: string): Promise<any> {
+  const row = await db.metaCache.get(key);
+  return row?.data ?? [];
 }
