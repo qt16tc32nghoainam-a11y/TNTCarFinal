@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS leads (
   server_id INTEGER,
   full_name TEXT NOT NULL,
   phone TEXT NOT NULL,
+  email TEXT,
   car_model_id TEXT,
   source TEXT NOT NULL,
   status_detail TEXT NOT NULL DEFAULT 'Đang tìm hiểu',
@@ -122,12 +123,14 @@ CREATE TABLE IF NOT EXISTS reminders (
   remind_at TEXT NOT NULL,
   purpose TEXT NOT NULL,
   location TEXT,
+  booking_id TEXT,
   notify_before_minutes INTEGER NOT NULL DEFAULT 30,
   notified INTEGER NOT NULL DEFAULT 0,
   created_by TEXT,
   sync_status TEXT NOT NULL DEFAULT 'SYNCED',
   created_at TEXT NOT NULL,
   FOREIGN KEY (lead_id) REFERENCES leads(id),
+  FOREIGN KEY (booking_id) REFERENCES test_drive_bookings(id),
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
@@ -166,8 +169,9 @@ CREATE TABLE IF NOT EXISTS test_drive_bookings (
   slot_id TEXT NOT NULL,
   customer_name TEXT NOT NULL,
   customer_phone TEXT NOT NULL,
+  customer_email TEXT,
   lead_id TEXT,
-  status TEXT NOT NULL DEFAULT 'Chờ xác nhận',
+  status TEXT NOT NULL DEFAULT 'Đã xác nhận',
   result_note TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (car_model_id) REFERENCES car_models(id),

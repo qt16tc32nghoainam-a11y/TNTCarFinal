@@ -14,6 +14,7 @@ export interface Lead {
   id: string;
   full_name: string;
   phone: string;
+  email?: string | null;
   car_model_id: string | null;
   car_name?: string;
   car_brand?: string;

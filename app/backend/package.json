@@ -17,7 +17,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.15",
+    "nodemailer": "10.0.10",
     "sql.js": "^1.11.0",
     "uuid": "^9.0.1"
   },
@@ -27,7 +27,6 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.0",
-    "@types/nodemailer": "^6.4.16",
     "@types/sql.js": "^1.4.9",
     "@types/uuid": "^9.0.8",
     "ts-node": "^10.9.2",

@@ -167,17 +167,22 @@ function BookModal({ car, onClose, onDone }: any) {
   const [slotId, setSlotId] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [err, setErr] = useState('');
 
   useEffect(() => { api.get<any[]>('/meta/showrooms').then(setShowrooms); }, []);
   useEffect(() => {
-    if (showroomId) api.get<any[]>(`/cars/slots/available/${showroomId}`).then(setSlots);
-  }, [showroomId]);
+    if (showroomId) api.get<any[]>(`/cars/slots/available/${showroomId}?car_model_id=${encodeURIComponent(car.id)}`).then(setSlots);
+  }, [showroomId, car.id]);
 
   async function save() {
     setErr('');
+    if (!showroomId || !slotId || !name || !phone || !email) return setErr('Vui lòng nhập đủ showroom, khung giờ, họ tên, SĐT và email');
     try {
-      await api.post('/cars/test-drives', { car_model_id: car.id, showroom_id: showroomId, slot_id: slotId, customer_name: name, customer_phone: phone });
+      await api.post('/cars/test-drives', {
+        car_model_id: car.id, showroom_id: showroomId, slot_id: slotId,
+        customer_name: name, customer_phone: phone, customer_email: email,
+      });
       onDone();
     } catch (e: any) { setErr(e.message); }
   }
@@ -193,6 +198,7 @@ function BookModal({ car, onClose, onDone }: any) {
       </Field>
       <Field label="Họ tên khách *"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label="Số điện thoại *"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+      <Field label="Email nhận xác nhận *"><input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="khachhang@email.com" /></Field>
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
       <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Đặt lịch</button></div>
     </Modal>

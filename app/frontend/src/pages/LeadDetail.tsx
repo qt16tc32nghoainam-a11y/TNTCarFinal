@@ -62,7 +62,7 @@ export default function LeadDetail() {
               <h1 className="text-xl font-bold">{lead.full_name}</h1>
               {offline && <span className="badge bg-amber-100 text-amber-700">offline</span>}
             </div>
-            <div className="text-sm text-gray-500">{lead.phone} · {lead.source}{lead.request_type ? ` · ${lead.request_type}` : ''}</div>
+            <div className="text-sm text-gray-500">{lead.phone}{lead.email ? ` · ${lead.email}` : ''} · {lead.source}{lead.request_type ? ` · ${lead.request_type}` : ''}</div>
             {lead.car_name && <div className="text-sm text-gray-500">Quan tâm: {lead.car_brand} {lead.car_name}</div>}
             <div className="mt-1 text-sm">
               Sales phụ trách: {lead.sales_name
@@ -144,7 +144,7 @@ export default function LeadDetail() {
       )}
 
       {showActivity && <ActivityModal leadId={lead.id} onClose={() => setShowActivity(false)} onDone={() => { setShowActivity(false); load(); }} />}
-      {showReminder && <ReminderModal leadId={lead.id} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
+      {showReminder && <ReminderModal leadId={lead.id} carModelId={lead.car_model_id} leadEmail={lead.email} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
       {showResult && <ResultModal lead={lead} onClose={() => setShowResult(false)} onDone={() => { setShowResult(false); load(); }} />}
       {showAssign && <AssignModal leadId={lead.id} currentSalesId={lead.assigned_sales_id} onClose={() => setShowAssign(false)} onDone={() => { setShowAssign(false); load(); }} />}
     </div>
@@ -183,10 +183,11 @@ function ActivityModal({ leadId, onClose, onDone }: any) {
   );
 }
 
-function ReminderModal({ leadId, onClose, onDone }: any) {
+function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) {
   const [remind_at, setRemindAt] = useState('');
   const [purpose, setPurpose] = useState('Lái thử');
   const [location, setLocation] = useState('');
+  const [customerEmail, setCustomerEmail] = useState(leadEmail || '');
   const [err, setErr] = useState('');
   // Dành riêng cho mục đích "Lái thử": chọn showroom + khung giờ để tạo lịch lái thử thật
   const [showrooms, setShowrooms] = useState<any[]>([]);
@@ -204,7 +205,8 @@ function ReminderModal({ leadId, onClose, onDone }: any) {
 
   useEffect(() => {
     if (isTestDrive && showroomId) {
-      api.get<any[]>(`/cars/slots/available/${showroomId}`).then(setSlots).catch(() => setSlots([]));
+      const carQuery = carModelId ? `?car_model_id=${encodeURIComponent(carModelId)}` : '';
+      api.get<any[]>(`/cars/slots/available/${showroomId}${carQuery}`).then(setSlots).catch(() => setSlots([]));
     } else {
       setSlots([]); setSlotId('');
     }
@@ -212,18 +214,21 @@ function ReminderModal({ leadId, onClose, onDone }: any) {
 
   async function save() {
     setErr('');
-    if (!remind_at) return setErr('Vui lòng chọn thời gian hẹn');
-    if (new Date(remind_at).getTime() <= Date.now()) return setErr('Thời gian nhắc việc phải ở tương lai');
-    // Khi lái thử: bắt buộc chọn showroom + khung giờ để tạo lịch lái thử
+    // Khi lái thử, thời gian lấy trực tiếp từ slot (không nhập 2 giờ khác nhau).
+    const selectedSlot = slots.find((s) => s.id === slotId);
+    const effectiveTime = isTestDrive ? selectedSlot?.start_time : remind_at;
+    if (!effectiveTime) return setErr(isTestDrive ? 'Vui lòng chọn Showroom và Khung giờ' : 'Vui lòng chọn thời gian hẹn');
+    if (new Date(effectiveTime).getTime() <= Date.now()) return setErr('Thời gian nhắc việc phải ở tương lai');
     if (isTestDrive && (!showroomId || !slotId)) return setErr('Với lịch lái thử, vui lòng chọn Showroom và Khung giờ');
+    if (isTestDrive && !customerEmail) return setErr('Vui lòng nhập email khách để gửi xác nhận lịch lái thử');
+    if (isTestDrive && !navigator.onLine) return setErr('Cần có mạng để khóa khung giờ lái thử. Vui lòng kết nối mạng rồi thử lại.');
     try {
       const id = uuid();
-      const payload: any = { id, lead_id: leadId, remind_at: new Date(remind_at).toISOString(), purpose, location };
-      if (isTestDrive) { payload.showroom_id = showroomId; payload.slot_id = slotId; }
+      const payload: any = { id, lead_id: leadId, remind_at: new Date(effectiveTime).toISOString(), purpose, location };
+      if (isTestDrive) { payload.showroom_id = showroomId; payload.slot_id = slotId; payload.customer_email = customerEmail; }
       if (navigator.onLine) {
         await api.post('/care/reminders', payload);
       } else {
-        // Offline: lịch lái thử cần slot nên chỉ lưu reminder; booking tạo khi online
         await enqueue({ id, entity_type: 'reminder', payload: { lead_id: leadId, remind_at: payload.remind_at, purpose, location, created_at: new Date().toISOString() }, updated_at: new Date().toISOString() });
         alert('Đã lưu lịch hẹn cục bộ (offline), sẽ đồng bộ khi có mạng.');
       }
@@ -234,11 +239,14 @@ function ReminderModal({ leadId, onClose, onDone }: any) {
   return (
     <Modal open onClose={onClose} title="Tạo lịch hẹn">
       <Field label="Mục đích"><select className="input" value={purpose} onChange={(e) => setPurpose(e.target.value)}><option>Lái thử</option><option>Tư vấn lại</option><option>Khác</option></select></Field>
-      <Field label="Thời gian hẹn *"><input type="datetime-local" className="input" value={remind_at} onChange={(e) => setRemindAt(e.target.value)} /></Field>
+      {!isTestDrive && <Field label="Thời gian hẹn *"><input type="datetime-local" className="input" value={remind_at} onChange={(e) => setRemindAt(e.target.value)} /></Field>}
 
       {isTestDrive && (
         <>
           <div className="mb-2 rounded bg-brand-50 p-2 text-xs text-brand-700">Lịch lái thử sẽ hiện ở mục "Lịch lái thử" sau khi lưu.</div>
+          <Field label="Email khách nhận xác nhận *">
+            <input type="email" className="input" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="khachhang@email.com" />
+          </Field>
           <Field label="Showroom *">
             <select className="input" value={showroomId} onChange={(e) => setShowroomId(e.target.value)}>
               <option value="">-- Chọn showroom --</option>

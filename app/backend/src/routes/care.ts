@@ -4,6 +4,7 @@ import { all, get, run, transaction, persist } from '../db/database';
 import { authenticate } from '../middleware/auth';
 import { getVisibleSalesIds } from '../utils/scope';
 import { LEAD_PROCESSING_STATUSES } from '../types';
+import { sendMail, testDriveEmail } from '../mailer';
 
 const router = Router();
 router.use(authenticate);
@@ -48,7 +49,7 @@ router.post('/interactions', (req, res) => {
  * (test_drive_bookings) liên kết Lead -> hiện ở trang Lịch lái thử.
  */
 router.post('/reminders', (req, res) => {
-  const { id, lead_id, remind_at, purpose, location, notify_before_minutes, showroom_id, slot_id } = req.body || {};
+  const { id, lead_id, remind_at, purpose, location, notify_before_minutes, showroom_id, slot_id, customer_email } = req.body || {};
   if (!lead_id || !remind_at || !purpose) return res.status(400).json({ error: 'Thiếu thông tin lịch hẹn' });
   if (new Date(remind_at).getTime() <= Date.now()) {
     return res.status(400).json({ error: 'Thời gian nhắc việc phải ở tương lai' });
@@ -57,43 +58,83 @@ router.post('/reminders', (req, res) => {
   const u = get<any>('SELECT onboarded FROM users WHERE id = ?', [req.user!.id]);
   if (!u?.onboarded) return res.status(428).json({ error: 'Cần hoàn tất cài đặt PWA và cấp quyền thông báo trước' });
 
-  const lead = get<any>('SELECT id, full_name, phone, car_model_id FROM leads WHERE id = ?', [lead_id]);
+  const lead = get<any>('SELECT id, full_name, phone, email, car_model_id FROM leads WHERE id = ?', [lead_id]);
   if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
 
   // Trường hợp lái thử có chọn khung giờ -> tạo booking thật
   const isTestDrive = purpose === 'Lái thử' && showroom_id && slot_id;
+  const contactEmail = customer_email || lead.email || null;
   let bookingId: string | null = null;
+  let testDriveSlot: any = null;
 
+  if (purpose === 'Lái thử' && !isTestDrive) {
+    return res.status(400).json({ error: 'Lịch lái thử bắt buộc chọn Showroom và Khung giờ' });
+  }
+  if (purpose === 'Lái thử' && !contactEmail) {
+    return res.status(400).json({ error: 'Vui lòng nhập email khách để gửi xác nhận lịch lái thử' });
+  }
   if (isTestDrive) {
     const slot = get<any>('SELECT * FROM slots WHERE id = ?', [slot_id]);
     if (!slot || !slot.is_available) return res.status(409).json({ error: 'Khung giờ vừa bị giữ, vui lòng chọn lại' });
+    if (slot.is_holiday) return res.status(400).json({ error: 'Khung giờ này là ngày nghỉ, không thể đặt lịch' });
+    if (slot.showroom_id !== showroom_id) return res.status(400).json({ error: 'Khung giờ không thuộc showroom đã chọn' });
     if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
       return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ (BR-TD-02)' });
     }
     if (!lead.car_model_id) {
       return res.status(400).json({ error: 'Lead chưa gắn dòng xe quan tâm, không thể đặt lịch lái thử' });
     }
+    if (slot.car_model_id && slot.car_model_id !== lead.car_model_id) {
+      return res.status(400).json({ error: 'Khung giờ này được cấu hình cho một xe khác' });
+    }
+    const activeCount = get<any>(
+      `SELECT COUNT(*) c FROM test_drive_bookings WHERE customer_phone = ? AND status = 'Đã xác nhận'`,
+      [lead.phone]
+    )?.c || 0;
+    if (activeCount >= 3) return res.status(409).json({ error: 'Khách đã có tối đa 3 lịch lái thử đang hoạt động' });
+    testDriveSlot = slot;
   }
 
   bookingId = isTestDrive ? uuid() : null;
+  const reminderId = id || uuid();
   const code = 'TD' + Date.now().toString().slice(-8);
+  // Với lái thử, thời gian slot là nguồn sự thật; không để reminder lệch booking.
+  const effectiveRemindAt = isTestDrive ? testDriveSlot.start_time : remind_at;
 
   transaction(() => {
     run(
-      `INSERT INTO reminders (id,lead_id,remind_at,purpose,location,notify_before_minutes,created_by,sync_status,created_at)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
-      [id || uuid(), lead_id, remind_at, purpose, location || null, notify_before_minutes || 30, req.user!.id, 'SYNCED', nowIso()]
+      `INSERT INTO reminders (id,lead_id,remind_at,purpose,location,booking_id,notify_before_minutes,created_by,sync_status,created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [reminderId, lead_id, effectiveRemindAt, purpose, location || null, bookingId, notify_before_minutes || 30, req.user!.id, 'SYNCED', nowIso()]
     );
     if (isTestDrive) {
+      if (contactEmail && contactEmail !== lead.email) {
+        run('UPDATE leads SET email = ?, updated_at = ? WHERE id = ?', [contactEmail, nowIso(), lead_id]);
+      }
       run(
-        `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,lead_id,status,created_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        [bookingId, code, lead.car_model_id, showroom_id, slot_id, lead.full_name, lead.phone, lead_id, 'Đã xác nhận', nowIso()]
+        `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,customer_email,lead_id,status,created_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [bookingId, code, lead.car_model_id, showroom_id, slot_id, lead.full_name, lead.phone, contactEmail, lead_id, 'Đã xác nhận', nowIso()]
       );
       run('UPDATE slots SET is_available = 0 WHERE id = ?', [slot_id]);
     }
   });
   persist();
+
+  // Sale chốt giờ lái thử: gửi email xác nhận thật nếu Lead có email.
+  if (isTestDrive && contactEmail) {
+    const car = get<any>('SELECT brand, name FROM car_models WHERE id = ?', [lead.car_model_id]);
+    const showroom = get<any>('SELECT name FROM showrooms WHERE id = ?', [showroom_id]);
+    const mail = testDriveEmail({
+      customerName: lead.full_name,
+      carName: car ? `${car.brand} ${car.name}` : 'xe',
+      showroomName: showroom?.name || '',
+      startTime: effectiveRemindAt,
+      bookingCode: code,
+    });
+    sendMail(contactEmail, mail.subject, mail.html).catch(() => {});
+  }
+
   res.status(201).json({ ok: true, booking_id: bookingId, booking_code: isTestDrive ? code : null });
 });
 

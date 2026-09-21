@@ -12,6 +12,13 @@ services:
       PORT: "8080"
       JWT_SECRET: "doi-chuoi-bi-mat-nay-di"
       DB_PATH: "/data/tntcar.db"
+      # SMTP: đặt các biến này trong file app/.env trên VM
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_SECURE: "${SMTP_SECURE:-false}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-TNT CAR <no-reply@tntcar.vn>}"
     volumes:
       - tntcar_data:/data
     healthcheck:

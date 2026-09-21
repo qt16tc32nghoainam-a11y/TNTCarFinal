@@ -24,6 +24,8 @@ export default function QuickLeadForm({ cars, compact, defaultCarId }: { cars: a
     e.preventDefault();
     setErr('');
     if (!form.full_name || !form.phone) return setErr('Vui lòng nhập họ tên và số điện thoại');
+    if (form.request_type === 'Đăng ký lái thử' && !form.email) return setErr('Vui lòng nhập email để nhận xác nhận lịch lái thử');
+    if (form.request_type === 'Đăng ký lái thử' && !form.car_model_id) return setErr('Vui lòng chọn xe muốn lái thử');
     setSaving(true);
     try {
       await publicApi.post('/public/requests', form);
@@ -65,14 +67,14 @@ export default function QuickLeadForm({ cars, compact, defaultCarId }: { cars: a
         <label className={`text-xs ${labelCls}`}>Số điện thoại *</label>
         <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="09xx xxx xxx" />
       </div>
-      {!compact && (
+      {(!compact || form.request_type === 'Đăng ký lái thử') && (
         <div>
-          <label className={`text-xs ${labelCls}`}>Email</label>
-          <input className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <label className={`text-xs ${labelCls}`}>Email{form.request_type === 'Đăng ký lái thử' ? ' *' : ''}</label>
+          <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="khachhang@email.com" />
         </div>
       )}
       <div>
-        <label className={`text-xs ${labelCls}`}>Xe quan tâm</label>
+        <label className={`text-xs ${labelCls}`}>Xe quan tâm{form.request_type === 'Đăng ký lái thử' ? ' *' : ''}</label>
         <select className={inputCls} value={form.car_model_id} onChange={(e) => setForm({ ...form, car_model_id: e.target.value })}>
           <option value="">-- Chọn xe --</option>
           {cars.map((c) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}

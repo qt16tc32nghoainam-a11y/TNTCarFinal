@@ -42,10 +42,8 @@ export async function initDb(): Promise<void> {
   }
   db.run('PRAGMA foreign_keys = ON;');
 
-  // Migration nhẹ cho DB đã tồn tại: thêm cột hợp đồng còn thiếu (không phá dữ liệu).
+  // Migration nhẹ cho DB đã tồn tại: thêm cột còn thiếu (không phá dữ liệu).
   runLightMigrations();
-  // Đảm bảo 2 Sales phụ trách Lead website (An, Thành) tồn tại (không xóa dữ liệu).
-  ensureWebSales();
 
   // Ghi định kỳ nếu có thay đổi (an toàn dữ liệu)
   setInterval(() => {
@@ -56,34 +54,52 @@ export async function initDb(): Promise<void> {
 /** Thêm cột mới cho các bảng đã tồn tại (an toàn với DB cũ trên server). */
 function runLightMigrations(): void {
   if (!db) return;
-  // Chỉ áp dụng khi bảng contracts đã tồn tại (DB cũ)
-  let hasContracts = false;
-  try {
-    const r = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='contracts'");
-    hasContracts = r.length > 0 && r[0].values.length > 0;
-  } catch { /* ignore */ }
-  if (!hasContracts) return;
 
-  const existing = new Set<string>();
-  try {
-    const r = db.exec('PRAGMA table_info(contracts)');
-    if (r.length) for (const row of r[0].values) existing.add(String(row[1])); // cột name ở index 1
-  } catch { /* ignore */ }
+  const addMissingColumns = (table: string, columns: [string, string][]) => {
+    let exists = false;
+    try {
+      const r = db!.exec(`SELECT name FROM sqlite_master WHERE type='table' AND name='${table}'`);
+      exists = r.length > 0 && r[0].values.length > 0;
+    } catch { /* ignore */ }
+    if (!exists) return;
 
-  const newCols: [string, string][] = [
+    const current = new Set<string>();
+    try {
+      const r = db!.exec(`PRAGMA table_info(${table})`);
+      if (r.length) for (const row of r[0].values) current.add(String(row[1]));
+    } catch { /* ignore */ }
+
+    for (const [column, type] of columns) {
+      if (current.has(column)) continue;
+      try {
+        db!.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+        dirty = true;
+        console.log(`[migration] Đã thêm ${table}.${column}`);
+      } catch (e) {
+        console.error(`[migration] Không thêm được ${table}.${column}:`, e);
+      }
+    }
+  };
+
+  addMissingColumns('contracts', [
     ['payment_method', 'TEXT'], ['bank_name', 'TEXT'], ['expected_delivery', 'TEXT'],
     ['delivered_at', 'TEXT'], ['delivered_by', 'TEXT'], ['vin', 'TEXT'],
     ['plate_number', 'TEXT'], ['delivery_note', 'TEXT'],
-  ];
-  for (const [col, type] of newCols) {
-    if (!existing.has(col)) {
-      try { db.run(`ALTER TABLE contracts ADD COLUMN ${col} ${type}`); dirty = true; } catch { /* ignore */ }
-    }
-  }
+  ]);
+  // Không xóa DB cũ: tự bổ sung field email và liên kết lịch hẹn-lái thử.
+  addMissingColumns('leads', [['email', 'TEXT']]);
+  addMissingColumns('test_drive_bookings', [['customer_email', 'TEXT']]);
+  addMissingColumns('reminders', [['booking_id', 'TEXT']]);
+
+  // Sau khi bỏ bước xác nhận/từ chối, chuyển lịch cũ đang chờ sang Đã xác nhận để không bị kẹt UI.
+  try {
+    db.run("UPDATE test_drive_bookings SET status='Đã xác nhận' WHERE status='Chờ xác nhận'");
+    dirty = true;
+  } catch { /* bảng chưa tồn tại ở DB mới, schema sẽ tạo sau */ }
 }
 
 /** Tạo 2 Sales phụ trách Lead website (An, Thành) nếu chưa có. Chạy khi khởi động, không xóa dữ liệu. */
-function ensureWebSales(): void {
+export function ensureWebSales(): void {
   if (!db) return;
   // Chỉ chạy khi bảng users tồn tại
   let hasUsers = false;

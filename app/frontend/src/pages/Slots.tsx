@@ -25,7 +25,7 @@ export default function Slots() {
   const now = Date.now();
   const upcoming = slots.filter((s) => new Date(s.start_time).getTime() >= now - 3600000);
   const booked = upcoming.filter((s) => s.booking_id);
-  const free = upcoming.filter((s) => !s.booking_id && s.is_available);
+  const free = upcoming.filter((s) => !s.booking_id && s.is_available && !s.is_holiday);
 
   return (
     <div>
@@ -63,10 +63,12 @@ export default function Slots() {
                   <td className="p-3">{formatDate(s.start_time)}</td>
                   <td className="p-3">
                     {s.booking_id
-                      ? <span className="badge bg-blue-100 text-blue-700">Đã đặt</span>
-                      : s.is_available
-                        ? <span className="badge bg-green-100 text-green-700">Còn trống</span>
-                        : <span className="badge bg-gray-100 text-gray-500">Không nhận</span>}
+                      ? <span className="badge bg-blue-100 text-blue-700">Đã đặt · {s.booking_status}</span>
+                      : s.is_holiday
+                        ? <span className="badge bg-gray-100 text-gray-600">Ngày nghỉ</span>
+                        : s.is_available
+                          ? <span className="badge bg-green-100 text-green-700">Còn trống</span>
+                          : <span className="badge bg-gray-100 text-gray-500">Không nhận</span>}
                   </td>
                   <td className="p-3">
                     {s.booking_id
@@ -92,16 +94,33 @@ export default function Slots() {
 function CreateSlotModal({ showroomId, onClose, onDone }: any) {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [carId, setCarId] = useState('');
+  const [cars, setCars] = useState<any[]>([]);
   const [err, setErr] = useState('');
+
+  useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
+
   async function save() {
     setErr('');
+    if (!start || !end) return setErr('Vui lòng chọn thời gian bắt đầu và kết thúc');
     try {
-      await api.post('/cars/slots', { showroom_id: showroomId, start_time: new Date(start).toISOString(), end_time: new Date(end).toISOString() });
+      await api.post('/cars/slots', {
+        showroom_id: showroomId,
+        car_model_id: carId || null,
+        start_time: new Date(start).toISOString(),
+        end_time: new Date(end).toISOString(),
+      });
       onDone();
     } catch (e: any) { setErr(e.message); }
   }
   return (
     <Modal open onClose={onClose} title="Thêm khung giờ">
+      <Field label="Xe áp dụng cho khung giờ">
+        <select className="input" value={carId} onChange={(e) => setCarId(e.target.value)}>
+          <option value="">-- Mọi xe (không giới hạn) --</option>
+          {cars.map((c) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}
+        </select>
+      </Field>
       <Field label="Bắt đầu"><input type="datetime-local" className="input" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
       <Field label="Kết thúc"><input type="datetime-local" className="input" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}

@@ -40,6 +40,12 @@ router.post('/requests', (req, res) => {
   if (!['Đăng ký lái thử', 'Tư vấn', 'CSKH'].includes(request_type)) {
     return res.status(400).json({ error: 'Loại yêu cầu không hợp lệ' });
   }
+  if (request_type === 'Đăng ký lái thử' && !email) {
+    return res.status(400).json({ error: 'Đăng ký lái thử cần email để nhận xác nhận lịch' });
+  }
+  if (request_type === 'Đăng ký lái thử' && !car_model_id) {
+    return res.status(400).json({ error: 'Vui lòng chọn xe muốn lái thử' });
+  }
 
   // Gán ngẫu nhiên khi có Lead mới từ website (BR-18).
   // Ưu tiên chỉ gán cho 2 Sales phụ trách Lead website: An (annt) + Thành (thanhnd).
@@ -55,9 +61,9 @@ router.post('/requests', (req, res) => {
 
   const leadId = uuid();
   run(
-    `INSERT INTO leads (id,full_name,phone,car_model_id,source,status_detail,request_type,assigned_sales_id,created_by,sync_status,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [leadId, full_name, phone, car_model_id || null, 'Website', 'Đang tìm hiểu', request_type, randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
+    `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,request_type,assigned_sales_id,created_by,sync_status,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [leadId, full_name, phone, email || null, car_model_id || null, 'Website', 'Đang tìm hiểu', request_type, randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
   );
   // Thông báo in-app cho Sales được gán (FR-09 / US-02.3)
   run(
@@ -65,8 +71,7 @@ router.post('/requests', (req, res) => {
     [uuid(), randomSale, 'lead_assigned', `Lead mới từ Website (${request_type})`, `Khách: ${full_name} - ${phone}`, 'lead', leadId, 0, nowIso()]
   );
   persist();
-  // Ghi log mô phỏng gửi email (chưa tích hợp SMTP thật)
-  console.log(`[EMAIL] Lead mới từ Website (${request_type}) gán cho Sales ${randomSale}; xác nhận gửi tới khách ${email || 'không có email'}`);
+  console.log(`[website] Lead mới (${request_type}) đã gán cho Sales ${randomSale}; email khách: ${email || 'không có'}`);
   res.status(201).json({ ok: true, lead_id: leadId, message: 'Yêu cầu đã được tiếp nhận, TNT CAR sẽ liên hệ lại sớm.' });
 });
 

@@ -12,6 +12,9 @@ export default function PublicRequest() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr('');
+    if (!form.full_name || !form.phone) return setErr('Vui lòng nhập họ tên và số điện thoại');
+    if (form.request_type === 'Đăng ký lái thử' && !form.email) return setErr('Vui lòng nhập email để nhận xác nhận lịch lái thử');
+    if (form.request_type === 'Đăng ký lái thử' && !form.car_model_id) return setErr('Vui lòng chọn xe muốn lái thử');
     try {
       await publicApi.post('/public/requests', form);
       setDone(true);
@@ -38,7 +41,7 @@ export default function PublicRequest() {
         </div>
         <div><label className="label">Họ tên *</label><input className="input" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
         <div><label className="label">Số điện thoại *</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-        <div><label className="label">Email</label><input className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+        <div><label className="label">Email{form.request_type === 'Đăng ký lái thử' ? ' *' : ''}</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
         <div>
           <label className="label">Xe quan tâm</label>
           <select className="input" value={form.car_model_id} onChange={(e) => setForm({ ...form, car_model_id: e.target.value })}>

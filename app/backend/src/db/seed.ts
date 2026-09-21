@@ -258,14 +258,14 @@ async function seed() {
   // Hôm qua: đã hoàn thành + vắng mặt
   mkBooking(-1, 0, 0, 'Nguyễn Văn An', '0987100000', 0, 'Hoàn thành');
   mkBooking(-1, 1, 1, 'Trần Thị Bình', '0987100001', 1, 'Vắng mặt');
-  // Hôm nay: đã xác nhận + chờ xác nhận
+  // Hôm nay: lịch đặt được xác nhận ngay
   mkBooking(0, 0, 0, 'Lê Văn Cường', '0987100002', 2, 'Đã xác nhận');
-  mkBooking(0, 1, 2, 'Phạm Thị Dung', '0987100003', 3, 'Chờ xác nhận');
-  // Ngày mai: đã xác nhận + chờ xác nhận
+  mkBooking(0, 1, 2, 'Phạm Thị Dung', '0987100003', 3, 'Đã xác nhận');
+  // Ngày mai: lịch đặt được xác nhận ngay
   mkBooking(1, 0, 3, 'Hoàng Văn Em', '0987100004', 4, 'Đã xác nhận');
-  mkBooking(1, 1, 4, 'Vũ Thị Phương', '0987100005', 5, 'Chờ xác nhận');
-  // +2 ngày: chờ xác nhận
-  mkBooking(2, 0, 5, 'Đặng Văn Giang', '0987100006', 6, 'Chờ xác nhận');
+  mkBooking(1, 1, 4, 'Vũ Thị Phương', '0987100005', 5, 'Đã xác nhận');
+  // +2 ngày
+  mkBooking(2, 0, 5, 'Đặng Văn Giang', '0987100006', 6, 'Đã xác nhận');
 
   // ---------- Contracts + Payments (cho lead Won), đa dạng trạng thái vòng đời ----------
   // Kịch bản cho từng hợp đồng: [trạng thái, hình thức, đã thu %, có giao xe?]

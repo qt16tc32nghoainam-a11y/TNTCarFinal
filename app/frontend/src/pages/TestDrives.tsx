@@ -172,10 +172,12 @@ function RescheduleModal({ booking, onClose, onDone }: { booking: any; onClose: 
 
   useEffect(() => { api.get<any[]>('/meta/showrooms').then(setShowrooms).catch(() => {}); }, []);
   useEffect(() => {
-    if (showroomId) api.get<any[]>(`/cars/slots/available/${showroomId}`).then(setSlots).catch(() => setSlots([]));
-    else setSlots([]);
+    if (showroomId) {
+      const carQuery = booking.car_model_id ? `?car_model_id=${encodeURIComponent(booking.car_model_id)}` : '';
+      api.get<any[]>(`/cars/slots/available/${showroomId}${carQuery}`).then(setSlots).catch(() => setSlots([]));
+    } else setSlots([]);
     setSlotId('');
-  }, [showroomId]);
+  }, [showroomId, booking.car_model_id]);
 
   async function save() {
     setErr('');

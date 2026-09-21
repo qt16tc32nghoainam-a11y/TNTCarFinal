@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { config } from './config';
-import { initDb } from './db/database';
+import { initDb, ensureWebSales } from './db/database';
 
 import authRoutes from './routes/auth';
 import leadRoutes from './routes/leads';
@@ -21,6 +21,8 @@ import { startScheduler } from './scheduler';
 
 async function main() {
   await initDb();
+  // Chỉ bootstrap An/Thành khi chạy server; không chạy trong migrate/seed.
+  ensureWebSales();
   startScheduler();
 
   const app = express();
