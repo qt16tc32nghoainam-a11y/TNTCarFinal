@@ -128,22 +128,28 @@ export function testDriveEmail(opts: {
   showroomName: string;
   startTime: string;
   bookingCode: string;
+  salesName?: string;   // tên nhân viên Sale đã đặt lịch
   rescheduled?: boolean;
 }): { subject: string; html: string } {
   const when = new Date(opts.startTime).toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' });
   const title = opts.rescheduled ? 'Cập nhật lịch lái thử' : 'Xác nhận lịch lái thử';
   const subject = `[TNT CAR] ${title} - ${opts.carName}`;
+  // Dòng mở đầu nêu rõ Sale nào đã đặt lịch lái thử xe gì cho khách.
+  const intro = opts.rescheduled
+    ? `Nhân viên tư vấn <b>${opts.salesName || 'TNT CAR'}</b> đã cập nhật lịch lái thử xe <b>${opts.carName}</b> cho bạn:`
+    : `Nhân viên tư vấn <b>${opts.salesName || 'TNT CAR'}</b> đã đặt lịch lái thử xe <b>${opts.carName}</b> cho bạn. Thông tin lịch hẹn:`;
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;border:1px solid #eee;border-radius:12px;overflow:hidden">
       <div style="background:#1e40af;color:#fff;padding:16px 20px;font-size:18px;font-weight:bold">TNT CAR</div>
       <div style="padding:20px;color:#333">
         <p>Xin chào <b>${opts.customerName}</b>,</p>
-        <p>${opts.rescheduled ? 'Lịch lái thử của bạn đã được cập nhật:' : 'Cảm ơn bạn đã đặt lịch lái thử tại TNT CAR. Thông tin lịch hẹn:'}</p>
+        <p>${intro}</p>
         <table style="width:100%;border-collapse:collapse;margin:12px 0">
           <tr><td style="padding:6px 0;color:#666">Mã lịch</td><td style="padding:6px 0;font-weight:bold">${opts.bookingCode}</td></tr>
           <tr><td style="padding:6px 0;color:#666">Xe lái thử</td><td style="padding:6px 0;font-weight:bold">${opts.carName}</td></tr>
           <tr><td style="padding:6px 0;color:#666">Showroom</td><td style="padding:6px 0;font-weight:bold">${opts.showroomName}</td></tr>
           <tr><td style="padding:6px 0;color:#666">Thời gian</td><td style="padding:6px 0;font-weight:bold;color:#1e40af">${when}</td></tr>
+          <tr><td style="padding:6px 0;color:#666">Nhân viên phụ trách</td><td style="padding:6px 0;font-weight:bold">${opts.salesName || 'TNT CAR'}</td></tr>
         </table>
         <p style="font-size:13px;color:#666">Vui lòng đến trước giờ hẹn 10 phút. Nếu cần đổi/hủy, xin liên hệ showroom trước ít nhất 4 giờ.</p>
         <p style="font-size:13px;color:#999">Hotline: 1900 1234 · TNT CAR</p>

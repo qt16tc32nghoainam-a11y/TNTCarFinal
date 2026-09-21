@@ -131,6 +131,7 @@ router.post('/reminders', (req, res) => {
       showroomName: showroom?.name || '',
       startTime: effectiveRemindAt,
       bookingCode: code,
+      salesName: req.user?.full_name,
     });
     sendMail(contactEmail, mail.subject, mail.html).catch(() => {});
   }

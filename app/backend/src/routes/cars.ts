@@ -198,6 +198,7 @@ router.post('/test-drives', authenticate, (req, res) => {
       showroomName: sr?.name || '',
       startTime: slot.start_time,
       bookingCode: code,
+      salesName: req.user?.full_name,
     });
     sendMail(customer_email, mail.subject, mail.html).catch(() => {});
   }
@@ -286,6 +287,7 @@ router.patch('/test-drives/:id/reschedule', authenticate, (req, res) => {
       showroomName: sr?.name || '',
       startTime: newSlot.start_time,
       bookingCode: booking.booking_code,
+      salesName: req.user?.full_name,
       rescheduled: true,
     });
     sendMail(leadEmail, mail.subject, mail.html).catch(() => {});
@@ -386,6 +388,7 @@ router.post('/slots/:slotId/book-lead', authenticate, (req, res) => {
       showroomName: sr?.name || '',
       startTime: slot.start_time,
       bookingCode: code,
+      salesName: req.user?.full_name,
     });
     sendMail(customerEmail, mail.subject, mail.html).catch(() => {});
   }

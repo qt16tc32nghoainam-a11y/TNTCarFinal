@@ -214,6 +214,13 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
   const [cars, setCars] = useState<any[]>([]);
   const [carsErr, setCarsErr] = useState('');
   const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Chọn Lead ngay lúc tạo khung giờ: nếu chọn -> tạo xong sẽ đặt lịch cho khách đó luôn.
+  const [q, setQ] = useState('');
+  const [leads, setLeads] = useState<any[]>([]);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [leadEmail, setLeadEmail] = useState('');
 
   useEffect(() => {
     api.get<any[]>('/meta/car-models')
@@ -221,18 +228,52 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
       .catch((e) => setCarsErr(e?.message || 'Không tải được danh mục xe'));
   }, []);
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      api.get<any[]>(`/cars/leads/search?q=${encodeURIComponent(q)}`).then(setLeads).catch(() => setLeads([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  function pickLead(l: any) {
+    setSelectedLead((cur: any) => {
+      const next = cur?.id === l.id ? null : l; // bấm lại để bỏ chọn
+      if (next) {
+        setLeadEmail(next.email || '');
+        if (!carId && next.car_model_id) setCarId(next.car_model_id);
+      }
+      return next;
+    });
+  }
+
+  const needCarForLead = selectedLead && !carId; // đã chọn khách nhưng chưa xác định xe
+
   async function save() {
     setErr('');
     if (!start || !end) return setErr('Vui lòng chọn thời gian bắt đầu và kết thúc');
+    if (needCarForLead) return setErr('Khách chưa có xe quan tâm — vui lòng chọn xe cho khung giờ này');
+    setSaving(true);
     try {
-      await api.post('/cars/slots', {
+      const res = await api.post<{ id: string }>('/cars/slots', {
         showroom_id: showroomId,
         car_model_id: carId || null,
         start_time: new Date(start).toISOString(),
         end_time: new Date(end).toISOString(),
       });
+      // Nếu có chọn khách -> đặt lịch lái thử cho khách đó vào khung giờ vừa tạo.
+      if (selectedLead) {
+        await api.post(`/cars/slots/${res.id}/book-lead`, {
+          lead_id: selectedLead.id,
+          car_model_id: carId || undefined,
+          customer_email: leadEmail || undefined,
+        });
+      }
       onDone();
-    } catch (e: any) { setErr(e.message); }
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <Modal open onClose={onClose} title="Thêm khung giờ">
@@ -245,8 +286,47 @@ function CreateSlotModal({ showroomId, onClose, onDone }: any) {
       </Field>
       <Field label="Bắt đầu"><input type="datetime-local" className="input" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
       <Field label="Kết thúc"><input type="datetime-local" className="input" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
+
+      <Field label="Đặt sẵn cho khách (Lead) — không bắt buộc">
+        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nhập tên hoặc SĐT khách để tìm Lead..." />
+      </Field>
+      {(q || leads.length > 0) && (
+        <div className="mb-3 max-h-40 overflow-auto rounded-lg border">
+          {leads.length === 0 ? (
+            <div className="p-3 text-center text-sm text-gray-400">Không tìm thấy Lead</div>
+          ) : leads.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => pickLead(l)}
+              className={`flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-brand-50 ${selectedLead?.id === l.id ? 'bg-brand-100' : ''}`}
+            >
+              <span>
+                <span className="font-medium">{l.full_name}</span>
+                <span className="block text-xs text-gray-500">{l.phone}{l.car_name ? ` · ${l.car_brand} ${l.car_name}` : ' · chưa có xe'}</span>
+              </span>
+              {selectedLead?.id === l.id && <span className="text-brand-700">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {selectedLead && (
+        <>
+          <div className="mb-2 rounded bg-brand-50 p-2 text-xs text-brand-700">
+            Sẽ đặt lịch lái thử cho <b>{selectedLead.full_name}</b> ({selectedLead.phone}) vào khung giờ này ngay sau khi tạo.
+          </div>
+          {needCarForLead && <div className="mb-2 text-xs text-amber-600">Khách chưa có xe quan tâm, vui lòng chọn xe ở ô "Xe áp dụng cho khung giờ" phía trên.</div>}
+          <Field label="Email khách nhận xác nhận (nếu có)">
+            <input type="email" className="input" value={leadEmail} onChange={(e) => setLeadEmail(e.target.value)} placeholder="khach@email.com" />
+          </Field>
+        </>
+      )}
+
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
-      <div className="flex justify-end gap-2"><button onClick={onClose} className="btn-secondary">Hủy</button><button onClick={save} className="btn-primary">Thêm</button></div>
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="btn-secondary">Hủy</button>
+        <button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Thêm'}</button>
+      </div>
     </Modal>
   );
 }
