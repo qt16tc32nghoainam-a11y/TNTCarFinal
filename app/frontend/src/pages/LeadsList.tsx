@@ -140,9 +140,13 @@ export default function LeadsList() {
 }
 
 function CreateLeadModal({ sources, cars, onClose, onCreated }: any) {
-  const [form, setForm] = useState({ full_name: '', phone: '', car_model_id: '', source: 'Sale tự nhập' });
+  const [form, setForm] = useState({
+    full_name: '', phone: '', email: '', car_model_id: '', source: 'Sale tự nhập',
+    address: '', budget: '', payment_method: '', interest_level: '', note: '',
+  });
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   async function save() {
     setErr('');
@@ -172,19 +176,40 @@ function CreateLeadModal({ sources, cars, onClose, onCreated }: any) {
 
   return (
     <Modal open onClose={onClose} title="Tạo Lead mới">
-      <Field label="Họ tên *"><input className="input" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
-      <Field label="Số điện thoại *"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
-      <Field label="Dòng xe quan tâm">
-        <select className="input" value={form.car_model_id} onChange={(e) => setForm({ ...form, car_model_id: e.target.value })}>
-          <option value="">-- Chọn xe --</option>
-          {cars.map((c: any) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}
-        </select>
-      </Field>
-      <Field label="Nguồn Lead *">
-        <select className="input" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
-          {sources.map((s: string) => <option key={s}>{s}</option>)}
-        </select>
-      </Field>
+      <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
+        <Field label="Họ tên *"><input className="input" value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></Field>
+        <Field label="Số điện thoại *"><input className="input" value={form.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
+        <Field label="Email"><input className="input" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="khach@email.com" /></Field>
+        <Field label="Dòng xe quan tâm">
+          <select className="input" value={form.car_model_id} onChange={(e) => set('car_model_id', e.target.value)}>
+            <option value="">-- Chọn xe --</option>
+            {cars.map((c: any) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Nguồn Lead *">
+          <select className="input" value={form.source} onChange={(e) => set('source', e.target.value)}>
+            {sources.map((s: string) => <option key={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Khu vực / Địa chỉ"><input className="input" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="VD: Quận 1, TP.HCM" /></Field>
+        <Field label="Ngân sách dự kiến"><input className="input" value={form.budget} onChange={(e) => set('budget', e.target.value)} placeholder="VD: 600 - 800 triệu" /></Field>
+        <Field label="Hình thức thanh toán">
+          <select className="input" value={form.payment_method} onChange={(e) => set('payment_method', e.target.value)}>
+            <option value="">-- Chưa xác định --</option>
+            <option value="Trả thẳng">Trả thẳng</option>
+            <option value="Trả góp">Trả góp</option>
+          </select>
+        </Field>
+        <Field label="Mức độ quan tâm">
+          <select className="input" value={form.interest_level} onChange={(e) => set('interest_level', e.target.value)}>
+            <option value="">-- Chưa xác định --</option>
+            <option value="Nóng">Nóng</option>
+            <option value="Ấm">Ấm</option>
+            <option value="Lạnh">Lạnh</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Ghi chú / Nhu cầu"><textarea className="input" rows={2} value={form.note} onChange={(e) => set('note', e.target.value)} placeholder="Nhu cầu, thời điểm mua dự kiến..." /></Field>
       {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
       <div className="flex justify-end gap-2">
         <button onClick={onClose} className="btn-secondary">Hủy</button>

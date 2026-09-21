@@ -20,6 +20,12 @@ export interface Lead {
   car_brand?: string;
   source: string;
   request_type?: string | null;
+  address?: string | null;
+  budget?: string | null;
+  payment_method?: string | null;
+  interest_level?: string | null;
+  source_detail?: string | null;
+  note?: string | null;
   status_detail: string;
   lost_reason_id?: string | null;
   lost_reason_note?: string | null;

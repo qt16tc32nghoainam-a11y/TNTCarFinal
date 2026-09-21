@@ -18,6 +18,7 @@ export default function LeadDetail() {
   const [showReminder, setShowReminder] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
+  const [showEditInfo, setShowEditInfo] = useState(false);
   const [offline, setOffline] = useState(false);
 
   async function load() {
@@ -76,6 +77,7 @@ export default function LeadDetail() {
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={() => setShowActivity(true)} className="btn-primary text-xs">Ghi hoạt động</button>
           <button onClick={() => setShowReminder(true)} className="btn-secondary text-xs">Tạo lịch hẹn</button>
+          <button onClick={() => setShowEditInfo(true)} className="btn-secondary text-xs">Sửa thông tin</button>
           <button onClick={() => setShowResult(true)} className="btn-secondary text-xs">{isResult ? 'Sửa kết quả' : 'Chốt Won/Lost'}</button>
 
           {user?.role === 'Admin' && <button onClick={() => setShowAssign(true)} className="btn-secondary text-xs">Gán Sales</button>}
@@ -93,6 +95,27 @@ export default function LeadDetail() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Thông tin chi tiết khách hàng */}
+      <div className="card mb-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold">Thông tin khách hàng</h2>
+          <button onClick={() => setShowEditInfo(true)} className="text-xs text-brand-700 hover:underline">Sửa</button>
+        </div>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+          <InfoRow label="Họ tên" value={lead.full_name} />
+          <InfoRow label="Số điện thoại" value={lead.phone} />
+          <InfoRow label="Email" value={lead.email} />
+          <InfoRow label="Xe quan tâm" value={lead.car_name ? `${lead.car_brand || ''} ${lead.car_name}`.trim() : ''} />
+          <InfoRow label="Nguồn" value={lead.source} />
+          <InfoRow label="Nguồn chi tiết" value={lead.source_detail} />
+          <InfoRow label="Khu vực / Địa chỉ" value={lead.address} />
+          <InfoRow label="Ngân sách dự kiến" value={lead.budget} />
+          <InfoRow label="Hình thức thanh toán" value={lead.payment_method} />
+          <InfoRow label="Mức độ quan tâm" value={lead.interest_level} badge={interestBadge(lead.interest_level)} />
+          <div className="sm:col-span-2"><InfoRow label="Ghi chú / Nhu cầu" value={lead.note} /></div>
+        </div>
       </div>
 
       {/* Timeline chăm sóc */}
@@ -147,7 +170,120 @@ export default function LeadDetail() {
       {showReminder && <ReminderModal leadId={lead.id} carModelId={lead.car_model_id} leadEmail={lead.email} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
       {showResult && <ResultModal lead={lead} onClose={() => setShowResult(false)} onDone={() => { setShowResult(false); load(); }} />}
       {showAssign && <AssignModal leadId={lead.id} currentSalesId={lead.assigned_sales_id} onClose={() => setShowAssign(false)} onDone={() => { setShowAssign(false); load(); }} />}
+      {showEditInfo && <EditInfoModal lead={lead} onClose={() => setShowEditInfo(false)} onDone={() => { setShowEditInfo(false); load(); }} />}
     </div>
+  );
+}
+
+function InfoRow({ label, value, badge }: { label: string; value?: string | null; badge?: string }) {
+  return (
+    <div className="flex justify-between gap-3 border-b border-gray-100 py-1.5">
+      <span className="text-gray-500">{label}</span>
+      {value
+        ? (badge ? <span className={`badge ${badge}`}>{value}</span> : <span className="text-right font-medium text-gray-800">{value}</span>)
+        : <span className="text-gray-300">—</span>}
+    </div>
+  );
+}
+
+function interestBadge(level?: string | null): string {
+  if (level === 'Nóng') return 'bg-red-100 text-red-700';
+  if (level === 'Ấm') return 'bg-amber-100 text-amber-700';
+  if (level === 'Lạnh') return 'bg-blue-100 text-blue-700';
+  return 'bg-gray-100 text-gray-600';
+}
+
+const PAYMENT_METHODS = ['Trả thẳng', 'Trả góp'];
+const INTEREST_LEVELS = ['Nóng', 'Ấm', 'Lạnh'];
+const SOURCE_DETAILS = ['Facebook', 'Zalo', 'Giới thiệu', 'Hotline', 'Website', 'Khác'];
+
+function EditInfoModal({ lead, onClose, onDone }: any) {
+  const [form, setForm] = useState({
+    full_name: lead.full_name || '',
+    phone: lead.phone || '',
+    email: lead.email || '',
+    car_model_id: lead.car_model_id || '',
+    address: lead.address || '',
+    budget: lead.budget || '',
+    payment_method: lead.payment_method || '',
+    interest_level: lead.interest_level || '',
+    source_detail: lead.source_detail || '',
+    note: lead.note || '',
+  });
+  const [cars, setCars] = useState<any[]>([]);
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { api.get<any[]>('/meta/car-models').then(setCars).catch(() => {}); }, []);
+
+  async function save() {
+    setErr('');
+    if (!form.full_name.trim()) return setErr('Vui lòng nhập họ tên');
+    if (!form.phone.trim()) return setErr('Vui lòng nhập số điện thoại');
+    setSaving(true);
+    try {
+      await api.patch(`/leads/${lead.id}`, {
+        full_name: form.full_name,
+        phone: form.phone,
+        email: form.email,
+        car_model_id: form.car_model_id || null,
+        address: form.address,
+        budget: form.budget,
+        payment_method: form.payment_method,
+        interest_level: form.interest_level,
+        source_detail: form.source_detail,
+        note: form.note,
+      });
+      onDone();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const set = (k: string, v: string) => setForm({ ...form, [k]: v });
+
+  return (
+    <Modal open onClose={onClose} title="Sửa thông tin khách hàng">
+      <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
+        <Field label="Họ tên *"><input className="input" value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></Field>
+        <Field label="Số điện thoại *"><input className="input" value={form.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
+        <Field label="Email"><input className="input" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="khach@email.com" /></Field>
+        <Field label="Xe quan tâm">
+          <select className="input" value={form.car_model_id} onChange={(e) => set('car_model_id', e.target.value)}>
+            <option value="">-- Chưa xác định --</option>
+            {cars.map((c) => <option key={c.id} value={c.id}>{c.brand} {c.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Khu vực / Địa chỉ"><input className="input" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="VD: Quận 1, TP.HCM" /></Field>
+        <Field label="Ngân sách dự kiến"><input className="input" value={form.budget} onChange={(e) => set('budget', e.target.value)} placeholder="VD: 600 - 800 triệu" /></Field>
+        <Field label="Hình thức thanh toán">
+          <select className="input" value={form.payment_method} onChange={(e) => set('payment_method', e.target.value)}>
+            <option value="">-- Chưa xác định --</option>
+            {PAYMENT_METHODS.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </Field>
+        <Field label="Mức độ quan tâm">
+          <select className="input" value={form.interest_level} onChange={(e) => set('interest_level', e.target.value)}>
+            <option value="">-- Chưa xác định --</option>
+            {INTEREST_LEVELS.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </Field>
+        <Field label="Nguồn chi tiết">
+          <select className="input" value={form.source_detail} onChange={(e) => set('source_detail', e.target.value)}>
+            <option value="">-- Chưa xác định --</option>
+            {SOURCE_DETAILS.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Ghi chú / Nhu cầu"><textarea className="input" rows={3} value={form.note} onChange={(e) => set('note', e.target.value)} placeholder="Nhu cầu, thời điểm mua dự kiến, ghi chú khác..." /></Field>
+      {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="btn-secondary">Hủy</button>
+        <button onClick={save} disabled={saving} className="btn-primary">{saving ? 'Đang lưu...' : 'Lưu'}</button>
+      </div>
+    </Modal>
   );
 }
 

@@ -82,7 +82,10 @@ router.get('/:id', (req, res) => {
 
 /** POST /api/leads — tạo Lead mới (FR-01, US-01.1). */
 router.post('/', (req, res) => {
-  const { id, full_name, phone, car_model_id, source } = req.body || {};
+  const {
+    id, full_name, phone, email, car_model_id, source,
+    address, budget, payment_method, interest_level, source_detail, note,
+  } = req.body || {};
   if (!full_name || !phone) return res.status(400).json({ error: 'Thiếu Họ tên hoặc Số điện thoại' });
   if (!source) return res.status(400).json({ error: 'Thiếu Nguồn Lead' });
   if (!LEAD_SOURCES.includes(source)) return res.status(400).json({ error: 'Nguồn Lead không hợp lệ' });
@@ -93,12 +96,63 @@ router.post('/', (req, res) => {
 
   const newId = id || uuid();
   run(
-    `INSERT INTO leads (id,full_name,phone,car_model_id,source,status_detail,flag_duplicate_phone,assigned_sales_id,created_by,sync_status,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [newId, full_name, phone, car_model_id || null, source, 'Đang tìm hiểu', flagDup, req.user!.id, req.user!.id, 'SYNCED', nowIso(), nowIso()]
+    `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,flag_duplicate_phone,
+       address,budget,payment_method,interest_level,source_detail,note,
+       assigned_sales_id,created_by,sync_status,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [
+      newId, full_name, phone, email || null, car_model_id || null, source, 'Đang tìm hiểu', flagDup,
+      address || null, budget || null, payment_method || null, interest_level || null, source_detail || null, note || null,
+      req.user!.id, req.user!.id, 'SYNCED', nowIso(), nowIso(),
+    ]
   );
   persist();
   res.status(201).json({ id: newId, duplicate_warning: !!dup, duplicate_of: dup?.id || null });
+});
+
+/** PATCH /api/leads/:id — cập nhật thông tin hồ sơ Lead (không đổi trạng thái/kết quả). */
+router.patch('/:id', (req, res) => {
+  const lead = get<any>('SELECT * FROM leads WHERE id = ?', [req.params.id]);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
+
+  const {
+    full_name, phone, email, car_model_id, source,
+    address, budget, payment_method, interest_level, source_detail, note,
+  } = req.body || {};
+
+  if (source !== undefined && source !== null && source !== '' && !LEAD_SOURCES.includes(source)) {
+    return res.status(400).json({ error: 'Nguồn Lead không hợp lệ' });
+  }
+  if (full_name !== undefined && !String(full_name).trim()) return res.status(400).json({ error: 'Họ tên không được để trống' });
+  if (phone !== undefined && !String(phone).trim()) return res.status(400).json({ error: 'Số điện thoại không được để trống' });
+
+  // Helper: giữ giá trị cũ nếu field không được gửi lên (undefined).
+  const keep = (val: any, old: any) => (val === undefined ? old : (val === '' ? null : val));
+
+  run(
+    `UPDATE leads SET
+       full_name = ?, phone = ?, email = ?, car_model_id = ?, source = ?,
+       address = ?, budget = ?, payment_method = ?, interest_level = ?, source_detail = ?, note = ?,
+       updated_at = ?
+     WHERE id = ?`,
+    [
+      full_name ?? lead.full_name,
+      phone ?? lead.phone,
+      keep(email, lead.email),
+      car_model_id === undefined ? lead.car_model_id : (car_model_id || null),
+      source ?? lead.source,
+      keep(address, lead.address),
+      keep(budget, lead.budget),
+      keep(payment_method, lead.payment_method),
+      keep(interest_level, lead.interest_level),
+      keep(source_detail, lead.source_detail),
+      keep(note, lead.note),
+      nowIso(),
+      req.params.id,
+    ]
+  );
+  persist();
+  res.json({ ok: true });
 });
 
 /** PATCH /api/leads/:id/status — cập nhật trạng thái xử lý (US-01.3). */

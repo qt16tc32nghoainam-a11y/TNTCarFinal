@@ -89,6 +89,12 @@ CREATE TABLE IF NOT EXISTS leads (
   flag_duplicate_phone INTEGER NOT NULL DEFAULT 0,
   is_archived INTEGER NOT NULL DEFAULT 0,
   request_type TEXT,
+  address TEXT,                 -- địa chỉ / khu vực khách
+  budget TEXT,                  -- ngân sách dự kiến
+  payment_method TEXT,          -- hình thức thanh toán dự kiến: Trả thẳng / Trả góp
+  interest_level TEXT,          -- mức độ quan tâm: Nóng / Ấm / Lạnh
+  source_detail TEXT,           -- nguồn chi tiết: Facebook / Zalo / Giới thiệu / Hotline...
+  note TEXT,                    -- ghi chú / nhu cầu thêm
   assigned_sales_id TEXT,
   created_by TEXT,
   sync_status TEXT NOT NULL DEFAULT 'SYNCED',

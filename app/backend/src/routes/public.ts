@@ -34,7 +34,7 @@ router.get('/contents', (_req, res) => res.json(all('SELECT content_type,title,b
 
 /** POST /api/public/requests — khách gửi yêu cầu lái thử/tư vấn/CSKH (FR-09). */
 router.post('/requests', (req, res) => {
-  const { request_type, full_name, phone, email, car_model_id, note } = req.body || {};
+  const { request_type, full_name, phone, email, car_model_id, note, address } = req.body || {};
   if (!phone) return res.status(400).json({ error: 'Vui lòng nhập số điện thoại' }); // BR-17
   if (!full_name) return res.status(400).json({ error: 'Vui lòng nhập họ tên' });
   if (!['Đăng ký lái thử', 'Tư vấn', 'CSKH'].includes(request_type)) {
@@ -61,9 +61,9 @@ router.post('/requests', (req, res) => {
 
   const leadId = uuid();
   run(
-    `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,request_type,assigned_sales_id,created_by,sync_status,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [leadId, full_name, phone, email || null, car_model_id || null, 'Website', 'Đang tìm hiểu', request_type, randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
+    `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,request_type,address,note,source_detail,assigned_sales_id,created_by,sync_status,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [leadId, full_name, phone, email || null, car_model_id || null, 'Website', 'Đang tìm hiểu', request_type, address || null, note || null, 'Website', randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
   );
   // Thông báo in-app cho Sales được gán (FR-09 / US-02.3)
   run(

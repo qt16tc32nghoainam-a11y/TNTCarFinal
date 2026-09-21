@@ -99,8 +99,16 @@ function runLightMigrations(): void {
     ['delivered_at', 'TEXT'], ['delivered_by', 'TEXT'], ['vin', 'TEXT'],
     ['plate_number', 'TEXT'], ['delivery_note', 'TEXT'],
   ]);
-  // Không xóa DB cũ: tự bổ sung field email và liên kết lịch hẹn-lái thử.
-  addMissingColumns('leads', [['email', 'TEXT']]);
+  // Không xóa DB cũ: tự bổ sung field email, thông tin lead mở rộng và liên kết lịch hẹn-lái thử.
+  addMissingColumns('leads', [
+    ['email', 'TEXT'],
+    ['address', 'TEXT'],
+    ['budget', 'TEXT'],
+    ['payment_method', 'TEXT'],
+    ['interest_level', 'TEXT'],
+    ['source_detail', 'TEXT'],
+    ['note', 'TEXT'],
+  ]);
   addMissingColumns('test_drive_bookings', [['customer_email', 'TEXT']]);
   addMissingColumns('reminders', [['booking_id', 'TEXT']]);
 
