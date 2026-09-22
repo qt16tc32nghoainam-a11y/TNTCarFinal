@@ -14,8 +14,10 @@ export default function Cars() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  // Lọc giá bằng thanh kéo 2 đầu, thực hiện phía client (khoảng giá lấy động theo dữ liệu xe hiện có).
+  const [priceBounds, setPriceBounds] = useState<[number, number]>([0, 0]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+  const [priceTouched, setPriceTouched] = useState(false);
   const [compare, setCompare] = useState<Car[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [editCar, setEditCar] = useState<any>(null);
@@ -25,14 +27,25 @@ export default function Cars() {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (brand) params.set('brand', brand);
-    if (minPrice) params.set('minPrice', String(Number(minPrice) * 1_000_000));
-    if (maxPrice) params.set('maxPrice', String(Number(maxPrice) * 1_000_000));
     if (isAdmin) params.set('all', '1'); // Admin xem cả xe hết hàng để quản lý
-    try { setCars(await api.get<Car[]>('/cars?' + params)); } finally { setLoading(false); }
+    try {
+      const data = await api.get<Car[]>('/cars?' + params);
+      setCars(data);
+      if (data.length) {
+        const prices = data.map((c) => c.price);
+        const lo = Math.min(...prices);
+        const hi = Math.max(...prices);
+        setPriceBounds([lo, hi]);
+        if (!priceTouched) setPriceRange([lo, hi]); // chỉ tự set mặc định nếu người dùng chưa tự kéo
+      }
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { load(); }, [brand]);
 
   const brands = Array.from(new Set(cars.map((c) => c.brand)));
+  const visibleCars = cars.filter((c) => c.price >= priceRange[0] && c.price <= priceRange[1]);
 
   function toggleCompare(car: Car) {
     if (compare.find((c) => c.id === car.id)) setCompare(compare.filter((c) => c.id !== car.id));
@@ -62,30 +75,33 @@ export default function Cars() {
           {compare.length > 0 && <button onClick={() => setShowCompare(true)} className="btn-primary">So sánh ({compare.length})</button>}
         </div>
       </div>
-      <div className="card mb-4 flex flex-wrap items-end gap-2">
-        <input className="input flex-1 min-w-[180px]" placeholder="Tìm xe..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
-        <select className="input w-auto" value={brand} onChange={(e) => setBrand(e.target.value)}>
-          <option value="">Tất cả hãng</option>{brands.map((b) => <option key={b}>{b}</option>)}
-        </select>
-        <div>
-          <label className="label">Giá từ (triệu)</label>
-          <input type="number" min={0} className="input w-32" placeholder="VD: 500" value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+      <div className="card mb-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <input className="input flex-1 min-w-[180px]" placeholder="Tìm xe..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+          <select className="input w-auto" value={brand} onChange={(e) => setBrand(e.target.value)}>
+            <option value="">Tất cả hãng</option>{brands.map((b) => <option key={b}>{b}</option>)}
+          </select>
+          <button onClick={load} className="btn-secondary">Tìm</button>
+          {(q || brand || priceTouched) && (
+            <button onClick={() => { setQ(''); setBrand(''); setPriceTouched(false); setTimeout(load, 0); }} className="text-xs text-gray-500 hover:underline">Xóa lọc</button>
+          )}
         </div>
-        <div>
-          <label className="label">Giá đến (triệu)</label>
-          <input type="number" min={0} className="input w-32" placeholder="VD: 1000" value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
-        </div>
-        <button onClick={load} className="btn-secondary">Tìm</button>
-        {(q || brand || minPrice || maxPrice) && (
-          <button onClick={() => { setQ(''); setBrand(''); setMinPrice(''); setMaxPrice(''); setTimeout(load, 0); }} className="text-xs text-gray-500 hover:underline">Xóa lọc</button>
+
+        {priceBounds[1] > 0 && (
+          <div className="mt-3">
+            <PriceRangeSlider
+              min={priceBounds[0]}
+              max={priceBounds[1]}
+              value={priceRange}
+              onChange={(v) => { setPriceTouched(true); setPriceRange(v); }}
+            />
+          </div>
         )}
       </div>
 
-      {loading ? <Spinner /> : cars.length === 0 ? <Empty text="Không tìm thấy xe phù hợp" /> : (
+      {loading ? <Spinner /> : visibleCars.length === 0 ? <Empty text="Không tìm thấy xe phù hợp" /> : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {cars.map((c) => (
+          {visibleCars.map((c) => (
             <div key={c.id} className="overflow-hidden rounded-xl border bg-white shadow-sm">
               <div className="relative aspect-[16/10] bg-gray-100">
                 {(c as any).image_url ? (
@@ -194,6 +210,55 @@ function EditCarModal({ car, onClose, onSaved }: { car: any; onClose: () => void
         <button onClick={save} disabled={saving || uploading} className="btn-primary">{saving ? 'Đang lưu...' : 'Lưu'}</button>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Thanh kéo chọn khoảng giá (2 đầu min/max). Dùng 2 input[type=range] chồng lên cùng 1 track,
+ * mỗi input chỉ điều khiển nửa thanh của nó để tránh việc kéo tay này vượt qua tay kia.
+ */
+function PriceRangeSlider({ min, max, value, onChange }: {
+  min: number; max: number; value: [number, number]; onChange: (v: [number, number]) => void;
+}) {
+  const [lo, hi] = value;
+  const span = Math.max(1, max - min);
+  const loPct = ((lo - min) / span) * 100;
+  const hiPct = ((hi - min) / span) * 100;
+
+  function setLo(v: number) { onChange([Math.min(v, hi), hi]); }
+  function setHi(v: number) { onChange([lo, Math.max(v, lo)]); }
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs text-gray-600">
+        <span>Khoảng giá: <b className="text-brand-700">{formatVnd(lo)}</b> — <b className="text-brand-700">{formatVnd(hi)}</b></span>
+      </div>
+      <div className="relative h-6">
+        {/* Track nền */}
+        <div className="absolute top-1/2 h-1.5 w-full -translate-y-1/2 rounded-full bg-gray-200" />
+        {/* Track đoạn đã chọn */}
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-600"
+          style={{ left: `${loPct}%`, width: `${Math.max(0, hiPct - loPct)}%` }}
+        />
+        <input
+          type="range" min={min} max={max} step={1_000_000} value={lo}
+          onChange={(e) => setLo(Number(e.target.value))}
+          className="range-thumb pointer-events-none absolute top-1/2 h-1.5 w-full -translate-y-1/2 appearance-none bg-transparent"
+          style={{ zIndex: lo > min + span * 0.85 ? 5 : 3 }}
+        />
+        <input
+          type="range" min={min} max={max} step={1_000_000} value={hi}
+          onChange={(e) => setHi(Number(e.target.value))}
+          className="range-thumb pointer-events-none absolute top-1/2 h-1.5 w-full -translate-y-1/2 appearance-none bg-transparent"
+          style={{ zIndex: 4 }}
+        />
+      </div>
+      <div className="flex justify-between text-[11px] text-gray-400">
+        <span>{formatVnd(min)}</span>
+        <span>{formatVnd(max)}</span>
+      </div>
+    </div>
   );
 }
 
