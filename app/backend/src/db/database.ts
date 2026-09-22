@@ -128,8 +128,8 @@ function runLightMigrations(): void {
   ]);
 
   backfillLeadCodesAndStatus();
-  addMissingColumns('test_drive_bookings', [['customer_email', 'TEXT']]);
-  addMissingColumns('reminders', [['booking_id', 'TEXT']]);
+  addMissingColumns('test_drive_bookings', [['customer_email', 'TEXT'], ['lead_id', 'TEXT']]);
+  addMissingColumns('reminders', [['booking_id', 'TEXT'], ['lead_id', 'TEXT']]);
 
   // Sau khi bỏ bước xác nhận/từ chối, chuyển lịch cũ đang chờ sang Đã xác nhận để không bị kẹt UI.
   try {
