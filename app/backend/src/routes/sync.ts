@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
-import { get, run, transaction, persist } from '../db/database';
+import { get, run, transaction, persist, nextCustomerCode } from '../db/database';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -49,19 +49,37 @@ router.post('/', (req, res) => {
 });
 
 function upsertLead(id: string, p: any, updatedAt: string, userId: string) {
-  const existing = get<any>('SELECT updated_at FROM leads WHERE id = ?', [id]);
+  const existing = get<any>('SELECT updated_at, customer_code FROM leads WHERE id = ?', [id]);
   if (existing) {
     // Last-Write-Wins: chỉ ghi đè nếu bản gửi lên mới hơn
     if (new Date(updatedAt).getTime() <= new Date(existing.updated_at).getTime()) return;
     run(
-      `UPDATE leads SET full_name=?,phone=?,car_model_id=?,source=?,status_detail=?,updated_at=?,sync_status='SYNCED' WHERE id=?`,
-      [p.full_name, p.phone, p.car_model_id || null, p.source, p.status_detail || 'Đang tìm hiểu', updatedAt, id]
+      `UPDATE leads SET full_name=?,phone=?,email=?,car_model_id=?,source=?,status_detail=?,
+         address=?,budget=?,payment_method=?,interest_level=?,source_detail=?,note=?,
+         updated_at=?,sync_status='SYNCED' WHERE id=?`,
+      [
+        p.full_name, p.phone, p.email || null, p.car_model_id || null, p.source, p.status_detail || 'Đang tìm hiểu',
+        p.address || null, p.budget || null, p.payment_method || null, p.interest_level || null, p.source_detail || null, p.note || null,
+        updatedAt, id,
+      ]
     );
+    // Nếu lead cũ chưa có mã khách hàng (tạo offline trước đây), bổ sung mã khi đồng bộ.
+    if (!existing.customer_code) {
+      run('UPDATE leads SET customer_code = ? WHERE id = ? AND (customer_code IS NULL OR customer_code = "")', [nextCustomerCode(), id]);
+    }
   } else {
+    const assignedSalesId = p.assigned_sales_id || userId;
     run(
-      `INSERT INTO leads (id,full_name,phone,car_model_id,source,status_detail,assigned_sales_id,created_by,sync_status,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, p.full_name, p.phone, p.car_model_id || null, p.source, p.status_detail || 'Đang tìm hiểu', p.assigned_sales_id || userId, userId, 'SYNCED', p.created_at || updatedAt, updatedAt]
+      `INSERT INTO leads (id,customer_code,full_name,phone,email,car_model_id,source,status_detail,lead_status,
+         address,budget,payment_method,interest_level,source_detail,note,
+         assigned_sales_id,created_by,sync_status,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        id, nextCustomerCode(), p.full_name, p.phone, p.email || null, p.car_model_id || null, p.source, p.status_detail || 'Đang tìm hiểu',
+        assignedSalesId ? 'assigned' : 'new',
+        p.address || null, p.budget || null, p.payment_method || null, p.interest_level || null, p.source_detail || null, p.note || null,
+        assignedSalesId, userId, 'SYNCED', p.created_at || updatedAt, updatedAt,
+      ]
     );
   }
 }
