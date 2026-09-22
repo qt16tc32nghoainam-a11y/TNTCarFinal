@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS lost_reasons (
 -- Lead (FR-01)
 CREATE TABLE IF NOT EXISTS leads (
   id TEXT PRIMARY KEY,
+  customer_code TEXT,            -- mã khách hàng dễ đọc, tự sinh (VD: KH000001)
   server_id INTEGER,
   full_name TEXT NOT NULL,
   phone TEXT NOT NULL,
@@ -84,6 +85,7 @@ CREATE TABLE IF NOT EXISTS leads (
   car_model_id TEXT,
   source TEXT NOT NULL,
   status_detail TEXT NOT NULL DEFAULT 'Đang tìm hiểu',
+  lead_status TEXT NOT NULL DEFAULT 'new',  -- new/assigned/won/lost/deleted (đồng bộ theo status_detail)
   lost_reason_id TEXT,
   lost_reason_note TEXT,
   flag_duplicate_phone INTEGER NOT NULL DEFAULT 0,

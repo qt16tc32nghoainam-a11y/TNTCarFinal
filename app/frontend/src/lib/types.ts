@@ -12,6 +12,8 @@ export interface User {
 
 export interface Lead {
   id: string;
+  customer_code?: string | null;
+  lead_status?: string;
   full_name: string;
   phone: string;
   email?: string | null;

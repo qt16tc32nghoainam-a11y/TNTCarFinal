@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
-import { all, get, run, persist } from '../db/database';
+import { all, get, run, persist, nextCustomerCode } from '../db/database';
 
 const router = Router();
 const nowIso = () => new Date().toISOString();
@@ -60,10 +60,11 @@ router.post('/requests', (req, res) => {
   const randomSale = salesList[Math.floor(Math.random() * salesList.length)].id;
 
   const leadId = uuid();
+  const customerCode = nextCustomerCode();
   run(
-    `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,request_type,address,note,source_detail,assigned_sales_id,created_by,sync_status,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [leadId, full_name, phone, email || null, car_model_id || null, 'Website', 'Đang tìm hiểu', request_type, address || null, note || null, 'Website', randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
+    `INSERT INTO leads (id,customer_code,full_name,phone,email,car_model_id,source,status_detail,lead_status,request_type,address,note,source_detail,assigned_sales_id,created_by,sync_status,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [leadId, customerCode, full_name, phone, email || null, car_model_id || null, 'Website', 'Đang tìm hiểu', 'assigned', request_type, address || null, note || null, 'Website', randomSale, randomSale, 'SYNCED', nowIso(), nowIso()]
   );
   // Thông báo in-app cho Sales được gán (FR-09 / US-02.3)
   run(

@@ -81,6 +81,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     loadNotis();
   }
 
+  /** Bấm vào 1 thông báo: đánh dấu đã đọc, đóng dropdown, và nhảy tới nơi liên quan. */
+  async function openNoti(n: any) {
+    setShowNoti(false);
+    if (!n.is_read) {
+      api.post(`/notifications/${n.id}/read`).catch(() => {});
+      setNotis((cur) => cur.map((x) => (x.id === n.id ? { ...x, is_read: 1 } : x)));
+      setUnread((u) => Math.max(0, u - 1));
+    }
+    if (n.lead_id) {
+      // Mọi loại thông báo (lead mới, nhắc hẹn, nhắc lái thử) đều gắn với 1 Lead cụ thể.
+      nav(`/leads/${n.lead_id}`);
+    } else if (n.type === 'test_drive') {
+      nav('/test-drives');
+    } else if (n.type === 'reminder') {
+      nav('/reminders');
+    } else if (n.ref_type === 'lead' && n.ref_id) {
+      nav(`/leads/${n.ref_id}`);
+    }
+  }
+
   const items = navByRole[user?.role || 'Sales'] || [];
 
   // Mobile: 4 mục đầu + nút "Thêm" (mở menu đầy đủ) nếu nhiều hơn 5
@@ -140,10 +160,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <div className="max-h-80 overflow-auto">
                     {notis.length === 0 ? <div className="p-4 text-center text-xs text-gray-400">Chưa có thông báo</div> :
                       notis.map((n) => (
-                        <div key={n.id} className={`border-b px-3 py-2 text-sm ${n.is_read ? 'opacity-60' : 'bg-brand-50'}`}>
+                        <button
+                          key={n.id}
+                          onClick={() => openNoti(n)}
+                          className={`block w-full border-b px-3 py-2 text-left text-sm transition hover:bg-gray-50 ${n.is_read ? 'opacity-60' : 'bg-brand-50'}`}
+                        >
                           <div className="font-medium">{n.title}</div>
                           <div className="text-xs text-gray-600">{n.body}</div>
-                        </div>
+                        </button>
                       ))}
                   </div>
                 </div>

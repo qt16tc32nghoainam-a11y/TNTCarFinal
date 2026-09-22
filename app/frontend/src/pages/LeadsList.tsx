@@ -3,43 +3,68 @@ import { Link } from 'react-router-dom';
 import { v4 as uuid } from '../lib/uuid';
 import { api } from '../lib/api';
 import { enqueue, cacheLeads, getCachedLeads, getOutboxLeads, cacheMeta, getCachedMeta } from '../lib/db';
-import { runSync } from '../lib/sync';
 import { useAuth } from '../lib/auth';
 import { Lead, PROCESSING_STATUSES } from '../lib/types';
 import { Modal, Spinner, Empty, Field } from '../components/ui';
 import { formatDate, statusColor } from '../lib/format';
 
+const LEAD_STATUS_LABEL: Record<string, string> = {
+  new: 'Mới', assigned: 'Đã gán', won: 'Thành công', lost: 'Thất bại', deleted: 'Đã xóa',
+};
+const LEAD_STATUS_COLOR: Record<string, string> = {
+  new: 'bg-gray-100 text-gray-600',
+  assigned: 'bg-blue-100 text-blue-700',
+  won: 'bg-green-100 text-green-700',
+  lost: 'bg-red-100 text-red-700',
+  deleted: 'bg-gray-200 text-gray-500',
+};
+
 export default function LeadsList() {
   const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [source, setSource] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [sources, setSources] = useState<string[]>([]);
   const [cars, setCars] = useState<any[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  const [dupGroups, setDupGroups] = useState<any[]>([]);
-  const [showDup, setShowDup] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [offline, setOffline] = useState(false);
 
-  async function load() {
+  async function load(targetPage = page) {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (q) params.set('q', q);
       if (status) params.set('status', status);
       if (source) params.set('source', source);
-      const data = await api.get<Lead[]>('/leads?' + params.toString());
-      setLeads(data);
+      if (fromDate) params.set('from_date', fromDate);
+      if (toDate) params.set('to_date', toDate);
+      params.set('page', String(targetPage));
+      params.set('pageSize', String(pageSize));
+      const data = await api.get<{ items: Lead[]; total: number; totalPages: number; page: number }>('/leads?' + params.toString());
+      setLeads(data.items);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
+      setPage(data.page);
       setOffline(false);
-      // Lưu bản sao để xem offline (chỉ cache khi tải toàn bộ, không cache khi đang lọc)
-      if (!q && !status && !source) cacheLeads(data);
+      // Lưu bản sao để xem offline (chỉ cache khi tải toàn bộ không lọc, trang 1)
+      if (!q && !status && !source && !fromDate && !toDate && targetPage === 1) cacheLeads(data.items);
     } catch {
       // Offline: đọc từ cache + gộp các Lead tạo offline chưa đồng bộ
       const [cached, outbox] = await Promise.all([getCachedLeads(), getOutboxLeads()]);
-      const merged = [...outbox, ...cached];
-      setLeads(applyFilters(merged));
+      const merged = applyFilters([...outbox, ...cached]);
+      setLeads(merged);
+      setTotal(merged.length);
+      setTotalPages(1);
+      setPage(1);
       setOffline(true);
     } finally {
       setLoading(false);
@@ -66,13 +91,9 @@ export default function LeadsList() {
       .catch(() => { getCachedMeta('car-models').then(setCars); });
   }, []);
 
-  useEffect(() => { load(); }, [status, source]);
+  useEffect(() => { load(1); }, [status, source, fromDate, toDate]);
 
-  async function loadDuplicates() {
-    const d = await api.get<any[]>('/leads/duplicates');
-    setDupGroups(d);
-    setShowDup(true);
-  }
+  function search() { load(1); }
 
   return (
     <div>
@@ -82,14 +103,14 @@ export default function LeadsList() {
           {offline && <span className="badge bg-amber-100 text-amber-700">Đang xem dữ liệu offline</span>}
         </div>
         <div className="flex gap-2">
-          <button onClick={loadDuplicates} className="btn-secondary">Lead trùng</button>
+          <button onClick={() => setShowImport(true)} className="btn-secondary">Nhập từ Excel</button>
           <button onClick={() => setShowCreate(true)} className="btn-primary">+ Tạo Lead</button>
         </div>
       </div>
 
-      <div className="card mb-4 flex flex-wrap gap-2">
-        <input className="input flex-1 min-w-[180px]" placeholder="Tìm theo tên hoặc SĐT..."
-          value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+      <div className="card mb-4 flex flex-wrap items-end gap-2">
+        <input className="input flex-1 min-w-[180px]" placeholder="Tìm theo tên, SĐT hoặc mã khách hàng..."
+          value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} />
         <select className="input w-auto" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">Tất cả trạng thái</option>
           {[...PROCESSING_STATUSES, 'Thành công', 'Lead thất bại'].map((s) => <option key={s}>{s}</option>)}
@@ -98,52 +119,76 @@ export default function LeadsList() {
           <option value="">Tất cả nguồn</option>
           {sources.map((s) => <option key={s}>{s}</option>)}
         </select>
-        <button onClick={load} className="btn-secondary">Lọc</button>
+        <div>
+          <label className="label">Từ ngày</label>
+          <input type="date" className="input w-auto" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Đến ngày</label>
+          <input type="date" className="input w-auto" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        </div>
+        <button onClick={search} className="btn-secondary">Lọc</button>
       </div>
 
       {loading ? <Spinner /> : leads.length === 0 ? <Empty text="Chưa có Lead nào" /> : (
-        <div className="overflow-x-auto rounded-xl border bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr>
-                <th className="p-3">Khách hàng</th>
-                <th className="p-3">SĐT</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Xe</th>
-                <th className="p-3">Nguồn</th>
-                <th className="p-3">Loại yêu cầu</th>
-                <th className="p-3">Trạng thái</th>
-                {user?.role !== 'Sales' && <th className="p-3">Sales</th>}
-                <th className="p-3">Cập nhật</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((l) => (
-                <tr key={l.id} className="border-t hover:bg-gray-50">
-                  <td className="p-3">
-                    <Link to={`/leads/${l.id}`} className="font-medium text-brand-700 hover:underline">{l.full_name}</Link>
-                    {!!l.flag_duplicate_phone && <span className="ml-1 badge bg-amber-100 text-amber-700">trùng</span>}
-                    {!!(l as any)._pendingSync && <span className="ml-1 badge bg-blue-100 text-blue-700">chờ đồng bộ</span>}
-                  </td>
-                  <td className="p-3">{l.phone}</td>
-                  <td className="p-3">
-                    {l.email ? <span className="text-gray-600">{l.email}</span> : <span className="badge bg-amber-100 text-amber-700">Thiếu email</span>}
-                  </td>
-                  <td className="p-3">{l.car_name || '-'}</td>
-                  <td className="p-3 text-gray-500">{l.source}</td>
-                  <td className="p-3 text-gray-500">{(l as any).request_type ? <span className="badge bg-indigo-50 text-indigo-700">{(l as any).request_type}</span> : '-'}</td>
-                  <td className="p-3"><span className={`badge ${statusColor(l.status_detail)}`}>{l.status_detail}</span></td>
-                  {user?.role !== 'Sales' && <td className="p-3 text-gray-500">{l.sales_name}</td>}
-                  <td className="p-3 text-xs text-gray-400">{formatDate(l.updated_at)}</td>
+        <>
+          <div className="overflow-x-auto rounded-xl border bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="p-3">Mã KH</th>
+                  <th className="p-3">Khách hàng</th>
+                  <th className="p-3">SĐT</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3">Xe</th>
+                  <th className="p-3">Nguồn</th>
+                  <th className="p-3">Loại yêu cầu</th>
+                  <th className="p-3">Trạng thái</th>
+                  <th className="p-3">Lead Status</th>
+                  {user?.role !== 'Sales' && <th className="p-3">Sales</th>}
+                  <th className="p-3">Ngày tạo</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {leads.map((l) => (
+                  <tr key={l.id} className="border-t hover:bg-gray-50">
+                    <td className="p-3 text-xs text-gray-500">{l.customer_code || '-'}</td>
+                    <td className="p-3">
+                      <Link to={`/leads/${l.id}`} className="font-medium text-brand-700 hover:underline">{l.full_name}</Link>
+                      {!!(l as any)._pendingSync && <span className="ml-1 badge bg-blue-100 text-blue-700">chờ đồng bộ</span>}
+                    </td>
+                    <td className="p-3">{l.phone}</td>
+                    <td className="p-3">
+                      {l.email ? <span className="text-gray-600">{l.email}</span> : <span className="badge bg-amber-100 text-amber-700">Thiếu email</span>}
+                    </td>
+                    <td className="p-3">{l.car_name || '-'}</td>
+                    <td className="p-3 text-gray-500">{l.source}</td>
+                    <td className="p-3 text-gray-500">{(l as any).request_type ? <span className="badge bg-indigo-50 text-indigo-700">{(l as any).request_type}</span> : '-'}</td>
+                    <td className="p-3"><span className={`badge ${statusColor(l.status_detail)}`}>{l.status_detail}</span></td>
+                    <td className="p-3"><span className={`badge ${LEAD_STATUS_COLOR[l.lead_status || 'new']}`}>{LEAD_STATUS_LABEL[l.lead_status || 'new']}</span></td>
+                    {user?.role !== 'Sales' && <td className="p-3 text-gray-500">{l.sales_name}</td>}
+                    <td className="p-3 text-xs text-gray-400">{formatDate(l.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Phân trang */}
+          {!offline && totalPages > 1 && (
+            <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+              <span>Trang {page}/{totalPages} · Tổng {total} Lead</span>
+              <div className="flex gap-1">
+                <button disabled={page <= 1} onClick={() => load(page - 1)} className="btn-secondary px-3 py-1 disabled:opacity-40">← Trước</button>
+                <button disabled={page >= totalPages} onClick={() => load(page + 1)} className="btn-secondary px-3 py-1 disabled:opacity-40">Sau →</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {showCreate && <CreateLeadModal sources={sources} cars={cars} onClose={() => setShowCreate(false)} onCreated={load} />}
-      {showDup && <DuplicatesModal groups={dupGroups} onClose={() => setShowDup(false)} onMerged={() => { setShowDup(false); load(); }} />}
+      {showCreate && <CreateLeadModal sources={sources} cars={cars} onClose={() => setShowCreate(false)} onCreated={() => load(1)} />}
+      {showImport && <ImportExcelModal onClose={() => setShowImport(false)} onImported={() => load(1)} />}
     </div>
   );
 }
@@ -167,10 +212,7 @@ function CreateLeadModal({ sources, cars, onClose, onCreated }: any) {
     const id = uuid();
     try {
       if (navigator.onLine) {
-        const res = await api.post<any>('/leads', { id, ...form });
-        if (res.duplicate_warning) {
-          alert('Cảnh báo: SĐT này đã tồn tại trong Lead của bạn. Lead vẫn được tạo, bạn có thể gộp sau ở mục "Lead trùng".');
-        }
+        await api.post<any>('/leads', { id, ...form });
       } else {
         // Offline: lưu vào outbox
         await enqueue({ id, entity_type: 'lead', payload: { ...form, status_detail: 'Đang tìm hiểu' }, updated_at: new Date().toISOString() });
@@ -230,35 +272,76 @@ function CreateLeadModal({ sources, cars, onClose, onCreated }: any) {
   );
 }
 
-function DuplicatesModal({ groups, onClose, onMerged }: any) {
-  const [selected, setSelected] = useState<Record<string, string>>({}); // phone -> keep_id
+function ImportExcelModal({ onClose, onImported }: any) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [err, setErr] = useState('');
 
-  async function merge(group: any) {
-    const keepId = selected[group.phone] || group.leads[0].id;
-    const mergeIds = group.leads.map((l: any) => l.id).filter((id: string) => id !== keepId);
-    await api.post('/leads/merge', { keep_id: keepId, merge_ids: mergeIds });
-    onMerged();
+  async function downloadTemplate() {
+    setDownloading(true);
+    setErr('');
+    try {
+      await api.download('/leads/import/template', 'mau-nhap-lead.xlsx');
+    } catch (e: any) {
+      setErr(e.message || 'Không tải được file mẫu');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function doImport() {
+    if (!file) return setErr('Vui lòng chọn file Excel (.xlsx)');
+    setErr('');
+    setUploading(true);
+    setResult(null);
+    try {
+      const res = await api.upload<any>('/leads/import', file);
+      setResult(res);
+      if (res.created_count > 0) onImported();
+    } catch (e: any) {
+      setErr(e.message || 'Nhập file thất bại');
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
-    <Modal open onClose={onClose} title="Lead trùng số điện thoại">
-      {groups.length === 0 ? <Empty text="Không có Lead trùng" /> : (
-        <div className="space-y-4">
-          {groups.map((g: any) => (
-            <div key={g.phone} className="rounded-lg border p-3">
-              <div className="mb-2 text-sm font-medium">SĐT: {g.phone} ({g.leads.length} Lead)</div>
-              {g.leads.map((l: any) => (
-                <label key={l.id} className="mb-1 flex items-center gap-2 text-sm">
-                  <input type="radio" name={g.phone} defaultChecked={g.leads[0].id === l.id}
-                    onChange={() => setSelected({ ...selected, [g.phone]: l.id })} />
-                  <span>{l.full_name} — {l.status_detail}</span>
-                </label>
-              ))}
-              <button onClick={() => merge(g)} className="btn-primary mt-2 text-xs">Gộp (giữ Lead đã chọn)</button>
+    <Modal open onClose={onClose} title="Nhập Lead từ Excel">
+      <div className="mb-3 rounded bg-brand-50 p-3 text-sm text-brand-700">
+        Tải file mẫu, điền thông tin khách hàng theo đúng cột, rồi chọn file để nhập lên hệ thống.
+        Các dòng lỗi sẽ được báo rõ, dòng hợp lệ vẫn được tạo bình thường.
+      </div>
+      <button onClick={downloadTemplate} disabled={downloading} className="btn-secondary mb-4 w-full">
+        {downloading ? 'Đang tải...' : '⬇ Tải file mẫu (.xlsx)'}
+      </button>
+
+      <Field label="Chọn file đã điền (.xlsx)">
+        <input type="file" accept=".xlsx" className="input" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+      </Field>
+
+      {err && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{err}</div>}
+
+      {result && (
+        <div className="mb-3 rounded border p-3 text-sm">
+          <div className="mb-1 font-medium">
+            Đã tạo <span className="text-green-700">{result.created_count}</span> Lead
+            {result.error_count > 0 && <> · <span className="text-red-600">{result.error_count} dòng lỗi</span></>}
+            {' '}(tổng {result.total_rows} dòng dữ liệu)
+          </div>
+          {result.errors?.length > 0 && (
+            <div className="mt-2 max-h-32 overflow-auto rounded bg-red-50 p-2 text-xs text-red-700">
+              {result.errors.map((e: any) => <div key={e.row}>Dòng {e.row}: {e.error}</div>)}
             </div>
-          ))}
+          )}
         </div>
       )}
+
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="btn-secondary">Đóng</button>
+        <button onClick={doImport} disabled={uploading || !file} className="btn-primary">{uploading ? 'Đang nhập...' : 'Nhập file'}</button>
+      </div>
     </Modal>
   );
 }

@@ -5,10 +5,23 @@ import { authenticate } from '../middleware/auth';
 const router = Router();
 router.use(authenticate);
 
-/** GET /api/notifications — thông báo của tôi (mới nhất trước). */
+/**
+ * GET /api/notifications — thông báo của tôi (mới nhất trước).
+ * Kèm `lead_id` để frontend điều hướng thẳng tới Lead liên quan khi bấm vào thông báo,
+ * bất kể ref_type là lead/reminder/booking (mọi loại đều gắn với 1 Lead cụ thể).
+ */
 router.get('/', (req, res) => {
-  const rows = all(
-    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+  const rows = all<any>(
+    `SELECT n.*,
+       CASE
+         WHEN n.ref_type = 'lead' THEN n.ref_id
+         WHEN n.ref_type = 'reminder' THEN (SELECT lead_id FROM reminders WHERE id = n.ref_id)
+         WHEN n.ref_type = 'booking' THEN (SELECT lead_id FROM test_drive_bookings WHERE id = n.ref_id)
+         ELSE NULL
+       END AS lead_id
+     FROM notifications n
+     WHERE n.user_id = ?
+     ORDER BY n.created_at DESC LIMIT 50`,
     [req.user!.id]
   );
   const unread = all('SELECT COUNT(*) c FROM notifications WHERE user_id = ? AND is_read = 0', [req.user!.id])[0] as any;

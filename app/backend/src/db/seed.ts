@@ -4,7 +4,7 @@
  */
 import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
-import { initDb, run, persist, all } from './database';
+import { initDb, run, persist, all, backfillLeadCodesAndStatus } from './database';
 
 const now = () => new Date().toISOString();
 function daysFromNow(d: number): string {
@@ -187,18 +187,17 @@ async function seed() {
       ]
     );
   }
-  // Một cặp Lead trùng SĐT của cùng sale1 để test gộp (US-01.7, BR-01)
-  const dupPhone = '0987222333';
-  const dupA = uuid();
-  const dupB = uuid();
-  for (const [id, name] of [[dupA, 'Khách Trùng A'], [dupB, 'Khách Trùng B']]) {
+  // 2 Lead mẫu thêm (không còn minh họa trùng SĐT — tính năng check trùng đã bỏ)
+  const extraA = uuid();
+  const extraB = uuid();
+  for (const [id, name, phone] of [[extraA, 'Khách Mẫu A', '0987222333'], [extraB, 'Khách Mẫu B', '0987222334']]) {
     run(
       `INSERT INTO leads (id,full_name,phone,car_model_id,source,status_detail,flag_duplicate_phone,assigned_sales_id,created_by,sync_status,created_at,updated_at)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, name, dupPhone, carIds[0], 'Facebook Ads', 'Đang tìm hiểu', 1, sale1, sale1, 'SYNCED', now(), now()]
+      [id, name, phone, carIds[0], 'Facebook Ads', 'Đang tìm hiểu', 0, sale1, sale1, 'SYNCED', now(), now()]
     );
   }
-  leadIds.push(dupA, dupB);
+  leadIds.push(extraA, extraB);
 
   // ---------- Interactions (nhật ký chăm sóc) ----------
   const actTypes = ['Gọi điện', 'Nhắn tin/Zalo', 'Gặp trực tiếp', 'Lịch hẹn', 'Khác'];
@@ -344,6 +343,10 @@ async function seed() {
     contracts: all('SELECT COUNT(*) c FROM contracts')[0],
     slots: all('SELECT COUNT(*) c FROM slots')[0],
   };
+  // Sinh mã khách hàng + đồng bộ lead_status cho toàn bộ Lead vừa seed.
+  backfillLeadCodesAndStatus();
+  persist();
+
   console.log('Seed hoàn tất. Thống kê:', JSON.stringify(counts));
   console.log('\nTài khoản đăng nhập (mật khẩu: 123456):');
   console.log('  Admin:    admin@tntcar.vn');

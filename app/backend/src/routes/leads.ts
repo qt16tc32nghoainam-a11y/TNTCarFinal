@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import multer from 'multer';
+import ExcelJS from 'exceljs';
 import { v4 as uuid } from 'uuid';
-import { all, get, run, transaction, persist } from '../db/database';
+import { all, get, run, transaction, persist, nextCustomerCode } from '../db/database';
 import { authenticate, requireRole } from '../middleware/auth';
 import { getVisibleSalesIds } from '../utils/scope';
 import { LEAD_PROCESSING_STATUSES, LEAD_SOURCES } from '../types';
@@ -8,12 +10,40 @@ import { LEAD_PROCESSING_STATUSES, LEAD_SOURCES } from '../types';
 const router = Router();
 router.use(authenticate);
 
+// Giới hạn 5MB, chỉ nhận .xlsx, lưu tạm trong RAM (không viết ra đĩa).
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const okExt = /\.xlsx$/i.test(file.originalname);
+    const okMime = file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (okExt || okMime) return cb(null, true);
+    cb(new Error('Chỉ hỗ trợ file .xlsx'));
+  },
+});
+
+const IMPORT_HEADERS = ['Họ tên', 'Số điện thoại', 'Email', 'Xe quan tâm', 'Nguồn Lead', 'Khu vực / Địa chỉ', 'Ngân sách dự kiến', 'Hình thức thanh toán', 'Mức độ quan tâm', 'Ghi chú'];
+
 const nowIso = () => new Date().toISOString();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** GET /api/leads — danh sách Lead (lọc theo trạng thái/nguồn/đồng bộ, tìm kiếm). */
+/** Suy ra lead_status (new/assigned/won/lost/deleted) từ trạng thái xử lý hiện tại. */
+function deriveLeadStatus(statusDetail: string, isArchived: boolean, assignedSalesId: string | null): string {
+  if (isArchived) return 'deleted';
+  if (statusDetail === 'Thành công') return 'won';
+  if (statusDetail === 'Lead thất bại') return 'lost';
+  return assignedSalesId ? 'assigned' : 'new';
+}
+
+/**
+ * GET /api/leads — danh sách Lead (lọc theo trạng thái/nguồn/đồng bộ, tìm kiếm, ngày tạo), có phân trang.
+ * Query: page (mặc định 1), pageSize (mặc định 20), from_date/to_date (yyyy-mm-dd, theo created_at).
+ * Trả về { items, total, page, pageSize, totalPages } để frontend lật trang.
+ */
 router.get('/', (req, res) => {
-  const { status, source, sync, q, includeArchived } = req.query as Record<string, string>;
+  const { status, source, sync, q, includeArchived, from_date, to_date, lead_status } = req.query as Record<string, string>;
+  const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+  const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string, 10) || 20));
   const conds: string[] = [];
   const params: any[] = [];
 
@@ -25,43 +55,142 @@ router.get('/', (req, res) => {
   }
   if (!includeArchived) conds.push('l.is_archived = 0');
   if (status) { conds.push('l.status_detail = ?'); params.push(status); }
+  if (lead_status) { conds.push('l.lead_status = ?'); params.push(lead_status); }
   if (source) { conds.push('l.source = ?'); params.push(source); }
   if (sync) { conds.push('l.sync_status = ?'); params.push(sync); }
-  if (q) { conds.push('(l.full_name LIKE ? OR l.phone LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
+  if (q) { conds.push('(l.full_name LIKE ? OR l.phone LIKE ? OR l.customer_code LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  if (from_date) { conds.push('l.created_at >= ?'); params.push(from_date + 'T00:00:00.000Z'); }
+  if (to_date) { conds.push('l.created_at <= ?'); params.push(to_date + 'T23:59:59.999Z'); }
 
   const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+  const totalRow = get<{ c: number }>(`SELECT COUNT(*) c FROM leads l ${where}`, params);
+  const total = totalRow?.c || 0;
   const rows = all(
     `SELECT l.*, c.name AS car_name, c.brand AS car_brand, u.full_name AS sales_name
      FROM leads l
      LEFT JOIN car_models c ON c.id = l.car_model_id
      LEFT JOIN users u ON u.id = l.assigned_sales_id
      ${where}
-     ORDER BY l.updated_at DESC`,
-    params
+     ORDER BY l.updated_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, (page - 1) * pageSize]
   );
-  res.json(rows);
+  res.json({ items: rows, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) });
 });
 
 /** GET /api/leads/sources — danh sách nguồn Lead cố định. */
 router.get('/meta/sources', (_req, res) => res.json(LEAD_SOURCES));
 
-/** GET /api/leads/duplicates — các nhóm Lead trùng SĐT trong phạm vi 1 Sales (US-01.7). */
-router.get('/duplicates', (req, res) => {
-  const visible = getVisibleSalesIds(req.user!);
-  const salesFilter = visible ? `AND assigned_sales_id IN (${visible.map(() => '?').join(',')})` : '';
-  const params = visible ? visible : [];
-  const groups = all<any>(
-    `SELECT phone, assigned_sales_id, COUNT(*) AS cnt
-     FROM leads WHERE is_archived = 0 ${salesFilter}
-     GROUP BY phone, assigned_sales_id HAVING cnt > 1`,
-    params
-  );
-  const result = groups.map((g) => ({
-    phone: g.phone,
-    assigned_sales_id: g.assigned_sales_id,
-    leads: all(`SELECT id, full_name, phone, status_detail, created_at FROM leads WHERE phone = ? AND assigned_sales_id = ? AND is_archived = 0`, [g.phone, g.assigned_sales_id]),
-  }));
-  res.json(result);
+/** GET /api/leads/import/template — tải file Excel mẫu để nhập Lead hàng loạt. */
+router.get('/import/template', async (_req, res) => {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Lead');
+  sheet.addRow(IMPORT_HEADERS);
+  sheet.getRow(1).font = { bold: true };
+  sheet.columns = [
+    { width: 22 }, { width: 16 }, { width: 26 }, { width: 22 }, { width: 16 },
+    { width: 24 }, { width: 20 }, { width: 18 }, { width: 16 }, { width: 30 },
+  ];
+  // 1 dòng ví dụ để người dùng biết cách điền
+  sheet.addRow(['Nguyễn Văn A', '0912345678', 'nguyenvana@email.com', 'Toyota Vios G', 'Sale tự nhập', 'Quận 1, TP.HCM', '600 - 800 triệu', 'Trả góp', 'Nóng', 'Khách quan tâm bản cao cấp']);
+  sheet.getRow(2).font = { italic: true, color: { argb: 'FF999999' } };
+
+  const buf = await wb.xlsx.writeBuffer();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="mau-nhap-lead.xlsx"');
+  res.send(Buffer.from(buf));
+});
+
+/**
+ * POST /api/leads/import — nhập Lead hàng loạt từ file Excel (.xlsx) theo mẫu ở trên.
+ * Không kiểm tra trùng SĐT/email/tên. Mỗi dòng lỗi được báo rõ, các dòng hợp lệ vẫn được tạo.
+ */
+router.post('/import', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Vui lòng chọn file Excel (.xlsx)' });
+
+  let wb: ExcelJS.Workbook;
+  try {
+    wb = new ExcelJS.Workbook();
+    // Ép kiểu tại 1 điểm biên: xung đột generic Buffer<T> giữa @types/node và type định nghĩa của exceljs,
+    // dữ liệu thực tế vẫn là Buffer hợp lệ từ multer (memoryStorage).
+    await wb.xlsx.load(req.file.buffer as any);
+  } catch {
+    return res.status(400).json({ error: 'File không đúng định dạng Excel (.xlsx)' });
+  }
+  const sheet = wb.worksheets[0];
+  if (!sheet) return res.status(400).json({ error: 'File không có dữ liệu' });
+
+  const created: { row: number; customer_code: string; full_name: string }[] = [];
+  const errors: { row: number; error: string }[] = [];
+  let rowIndex = 0;
+
+  sheet.eachRow((row, rowNumber) => {
+    rowIndex = rowNumber;
+    if (rowNumber === 1) return; // bỏ dòng tiêu đề
+
+    const cell = (i: number) => {
+      const v = row.getCell(i).value;
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'object' && 'text' in (v as any)) return String((v as any).text).trim(); // rich text
+      if (typeof v === 'object' && 'result' in (v as any)) return String((v as any).result).trim(); // formula
+      return String(v).trim();
+    };
+
+    const full_name = cell(1);
+    const phone = cell(2);
+    const email = cell(3);
+    const carName = cell(4);
+    const source = cell(5) || 'Sale tự nhập';
+    const address = cell(6);
+    const budget = cell(7);
+    const payment_method = cell(8);
+    const interest_level = cell(9);
+    const note = cell(10);
+
+    if (!full_name && !phone && !email) return; // dòng trống, bỏ qua âm thầm
+
+    if (!full_name) { errors.push({ row: rowNumber, error: 'Thiếu Họ tên' }); return; }
+    if (!phone) { errors.push({ row: rowNumber, error: 'Thiếu Số điện thoại' }); return; }
+    if (!email) { errors.push({ row: rowNumber, error: 'Thiếu Email' }); return; }
+    if (!EMAIL_RE.test(email)) { errors.push({ row: rowNumber, error: `Email không hợp lệ: ${email}` }); return; }
+    if (!LEAD_SOURCES.includes(source)) { errors.push({ row: rowNumber, error: `Nguồn Lead không hợp lệ: ${source}` }); return; }
+
+    // Tìm xe theo tên gần đúng (không bắt buộc khớp tuyệt đối, không lỗi nếu không tìm thấy)
+    let carModelId: string | null = null;
+    if (carName) {
+      const car = get<any>('SELECT id FROM car_models WHERE (brand || " " || name) LIKE ? OR name LIKE ?', [`%${carName}%`, `%${carName}%`]);
+      carModelId = car?.id || null;
+    }
+
+    const newId = uuid();
+    const customerCode = nextCustomerCode();
+    try {
+      run(
+        `INSERT INTO leads (id,customer_code,full_name,phone,email,car_model_id,source,status_detail,lead_status,
+           address,budget,payment_method,interest_level,note,
+           assigned_sales_id,created_by,sync_status,created_at,updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          newId, customerCode, full_name, phone, email, carModelId, source, 'Đang tìm hiểu', 'assigned',
+          address || null, budget || null, payment_method || null, interest_level || null, note || null,
+          req.user!.id, req.user!.id, 'SYNCED', nowIso(), nowIso(),
+        ]
+      );
+      created.push({ row: rowNumber, customer_code: customerCode, full_name });
+    } catch (e: any) {
+      errors.push({ row: rowNumber, error: e?.message || 'Lỗi không xác định' });
+    }
+  });
+
+  if (created.length) persist();
+  res.json({
+    ok: true,
+    total_rows: Math.max(0, rowIndex - 1),
+    created_count: created.length,
+    error_count: errors.length,
+    created,
+    errors,
+  });
 });
 
 /** GET /api/leads/:id — chi tiết Lead kèm lịch sử chăm sóc + lịch hẹn + lịch sử trạng thái. */
@@ -81,7 +210,7 @@ router.get('/:id', (req, res) => {
   res.json({ ...lead, interactions, reminders, history });
 });
 
-/** POST /api/leads — tạo Lead mới (FR-01, US-01.1). */
+/** POST /api/leads — tạo Lead mới (FR-01, US-01.1). Không kiểm tra trùng SĐT/email/tên (chỉ id là duy nhất). */
 router.post('/', (req, res) => {
   const {
     id, full_name, phone, email, car_model_id, source,
@@ -93,24 +222,22 @@ router.post('/', (req, res) => {
   if (!source) return res.status(400).json({ error: 'Thiếu Nguồn Lead' });
   if (!LEAD_SOURCES.includes(source)) return res.status(400).json({ error: 'Nguồn Lead không hợp lệ' });
 
-  // Kiểm tra trùng SĐT trong phạm vi cùng Sales (BR-01)
-  const dup = get<any>('SELECT id FROM leads WHERE phone = ? AND assigned_sales_id = ? AND is_archived = 0', [phone, req.user!.id]);
-  const flagDup = dup ? 1 : 0;
-
   const newId = id || uuid();
+  const customerCode = nextCustomerCode();
+  const leadStatus = deriveLeadStatus('Đang tìm hiểu', false, req.user!.id);
   run(
-    `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,flag_duplicate_phone,
+    `INSERT INTO leads (id,customer_code,full_name,phone,email,car_model_id,source,status_detail,lead_status,
        address,budget,payment_method,interest_level,source_detail,note,
        assigned_sales_id,created_by,sync_status,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
-      newId, full_name, phone, email || null, car_model_id || null, source, 'Đang tìm hiểu', flagDup,
+      newId, customerCode, full_name, phone, email || null, car_model_id || null, source, 'Đang tìm hiểu', leadStatus,
       address || null, budget || null, payment_method || null, interest_level || null, source_detail || null, note || null,
       req.user!.id, req.user!.id, 'SYNCED', nowIso(), nowIso(),
     ]
   );
   persist();
-  res.status(201).json({ id: newId, duplicate_warning: !!dup, duplicate_of: dup?.id || null });
+  res.status(201).json({ id: newId, customer_code: customerCode });
 });
 
 /** PATCH /api/leads/:id — cập nhật thông tin hồ sơ Lead (không đổi trạng thái/kết quả). */
@@ -172,10 +299,11 @@ router.patch('/:id/status', (req, res) => {
   const lead = get<any>('SELECT * FROM leads WHERE id = ?', [req.params.id]);
   if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
 
+  const newLeadStatus = deriveLeadStatus(status, !!lead.is_archived, lead.assigned_sales_id);
   transaction(() => {
     run('INSERT INTO lead_status_history (id,lead_id,status_before,status_after,changed_by,changed_at) VALUES (?,?,?,?,?,?)',
       [uuid(), lead.id, lead.status_detail, status, req.user!.id, nowIso()]);
-    run('UPDATE leads SET status_detail = ?, updated_at = ? WHERE id = ?', [status, nowIso(), lead.id]);
+    run('UPDATE leads SET status_detail = ?, lead_status = ?, updated_at = ? WHERE id = ?', [status, newLeadStatus, nowIso(), lead.id]);
   });
   res.json({ ok: true });
 });
@@ -203,11 +331,12 @@ router.patch('/:id/result', (req, res) => {
     return res.status(400).json({ error: 'Sửa lại kết quả bắt buộc nhập lý do thay đổi' });
   }
 
+  const newLeadStatus = result === 'Thành công' ? 'won' : result === 'Lead thất bại' ? 'lost' : deriveLeadStatus(result, !!lead.is_archived, lead.assigned_sales_id);
   transaction(() => {
     run('INSERT INTO lead_status_history (id,lead_id,status_before,status_after,reason,changed_by,changed_at) VALUES (?,?,?,?,?,?,?)',
       [uuid(), lead.id, lead.status_detail, result, change_reason || null, req.user!.id, nowIso()]);
-    run('UPDATE leads SET status_detail = ?, lost_reason_id = ?, lost_reason_note = ?, updated_at = ? WHERE id = ?',
-      [result, result === 'Lead thất bại' ? lost_reason_id : null, result === 'Lead thất bại' ? (lost_reason_note || null) : null, nowIso(), lead.id]);
+    run('UPDATE leads SET status_detail = ?, lead_status = ?, lost_reason_id = ?, lost_reason_note = ?, updated_at = ? WHERE id = ?',
+      [result, newLeadStatus, result === 'Lead thất bại' ? lost_reason_id : null, result === 'Lead thất bại' ? (lost_reason_note || null) : null, nowIso(), lead.id]);
   });
   res.json({ ok: true });
 });
@@ -216,33 +345,8 @@ router.patch('/:id/result', (req, res) => {
 router.delete('/:id', (req, res) => {
   const lead = get<any>('SELECT id FROM leads WHERE id = ?', [req.params.id]);
   if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
-  run('UPDATE leads SET is_archived = 1, updated_at = ? WHERE id = ?', [nowIso(), req.params.id]);
+  run("UPDATE leads SET is_archived = 1, lead_status = 'deleted', updated_at = ? WHERE id = ?", [nowIso(), req.params.id]);
   persist();
-  res.json({ ok: true });
-});
-
-/** POST /api/leads/merge — gộp Lead trùng (US-01.7). */
-router.post('/merge', (req, res) => {
-  const { keep_id, merge_ids } = req.body || {};
-  if (!keep_id || !Array.isArray(merge_ids) || merge_ids.length === 0) {
-    return res.status(400).json({ error: 'Thiếu Lead giữ lại hoặc danh sách Lead cần gộp' });
-  }
-  const keep = get<any>('SELECT * FROM leads WHERE id = ?', [keep_id]);
-  if (!keep) return res.status(404).json({ error: 'Không tìm thấy Lead giữ lại' });
-
-  transaction(() => {
-    for (const mid of merge_ids) {
-      if (mid === keep_id) continue;
-      // Chuyển lịch sử chăm sóc, lịch hẹn sang Lead giữ lại
-      run('UPDATE interactions SET lead_id = ? WHERE lead_id = ?', [keep_id, mid]);
-      run('UPDATE reminders SET lead_id = ? WHERE lead_id = ?', [keep_id, mid]);
-      // Lưu trữ Lead bị gộp
-      run('UPDATE leads SET is_archived = 1, updated_at = ? WHERE id = ?', [nowIso(), mid]);
-      run('INSERT INTO lead_status_history (id,lead_id,status_before,status_after,reason,changed_by,changed_at) VALUES (?,?,?,?,?,?,?)',
-        [uuid(), mid, keep.status_detail, 'Lưu trữ', 'Gộp vào Lead ' + keep_id, req.user!.id, nowIso()]);
-    }
-    run('UPDATE leads SET flag_duplicate_phone = 0, updated_at = ? WHERE id = ?', [nowIso(), keep_id]);
-  });
   res.json({ ok: true });
 });
 
@@ -251,9 +355,10 @@ router.post('/:id/assign', requireRole('Admin'), (req, res) => {
   const { sales_id } = req.body || {};
   const sale = get<any>('SELECT id FROM users WHERE id = ? AND role = ?', [sales_id, 'Sales']);
   if (!sale) return res.status(400).json({ error: 'Sales không hợp lệ' });
-  const lead = get<any>('SELECT id, full_name FROM leads WHERE id = ?', [req.params.id]);
+  const lead = get<any>('SELECT id, full_name, status_detail, is_archived FROM leads WHERE id = ?', [req.params.id]);
   if (!lead) return res.status(404).json({ error: 'Không tìm thấy Lead' });
-  run('UPDATE leads SET assigned_sales_id = ?, updated_at = ? WHERE id = ?', [sales_id, nowIso(), req.params.id]);
+  const newLeadStatus = deriveLeadStatus(lead.status_detail, !!lead.is_archived, sales_id);
+  run('UPDATE leads SET assigned_sales_id = ?, lead_status = ?, updated_at = ? WHERE id = ?', [sales_id, newLeadStatus, nowIso(), req.params.id]);
   // Thông báo cho Sales được gán (US-01.5)
   run(
     `INSERT INTO notifications (id,user_id,type,title,body,ref_type,ref_id,is_read,created_at) VALUES (?,?,?,?,?,?,?,?,?)`,

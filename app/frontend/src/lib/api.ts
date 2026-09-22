@@ -34,12 +34,51 @@ async function request<T>(method: string, path: string, body?: any): Promise<T> 
   return data as T;
 }
 
+/** Tải lên file (multipart/form-data), ví dụ import Excel. Trả về JSON response. */
+async function uploadFile<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const form = new FormData();
+  form.append(fieldName, file);
+  const res = await fetch(BASE + path, { method: 'POST', headers, body: form });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data?.error || 'Lỗi máy chủ') as any;
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data as T;
+}
+
+/** Tải file từ server (vd file Excel mẫu) và tự động lưu xuống máy người dùng. */
+async function downloadFile(path: string, fileName: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(BASE + path, { headers });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || 'Không tải được file');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T>(p: string) => request<T>('GET', p),
   post: <T>(p: string, b?: any) => request<T>('POST', p, b),
   put: <T>(p: string, b?: any) => request<T>('PUT', p, b),
   patch: <T>(p: string, b?: any) => request<T>('PATCH', p, b),
   del: <T>(p: string) => request<T>('DELETE', p),
+  upload: uploadFile,
+  download: downloadFile,
 };
 
 /** Public API (không cần token) cho website công khai. */

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
-import { all, get, run, transaction, persist } from '../db/database';
+import { all, get, run, transaction, persist, nextCustomerCode } from '../db/database';
 import { authenticate, requireRole } from '../middleware/auth';
 import { sendMail, testDriveEmail } from '../mailer';
 
@@ -187,12 +187,13 @@ router.post('/test-drives', authenticate, (req, res) => {
   const bookingId = uuid();
   const code = 'TD' + Date.now().toString().slice(-8);
   const leadId = uuid();
+  const customerCode = nextCustomerCode();
   transaction(() => {
     // Tự tạo Lead cho Sales hiện tại
     run(
-      `INSERT INTO leads (id,full_name,phone,email,car_model_id,source,status_detail,assigned_sales_id,created_by,sync_status,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [leadId, customer_name, customer_phone, customer_email || null, car_model_id, 'Showroom/Sự kiện', 'Có nhu cầu ngay', req.user!.id, req.user!.id, 'SYNCED', nowIso(), nowIso()]
+      `INSERT INTO leads (id,customer_code,full_name,phone,email,car_model_id,source,status_detail,lead_status,assigned_sales_id,created_by,sync_status,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [leadId, customerCode, customer_name, customer_phone, customer_email || null, car_model_id, 'Showroom/Sự kiện', 'Có nhu cầu ngay', 'assigned', req.user!.id, req.user!.id, 'SYNCED', nowIso(), nowIso()]
     );
     run(
       `INSERT INTO test_drive_bookings (id,booking_code,car_model_id,showroom_id,slot_id,customer_name,customer_phone,customer_email,lead_id,status,created_at)

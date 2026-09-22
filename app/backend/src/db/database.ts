@@ -108,7 +108,11 @@ function runLightMigrations(): void {
     ['interest_level', 'TEXT'],
     ['source_detail', 'TEXT'],
     ['note', 'TEXT'],
+    ['customer_code', 'TEXT'],
+    ['lead_status', "TEXT NOT NULL DEFAULT 'new'"],
   ]);
+
+  backfillLeadCodesAndStatus();
   addMissingColumns('test_drive_bookings', [['customer_email', 'TEXT']]);
   addMissingColumns('reminders', [['booking_id', 'TEXT']]);
 
@@ -117,6 +121,49 @@ function runLightMigrations(): void {
     db.run("UPDATE test_drive_bookings SET status='Đã xác nhận' WHERE status='Chờ xác nhận'");
     dirty = true;
   } catch { /* bảng chưa tồn tại ở DB mới, schema sẽ tạo sau */ }
+}
+
+/** Sinh mã khách hàng tiếp theo dạng KH000001, KH000002... (dùng khi tạo Lead mới ở mọi route). */
+export function nextCustomerCode(): string {
+  const maxRow = get<{ n: number }>(
+    "SELECT MAX(CAST(SUBSTR(customer_code, 3) AS INTEGER)) AS n FROM leads WHERE customer_code LIKE 'KH%'"
+  );
+  const seq = (maxRow?.n || 0) + 1;
+  return 'KH' + String(seq).padStart(6, '0');
+}
+
+/**
+ * Sinh mã khách hàng (customer_code) cho các Lead chưa có, và đồng bộ lead_status theo status_detail
+ * hiện tại. An toàn để gọi nhiều lần (migration khi khởi động, và sau khi seed dữ liệu mẫu).
+ */
+export function backfillLeadCodesAndStatus(): void {
+  if (!db) return;
+  try {
+    const rows = all<{ id: string; status_detail: string; is_archived: number; assigned_sales_id: string | null }>(
+      "SELECT id, status_detail, is_archived, assigned_sales_id FROM leads WHERE customer_code IS NULL OR customer_code = '' ORDER BY created_at ASC"
+    );
+    if (rows.length) {
+      const maxRow = get<{ n: number }>(
+        "SELECT MAX(CAST(SUBSTR(customer_code, 3) AS INTEGER)) AS n FROM leads WHERE customer_code LIKE 'KH%'"
+      );
+      let seq = (maxRow?.n || 0) + 1;
+      for (const r of rows) {
+        const code = 'KH' + String(seq).padStart(6, '0');
+        run('UPDATE leads SET customer_code = ? WHERE id = ?', [code, r.id]);
+        seq++;
+      }
+      dirty = true;
+      console.log(`[migration] Đã sinh mã khách hàng cho ${rows.length} Lead.`);
+    }
+    // Đồng bộ lead_status theo status_detail cho toàn bộ Lead (an toàn, có thể chạy nhiều lần).
+    run("UPDATE leads SET lead_status = 'deleted' WHERE is_archived = 1 AND lead_status != 'deleted'");
+    run("UPDATE leads SET lead_status = 'won' WHERE is_archived = 0 AND status_detail = 'Thành công' AND lead_status != 'won'");
+    run("UPDATE leads SET lead_status = 'lost' WHERE is_archived = 0 AND status_detail = 'Lead thất bại' AND lead_status != 'lost'");
+    run("UPDATE leads SET lead_status = 'assigned' WHERE is_archived = 0 AND status_detail NOT IN ('Thành công','Lead thất bại') AND assigned_sales_id IS NOT NULL AND lead_status = 'new'");
+    dirty = true;
+  } catch (e) {
+    console.error('[migration] Lỗi sinh customer_code/lead_status:', e);
+  }
 }
 
 /** Tạo 2 Sales phụ trách Lead website (An, Thành) nếu chưa có. Chạy khi khởi động, không xóa dữ liệu. */
