@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Tự đăng ký service worker trong main.tsx (virtual:pwa-register) thay vì script mặc định
+      // chỉ chạy khi window 'load' — giúp đăng ký sớm hơn và re-check khi app mở lại từ Home Screen (iOS).
+      injectRegister: null,
       devOptions: {
         enabled: true, // Bật service worker ngay ở chế độ dev (npm run dev) để test offline
         type: 'module',
