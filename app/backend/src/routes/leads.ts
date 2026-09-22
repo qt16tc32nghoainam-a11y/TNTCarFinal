@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs';
 import { v4 as uuid } from 'uuid';
 import { all, get, run, transaction, persist, nextCustomerCode } from '../db/database';
 import { authenticate, requireRole } from '../middleware/auth';
+import { pushToUser } from '../push';
 import { getVisibleSalesIds } from '../utils/scope';
 import { LEAD_PROCESSING_STATUSES, LEAD_SOURCES } from '../types';
 
@@ -365,6 +366,7 @@ router.post('/:id/assign', requireRole('Admin'), (req, res) => {
     [uuid(), sales_id, 'lead_assigned', 'Bạn được gán một Lead mới', `Lead: ${lead.full_name}`, 'lead', lead.id, 0, nowIso()]
   );
   persist();
+  pushToUser(sales_id, { title: 'Bạn được gán một Lead mới', body: `Lead: ${lead.full_name}`, url: `/leads/${lead.id}`, tag: lead.id }).catch(() => {});
   res.json({ ok: true });
 });
 

@@ -6,7 +6,8 @@
  * Tạo bản ghi vào bảng notifications; đánh dấu reminders.notified = 1.
  */
 import { v4 as uuid } from 'uuid';
-import { all, run, persist } from './db/database';
+import { all, run, persist, get } from './db/database';
+import { pushToUser } from './push';
 
 const nowIso = () => new Date().toISOString();
 
@@ -16,6 +17,13 @@ function createNotification(userId: string, type: string, title: string, body: s
      VALUES (?,?,?,?,?,?,?,?,?)`,
     [uuid(), userId, type, title, body, refType, refId, 0, nowIso()]
   );
+  // Đẩy Web Push lên thiết bị (kể cả khi app đóng). Kèm lead_id để bấm vào mở đúng Lead.
+  let leadId: string | null = refType === 'lead' ? refId : null;
+  try {
+    if (refType === 'reminder') leadId = get<any>('SELECT lead_id FROM reminders WHERE id = ?', [refId])?.lead_id || null;
+    else if (refType === 'booking') leadId = get<any>('SELECT lead_id FROM test_drive_bookings WHERE id = ?', [refId])?.lead_id || null;
+  } catch { /* ignore */ }
+  pushToUser(userId, { title, body, url: leadId ? `/leads/${leadId}` : '/', tag: refId }).catch(() => {});
 }
 
 function checkReminders() {

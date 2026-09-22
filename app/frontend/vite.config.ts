@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // injectManifest: tự viết service worker (src/sw.ts) để thêm handler Web Push + notificationclick,
+      // vẫn giữ precache/offline nhờ workbox precacheAndRoute inject vào SW.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       // Tự đăng ký service worker trong main.tsx (virtual:pwa-register) thay vì script mặc định
       // chỉ chạy khi window 'load' — giúp đăng ký sớm hơn và re-check khi app mở lại từ Home Screen (iOS).
@@ -27,9 +32,8 @@ export default defineConfig({
           { src: '/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png}'],
-        navigateFallback: '/index.html',
       },
     }),
   ],

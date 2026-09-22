@@ -5,6 +5,7 @@ import fs from 'fs';
 import { config } from './config';
 import { initDb, ensureWebSales } from './db/database';
 import { reloadMailer } from './mailer';
+import { initPush } from './push';
 
 import authRoutes from './routes/auth';
 import leadRoutes from './routes/leads';
@@ -19,6 +20,7 @@ import contentRoutes from './routes/content';
 import metaRoutes from './routes/meta';
 import notificationRoutes from './routes/notifications';
 import settingsRoutes from './routes/settings';
+import pushRoutes from './routes/push';
 import { startScheduler } from './scheduler';
 
 async function main() {
@@ -27,6 +29,8 @@ async function main() {
   ensureWebSales();
   // Nạp cấu hình SMTP (ưu tiên DB, fallback .env) sau khi DB sẵn sàng.
   reloadMailer();
+  // Khởi tạo Web Push (VAPID).
+  initPush();
   startScheduler();
 
   const app = express();
@@ -48,6 +52,7 @@ async function main() {
   app.use('/api/meta', metaRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/settings', settingsRoutes);
+  app.use('/api/push', pushRoutes);
 
   // Phục vụ frontend đã build (production). Đường dẫn tới thư mục frontend/dist
   const staticDir = path.join(__dirname, '../public');

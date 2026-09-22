@@ -19,6 +19,10 @@ services:
       SMTP_USER: "${SMTP_USER:-}"
       SMTP_PASS: "${SMTP_PASS:-}"
       SMTP_FROM: "${SMTP_FROM:-TNT CAR <no-reply@tntcar.vn>}"
+      # Web Push (VAPID). Đặt trong app/.env trên VM; để trống thì dùng cặp mặc định trong code.
+      VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY:-}"
+      VAPID_PRIVATE_KEY: "${VAPID_PRIVATE_KEY:-}"
+      VAPID_SUBJECT: "${VAPID_SUBJECT:-mailto:no-reply@tntcar.vn}"
     volumes:
       - tntcar_data:/data
     healthcheck:

@@ -68,6 +68,21 @@ function runLightMigrations(): void {
     console.error('[migration] Không tạo được app_settings:', e);
   }
 
+  // Bảng đăng ký Web Push (đẩy thông báo lên thiết bị) - tạo cho DB cũ nếu chưa có.
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`);
+    dirty = true;
+  } catch (e) {
+    console.error('[migration] Không tạo được push_subscriptions:', e);
+  }
+
   const addMissingColumns = (table: string, columns: [string, string][]) => {
     let exists = false;
     try {

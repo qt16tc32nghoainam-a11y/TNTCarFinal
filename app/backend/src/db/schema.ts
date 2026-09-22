@@ -303,6 +303,17 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_by TEXT
 );
 
+-- Đăng ký nhận Web Push của từng thiết bị (theo user) - đẩy thông báo lên màn hình dù app đóng
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- Index tăng tốc truy vấn
 CREATE INDEX IF NOT EXISTS idx_leads_assigned ON leads(assigned_sales_id);
 CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone);

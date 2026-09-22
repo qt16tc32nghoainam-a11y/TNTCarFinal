@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { pendingCount } from '../lib/db';
 import { startAutoSync, runSync } from '../lib/sync';
 import { api } from '../lib/api';
+import { enablePush, pushPermissionGranted } from '../lib/push';
 import InstallButton from './InstallButton';
 import {
   Users, Bell, Car, CalendarClock, BarChart3, UserCog, Settings, Globe, LogOut, Menu, Mail,
@@ -45,6 +46,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [notis, setNotis] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
   const [showNoti, setShowNoti] = useState(false);
+  const [pushOn, setPushOn] = useState<boolean>(typeof Notification !== 'undefined' && Notification.permission === 'granted');
+
+  async function turnOnPush() {
+    const ok = await enablePush();
+    setPushOn(ok);
+    if (!ok) {
+      alert('Chưa bật được thông báo. Trên iPhone: cần cài app vào Màn hình chính (Thêm vào MH chính) rồi mở từ icon đó, sau đó bấm lại. Trên Android/máy tính: cho phép quyền Thông báo khi trình duyệt hỏi.');
+    }
+  }
 
   async function loadNotis() {
     try {
@@ -71,6 +81,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     window.addEventListener('offline', upd);
     startAutoSync(() => pendingCount().then(setPending));
     const t = setInterval(() => pendingCount().then(setPending), 3000);
+    // Nếu người dùng đã cấp quyền thông báo -> đảm bảo thiết bị này có push subscription trên server
+    // (đăng ký/cập nhật lại mỗi lần mở app, để nhận push cả khi app đóng).
+    if (pushPermissionGranted()) enablePush().catch(() => {});
     loadNotis();
     const nt = setInterval(loadNotis, 20000);
     return () => { window.removeEventListener('online', upd); window.removeEventListener('offline', upd); clearInterval(t); clearInterval(nt); };
@@ -145,6 +158,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </button>
             )}
             <InstallButton />
+            {!pushOn && (
+              <button
+                onClick={turnOnPush}
+                className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-200"
+                title="Bật thông báo đẩy để nhận báo lead/lịch hẹn mới kể cả khi đóng app"
+              >
+                🔔 <span className="hidden sm:inline">Bật thông báo</span>
+              </button>
+            )}
             {/* Chuông thông báo */}
             <div className="relative">
               <button onClick={() => { setShowNoti(!showNoti); }} className="relative rounded-full p-2 text-gray-600 hover:bg-gray-100" title="Thông báo">

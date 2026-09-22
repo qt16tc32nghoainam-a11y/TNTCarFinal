@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { all, get, run, persist, nextCustomerCode } from '../db/database';
+import { pushToUser } from '../push';
 
 const router = Router();
 const nowIso = () => new Date().toISOString();
@@ -71,6 +72,7 @@ router.post('/requests', (req, res) => {
     `INSERT INTO notifications (id,user_id,type,title,body,ref_type,ref_id,is_read,created_at) VALUES (?,?,?,?,?,?,?,?,?)`,
     [uuid(), randomSale, 'lead_assigned', `Lead mới từ Website (${request_type})`, `Khách: ${full_name} - ${phone}`, 'lead', leadId, 0, nowIso()]
   );
+  pushToUser(randomSale, { title: `Lead mới từ Website (${request_type})`, body: `Khách: ${full_name} - ${phone}`, url: `/leads/${leadId}`, tag: leadId }).catch(() => {});
   persist();
   console.log(`[website] Lead mới (${request_type}) đã gán cho Sales ${randomSale}; email khách: ${email || 'không có'}`);
   res.status(201).json({ ok: true, lead_id: leadId, message: 'Yêu cầu đã được tiếp nhận, TNT CAR sẽ liên hệ lại sớm.' });

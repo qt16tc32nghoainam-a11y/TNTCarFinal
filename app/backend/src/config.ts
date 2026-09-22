@@ -14,4 +14,11 @@ export const config = {
     pass: process.env.SMTP_PASS || '',
     from: process.env.SMTP_FROM || 'TNT CAR <no-reply@tntcar.vn>',
   },
+  // Web Push (VAPID). Nên đặt VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY trong .env trên production.
+  // Cặp mặc định dưới đây chỉ để dev/demo chạy được ngay; production nên thay bằng cặp riêng.
+  vapid: {
+    publicKey: process.env.VAPID_PUBLIC_KEY || 'BPKGZxx0AUTZ3YcWETFC-fNKlMxJCpQvNeGxR3Nr-o3_WTr31cjOWi1EGbiqWBiAYdrIdZwT9yxTqzq-x9lK97g',
+    privateKey: process.env.VAPID_PRIVATE_KEY || 'PxK5v5G7A2EdHBP657qhBG5JpPW_OkB9ZOtWgzMPM3U',
+    subject: process.env.VAPID_SUBJECT || 'mailto:no-reply@tntcar.vn',
+  },
 };
