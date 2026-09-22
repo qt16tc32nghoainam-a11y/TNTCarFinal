@@ -14,6 +14,8 @@ export default function Cars() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [compare, setCompare] = useState<Car[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [editCar, setEditCar] = useState<any>(null);
@@ -23,6 +25,8 @@ export default function Cars() {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (brand) params.set('brand', brand);
+    if (minPrice) params.set('minPrice', String(Number(minPrice) * 1_000_000));
+    if (maxPrice) params.set('maxPrice', String(Number(maxPrice) * 1_000_000));
     if (isAdmin) params.set('all', '1'); // Admin xem cả xe hết hàng để quản lý
     try { setCars(await api.get<Car[]>('/cars?' + params)); } finally { setLoading(false); }
   }
@@ -58,12 +62,25 @@ export default function Cars() {
           {compare.length > 0 && <button onClick={() => setShowCompare(true)} className="btn-primary">So sánh ({compare.length})</button>}
         </div>
       </div>
-      <div className="card mb-4 flex flex-wrap gap-2">
+      <div className="card mb-4 flex flex-wrap items-end gap-2">
         <input className="input flex-1 min-w-[180px]" placeholder="Tìm xe..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
         <select className="input w-auto" value={brand} onChange={(e) => setBrand(e.target.value)}>
           <option value="">Tất cả hãng</option>{brands.map((b) => <option key={b}>{b}</option>)}
         </select>
+        <div>
+          <label className="label">Giá từ (triệu)</label>
+          <input type="number" min={0} className="input w-32" placeholder="VD: 500" value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+        </div>
+        <div>
+          <label className="label">Giá đến (triệu)</label>
+          <input type="number" min={0} className="input w-32" placeholder="VD: 1000" value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+        </div>
         <button onClick={load} className="btn-secondary">Tìm</button>
+        {(q || brand || minPrice || maxPrice) && (
+          <button onClick={() => { setQ(''); setBrand(''); setMinPrice(''); setMaxPrice(''); setTimeout(load, 0); }} className="text-xs text-gray-500 hover:underline">Xóa lọc</button>
+        )}
       </div>
 
       {loading ? <Spinner /> : cars.length === 0 ? <Empty text="Không tìm thấy xe phù hợp" /> : (
