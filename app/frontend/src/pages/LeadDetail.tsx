@@ -167,7 +167,7 @@ export default function LeadDetail() {
       )}
 
       {showActivity && <ActivityModal leadId={lead.id} onClose={() => setShowActivity(false)} onDone={() => { setShowActivity(false); load(); }} />}
-      {showReminder && <ReminderModal leadId={lead.id} carModelId={lead.car_model_id} leadEmail={lead.email} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
+      {showReminder && <ReminderModal leadId={lead.id} carModelId={lead.car_model_id} leadEmail={lead.email} leadName={lead.full_name} leadPhone={lead.phone} carName={lead.car_name ? `${lead.car_brand || ''} ${lead.car_name}`.trim() : ''} onClose={() => setShowReminder(false)} onDone={() => { setShowReminder(false); load(); }} />}
       {showResult && <ResultModal lead={lead} onClose={() => setShowResult(false)} onDone={() => { setShowResult(false); load(); }} />}
       {showAssign && <AssignModal leadId={lead.id} currentSalesId={lead.assigned_sales_id} onClose={() => setShowAssign(false)} onDone={() => { setShowAssign(false); load(); }} />}
       {showEditInfo && <EditInfoModal lead={lead} onClose={() => setShowEditInfo(false)} onDone={() => { setShowEditInfo(false); load(); }} />}
@@ -327,7 +327,7 @@ function ActivityModal({ leadId, onClose, onDone }: any) {
   );
 }
 
-function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) {
+function ReminderModal({ leadId, carModelId, leadEmail, leadName, leadPhone, carName, onClose, onDone }: any) {
   const [remind_at, setRemindAt] = useState('');
   const [purpose, setPurpose] = useState('Lái thử');
   const [location, setLocation] = useState('');
@@ -425,9 +425,22 @@ function ReminderModal({ leadId, carModelId, leadEmail, onClose, onDone }: any) 
       {isTestDrive && (
         <>
           <div className="mb-2 rounded bg-brand-50 p-2 text-xs text-brand-700">Lịch lái thử sẽ hiện ở mục "Lịch lái thử" sau khi lưu.</div>
-          <Field label="Email khách nhận xác nhận *">
-            <input type="email" className="input" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="khachhang@email.com" />
-          </Field>
+
+          {/* Thông tin khách lấy từ Lead đang xem (không phải nhập lại) - dữ liệu tự liên kết với Lead. */}
+          <div className="mb-3 rounded-lg border bg-gray-50 p-3 text-sm">
+            <div className="mb-1 text-xs font-medium uppercase text-gray-400">Khách hàng</div>
+            <div className="font-medium text-gray-800">{leadName} <span className="font-normal text-gray-500">· {leadPhone}</span></div>
+            {carName && <div className="text-xs text-gray-500">Xe quan tâm: {carName}</div>}
+            {leadEmail
+              ? <div className="text-xs text-gray-500">Email nhận xác nhận: <span className="text-gray-700">{leadEmail}</span></div>
+              : (
+                <div className="mt-2">
+                  <label className="label text-xs text-amber-700">Lead chưa có email — nhập để gửi xác nhận *</label>
+                  <input type="email" className="input" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="khachhang@email.com" />
+                </div>
+              )}
+          </div>
+
           <Field label="Showroom *">
             <select className="input" value={showroomId} onChange={(e) => setShowroomId(e.target.value)}>
               <option value="">-- Chọn showroom --</option>
