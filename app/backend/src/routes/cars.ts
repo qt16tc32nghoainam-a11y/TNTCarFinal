@@ -130,14 +130,14 @@ router.get('/:id', (req, res) => {
 // ------------- Lái thử -------------
 
 /**
- * GET /api/cars/slots/:showroomId — khung giờ lái thử còn trống (cách hiện tại >=2h, không ngày nghỉ).
+ * GET /api/cars/slots/:showroomId — khung giờ lái thử còn trống (giờ hẹn ở tương lai, không ngày nghỉ).
  * Trả về TẤT CẢ khung giờ còn trống của showroom (kèm tên xe áp dụng, nếu có), không ẩn khung giờ
  * cấu hình cho xe khác — để Sale luôn thấy đủ những gì Admin đã tạo và tự chọn đúng, tránh dropdown
  * trống oan do lệch car_model_id giữa Lead và Slot (Admin chọn nhầm xe, Lead đổi xe quan tâm sau...).
  * car_model_id truyền vào (nếu có) chỉ dùng để ưu tiên sắp xếp slot đúng xe lên đầu danh sách.
  */
 router.get('/slots/available/:showroomId', authenticate, (req, res) => {
-  const minTime = new Date(Date.now() + 2 * 3600 * 1000).toISOString(); // BR-TD-02
+  const minTime = new Date().toISOString(); // chỉ ẩn khung giờ đã qua; khung giờ tương lai đều đặt được (bỏ ngưỡng 2h)
   const carModelId = typeof req.query.car_model_id === 'string' ? req.query.car_model_id : '';
   const slots = all<any>(
     `SELECT sl.*, cm.brand AS car_brand, cm.name AS car_name
@@ -172,9 +172,9 @@ router.post('/test-drives', authenticate, (req, res) => {
     return res.status(400).json({ error: 'Khung giờ này được cấu hình cho một xe khác' });
   }
 
-  // BR-TD-02: khung giờ phải cách hiện tại tối thiểu 2 giờ (kiểm lại lúc đặt)
-  if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
-    return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ' });
+  // Không cho đặt vào khung giờ đã qua (bỏ ngưỡng 2 giờ để dùng được khung giờ vừa cấu hình).
+  if (new Date(slot.start_time).getTime() < Date.now()) {
+    return res.status(400).json({ error: 'Khung giờ đã qua, vui lòng chọn khung giờ khác' });
   }
 
   // BR-TD-01: tối đa 3 lịch active của cùng SĐT
@@ -259,7 +259,7 @@ router.patch('/test-drives/:id/status', authenticate, (req, res) => {
   res.json({ ok: true });
 });
 
-/** PATCH /api/cars/test-drives/:id/reschedule — đổi khung giờ (BR-TD-05, trước 4h). */
+/** PATCH /api/cars/test-drives/:id/reschedule — đổi khung giờ (chỉ chặn khung giờ đã qua). */
 router.patch('/test-drives/:id/reschedule', authenticate, (req, res) => {
   const { new_slot_id } = req.body || {};
   if (!new_slot_id) return res.status(400).json({ error: 'Thiếu khung giờ mới' });
@@ -268,19 +268,15 @@ router.patch('/test-drives/:id/reschedule', authenticate, (req, res) => {
   if (booking.status !== 'Đã xác nhận') {
     return res.status(400).json({ error: 'Chỉ đổi được lịch đang hoạt động' });
   }
-  // BR-TD-05: đổi lịch phải trước giờ hẹn tối thiểu 4 giờ
-  if (new Date(booking.start_time).getTime() < Date.now() + 4 * 3600000) {
-    return res.status(400).json({ error: 'Chỉ được đổi lịch trước giờ hẹn tối thiểu 4 giờ. Vui lòng liên hệ showroom.' });
-  }
   const newSlot = get<any>('SELECT * FROM slots WHERE id = ?', [new_slot_id]);
   if (!newSlot || !newSlot.is_available) return res.status(409).json({ error: 'Khung giờ mới không còn trống' });
   if (newSlot.is_holiday) return res.status(400).json({ error: 'Khung giờ mới là ngày nghỉ' });
   if (newSlot.car_model_id && newSlot.car_model_id !== booking.car_model_id) {
     return res.status(400).json({ error: 'Khung giờ mới được cấu hình cho một xe khác' });
   }
-  // BR-TD-02: slot mới cách hiện tại tối thiểu 2 giờ
-  if (new Date(newSlot.start_time).getTime() < Date.now() + 2 * 3600000) {
-    return res.status(400).json({ error: 'Khung giờ mới phải cách hiện tại tối thiểu 2 giờ' });
+  // Không cho đổi sang khung giờ đã qua (bỏ ngưỡng 2 giờ).
+  if (new Date(newSlot.start_time).getTime() < Date.now()) {
+    return res.status(400).json({ error: 'Khung giờ mới đã qua, vui lòng chọn khung giờ khác' });
   }
 
   transaction(() => {
@@ -355,8 +351,8 @@ router.post('/slots/:slotId/book-lead', authenticate, (req, res) => {
   if (!slot) return res.status(404).json({ error: 'Không tìm thấy khung giờ' });
   if (!slot.is_available) return res.status(409).json({ error: 'Khung giờ đã có người đặt' });
   if (slot.is_holiday) return res.status(400).json({ error: 'Khung giờ này là ngày nghỉ' });
-  if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
-    return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ' });
+  if (new Date(slot.start_time).getTime() < Date.now()) {
+    return res.status(400).json({ error: 'Khung giờ đã qua, vui lòng chọn khung giờ khác' });
   }
 
   // Xe: ưu tiên xe của khung giờ (nếu slot cấu hình cho 1 xe), rồi xe của Lead, rồi body.
@@ -444,7 +440,7 @@ router.post('/test-drives/quick', authenticate, (req, res) => {
 
   const startMs = new Date(start_time).getTime();
   if (!Number.isFinite(startMs)) return res.status(400).json({ error: 'Thời gian hẹn không hợp lệ' });
-  if (startMs < Date.now() + 2 * 3600000) return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ' });
+  if (startMs < Date.now()) return res.status(400).json({ error: 'Thời gian hẹn đã qua, vui lòng chọn thời gian khác' });
   // Chuẩn hóa về đúng 1 định dạng ISO để lưu DB và so sánh overlap (tránh lệch định dạng chuỗi client gửi lên).
   const startIso = new Date(startMs).toISOString();
   const endIso = new Date(startMs + 60 * 60000).toISOString(); // khung giờ 60 phút

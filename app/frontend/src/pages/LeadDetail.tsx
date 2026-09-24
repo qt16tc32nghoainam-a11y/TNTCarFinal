@@ -388,7 +388,7 @@ function ReminderModal({ leadId, carModelId, leadEmail, leadName, leadPhone, car
     if (customTime) {
       // Sale tự chọn giờ: hệ thống tự tạo khung giờ và đặt lịch luôn.
       if (!customStart) return setErr('Vui lòng chọn thời gian hẹn');
-      if (new Date(customStart).getTime() < Date.now() + 2 * 3600000) return setErr('Khung giờ phải cách hiện tại tối thiểu 2 giờ');
+      if (new Date(customStart).getTime() < Date.now()) return setErr('Thời gian hẹn phải ở tương lai');
       setSaving(true);
       try {
         await api.post('/cars/test-drives/quick', {
@@ -460,7 +460,7 @@ function ReminderModal({ leadId, carModelId, leadEmail, leadName, leadPhone, car
                   ))}
                 </select>
                 {showroomId && slots.length === 0 && (
-                  <div className="mt-1 text-xs text-amber-600">Chưa có khung giờ nào được cấu hình tại showroom này (cách hiện tại &ge;2h). Vào mục "Cấu hình slot" để tạo thêm, hoặc tự chọn giờ khác bên dưới.</div>
+                  <div className="mt-1 text-xs text-amber-600">Chưa có khung giờ trống nào tại showroom này. Vào mục "Cấu hình slot" để tạo thêm, hoặc tự chọn giờ khác bên dưới.</div>
                 )}
                 {(() => {
                   const picked = slots.find((s) => s.id === slotId);
@@ -478,7 +478,7 @@ function ReminderModal({ leadId, carModelId, leadEmail, leadName, leadPhone, car
             <>
               <Field label="Thời gian hẹn (tự chọn) *">
                 <input type="datetime-local" className="input" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
-                <div className="mt-1 text-xs text-gray-500">Phải cách hiện tại tối thiểu 2 giờ. Hệ thống sẽ tự tạo khung giờ tương ứng.</div>
+                <div className="mt-1 text-xs text-gray-500">Chọn thời gian trong tương lai. Hệ thống sẽ tự tạo khung giờ tương ứng.</div>
               </Field>
               <button type="button" onClick={() => setCustomTime(false)} className="mb-3 text-xs text-brand-700 hover:underline">
                 ← Chọn từ khung giờ đã cấu hình

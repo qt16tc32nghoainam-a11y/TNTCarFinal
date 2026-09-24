@@ -25,13 +25,11 @@ export default function Slots() {
   useEffect(() => { load(); }, [showroomId]);
 
   const now = Date.now();
-  const MIN_LEAD_MS = 2 * 3600 * 1000; // BR-TD-02: phải đặt trước tối thiểu 2 giờ (đồng bộ với backend)
   const upcoming = slots.filter((s) => new Date(s.start_time).getTime() >= now - 3600000);
   const booked = upcoming.filter((s) => s.booking_id);
-  // "Còn trống" thực sự đặt được: chưa có khách, chưa phải ngày nghỉ, và còn cách hiện tại >= 2h.
-  const free = upcoming.filter((s) => !s.booking_id && s.is_available && !s.is_holiday && new Date(s.start_time).getTime() >= now + MIN_LEAD_MS);
-  // Còn trống nhưng đã cận giờ (< 2h) -> không thể đặt lịch được nữa, cần hiển thị khác để khỏi nhầm.
-  const isBookable = (s: any) => !s.is_holiday && s.is_available && new Date(s.start_time).getTime() >= now + MIN_LEAD_MS;
+  // "Còn trống" đặt được: chưa có khách, chưa phải ngày nghỉ, và giờ hẹn còn ở tương lai (bỏ ngưỡng 2h).
+  const free = upcoming.filter((s) => !s.booking_id && s.is_available && !s.is_holiday && new Date(s.start_time).getTime() >= now);
+  const isBookable = (s: any) => !s.is_holiday && s.is_available && new Date(s.start_time).getTime() >= now;
 
   return (
     <div>
@@ -77,7 +75,7 @@ export default function Slots() {
                           ? <span className="badge bg-gray-100 text-gray-500">Không nhận</span>
                           : isBookable(s)
                             ? <span className="badge bg-green-100 text-green-700">Còn trống</span>
-                            : <span className="badge bg-amber-100 text-amber-700" title="Đã qua mốc tối thiểu 2 giờ trước giờ hẹn, không thể đặt lịch">Còn trống · Đã cận giờ (&lt;2h)</span>}
+                            : <span className="badge bg-gray-100 text-gray-400" title="Giờ hẹn đã trôi qua">Đã qua</span>}
                   </td>
                   <td className="p-3">
                     {s.booking_id

@@ -79,8 +79,8 @@ router.post('/reminders', (req, res) => {
     if (!slot || !slot.is_available) return res.status(409).json({ error: 'Khung giờ vừa bị giữ, vui lòng chọn lại' });
     if (slot.is_holiday) return res.status(400).json({ error: 'Khung giờ này là ngày nghỉ, không thể đặt lịch' });
     if (slot.showroom_id !== showroom_id) return res.status(400).json({ error: 'Khung giờ không thuộc showroom đã chọn' });
-    if (new Date(slot.start_time).getTime() < Date.now() + 2 * 3600000) {
-      return res.status(400).json({ error: 'Khung giờ phải cách hiện tại tối thiểu 2 giờ (BR-TD-02)' });
+    if (new Date(slot.start_time).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Khung giờ đã qua, vui lòng chọn khung giờ khác' });
     }
     // Xe của lịch lái thử: ưu tiên xe của khung giờ (nếu slot cấu hình cho 1 xe cụ thể),
     // rồi mới tới xe Lead đang quan tâm. Cho phép khác nhau (khách có thể đổi ý lái thử xe khác)

@@ -208,7 +208,7 @@ function RescheduleModal({ booking, onClose, onDone }: { booking: any; onClose: 
           </select>
         </div>
         <div className="mb-3">
-          <label className="label">Khung giờ mới (còn trống, cách hiện tại ≥2h)</label>
+          <label className="label">Khung giờ mới (còn trống)</label>
           <select className="input" value={slotId} onChange={(e) => setSlotId(e.target.value)}>
             <option value="">-- Chọn khung giờ --</option>
             {slots.map((s) => <option key={s.id} value={s.id}>{formatDate(s.start_time)}</option>)}
