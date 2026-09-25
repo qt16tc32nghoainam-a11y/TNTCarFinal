@@ -208,7 +208,22 @@ router.get('/:id', (req, res) => {
   const interactions = all('SELECT * FROM interactions WHERE lead_id = ? ORDER BY created_at DESC', [req.params.id]);
   const reminders = all('SELECT * FROM reminders WHERE lead_id = ? ORDER BY remind_at ASC', [req.params.id]);
   const history = all('SELECT * FROM lead_status_history WHERE lead_id = ? ORDER BY changed_at DESC', [req.params.id]);
-  res.json({ ...lead, interactions, reminders, history });
+  // Lịch lái thử của Lead (kèm tên xe/showroom/giờ) — để trang chi tiết Lead là "một chỗ xem hết".
+  const bookings = all(
+    `SELECT b.id, b.booking_code, b.status, b.result_note, b.created_at,
+            b.customer_name, b.customer_phone,
+            sl.start_time, sl.end_time,
+            cm.brand AS car_brand, cm.name AS car_name,
+            sr.name AS showroom_name
+     FROM test_drive_bookings b
+     LEFT JOIN slots sl ON sl.id = b.slot_id
+     LEFT JOIN car_models cm ON cm.id = b.car_model_id
+     LEFT JOIN showrooms sr ON sr.id = b.showroom_id
+     WHERE b.lead_id = ?
+     ORDER BY sl.start_time DESC`,
+    [req.params.id]
+  );
+  res.json({ ...lead, interactions, reminders, history, bookings });
 });
 
 /** POST /api/leads — tạo Lead mới (FR-01, US-01.1). Không kiểm tra trùng SĐT/email/tên (chỉ id là duy nhất). */

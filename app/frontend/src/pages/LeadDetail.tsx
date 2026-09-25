@@ -139,18 +139,45 @@ export default function LeadDetail() {
         )}
       </div>
 
-      {/* Lịch hẹn */}
-      {lead.reminders && lead.reminders.length > 0 && (
-        <div className="card mb-4">
-          <h2 className="mb-3 font-semibold">Lịch hẹn</h2>
-          {lead.reminders.map((r) => (
+      {/* Lịch lái thử của khách này */}
+      <div className="card mb-4">
+        <h2 className="mb-3 font-semibold">Lịch lái thử</h2>
+        {(!lead.bookings || lead.bookings.length === 0) ? (
+          <div className="text-sm text-gray-400">Chưa có lịch lái thử. Bấm "Tạo lịch hẹn" → chọn mục "Lái thử" để đặt.</div>
+        ) : (
+          <div className="space-y-2">
+            {lead.bookings.map((b) => (
+              <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-2 last:border-0">
+                <div className="text-sm">
+                  <div className="font-medium text-gray-800">
+                    {b.car_name ? `${b.car_brand || ''} ${b.car_name}`.trim() : 'Xe'} · {b.showroom_name || ''}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {formatDate(b.start_time)} · Mã {b.booking_code}
+                    {b.result_note ? ` · ${b.result_note}` : ''}
+                  </div>
+                </div>
+                <span className={`badge ${bookingStatusBadge(b.status)}`}>{b.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lịch hẹn / nhắc việc */}
+      <div className="card mb-4">
+        <h2 className="mb-3 font-semibold">Lịch hẹn</h2>
+        {(!lead.reminders || lead.reminders.length === 0) ? (
+          <div className="text-sm text-gray-400">Chưa có lịch hẹn nào</div>
+        ) : (
+          lead.reminders.map((r) => (
             <div key={r.id} className="flex justify-between border-b py-2 text-sm last:border-0">
-              <span>{r.purpose} — {r.location}</span>
+              <span>{r.purpose}{r.location ? ` — ${r.location}` : ''}</span>
               <span className="text-gray-500">{formatDate(r.remind_at)}</span>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* Lịch sử trạng thái */}
       {lead.history && lead.history.length > 0 && (
@@ -190,6 +217,14 @@ function interestBadge(level?: string | null): string {
   if (level === 'Nóng') return 'bg-red-100 text-red-700';
   if (level === 'Ấm') return 'bg-amber-100 text-amber-700';
   if (level === 'Lạnh') return 'bg-blue-100 text-blue-700';
+  return 'bg-gray-100 text-gray-600';
+}
+
+function bookingStatusBadge(status?: string | null): string {
+  if (status === 'Hoàn thành') return 'bg-green-100 text-green-700';
+  if (status === 'Đã xác nhận') return 'bg-blue-100 text-blue-700';
+  if (status === 'Vắng mặt') return 'bg-amber-100 text-amber-700';
+  if (status === 'Hủy') return 'bg-red-100 text-red-700';
   return 'bg-gray-100 text-gray-600';
 }
 

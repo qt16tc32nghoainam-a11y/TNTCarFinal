@@ -41,6 +41,22 @@ export interface Lead {
   interactions?: Interaction[];
   reminders?: Reminder[];
   history?: StatusHistory[];
+  bookings?: TestDriveBooking[];
+}
+
+export interface TestDriveBooking {
+  id: string;
+  booking_code: string;
+  status: string;
+  result_note?: string | null;
+  created_at: string;
+  customer_name?: string;
+  customer_phone?: string;
+  start_time: string;
+  end_time?: string;
+  car_brand?: string | null;
+  car_name?: string | null;
+  showroom_name?: string | null;
 }
 
 export interface Interaction {
