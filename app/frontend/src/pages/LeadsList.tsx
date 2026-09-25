@@ -19,6 +19,24 @@ const LEAD_STATUS_COLOR: Record<string, string> = {
   deleted: 'bg-gray-200 text-gray-500',
 };
 
+// Các cột có thể bật/tắt trên bảng danh sách Lead. "locked" = luôn hiện, không cho ẩn (cột định danh).
+type LeadColumnId = 'customer_code' | 'full_name' | 'phone' | 'email' | 'car' | 'source' | 'request_type' | 'status' | 'lead_status' | 'sales' | 'created_at';
+interface LeadColumnDef { id: LeadColumnId; label: string; locked?: boolean; salesHidden?: boolean; }
+const LEAD_COLUMNS: LeadColumnDef[] = [
+  { id: 'customer_code', label: 'Mã KH', locked: true },
+  { id: 'full_name', label: 'Khách hàng', locked: true },
+  { id: 'phone', label: 'SĐT' },
+  { id: 'email', label: 'Email' },
+  { id: 'car', label: 'Xe' },
+  { id: 'source', label: 'Nguồn' },
+  { id: 'request_type', label: 'Loại yêu cầu' },
+  { id: 'status', label: 'Trạng thái' },
+  { id: 'lead_status', label: 'Lead Status' },
+  { id: 'sales', label: 'Sales', salesHidden: true }, // Sales không thấy cột này (chỉ xem Lead của mình)
+  { id: 'created_at', label: 'Ngày tạo' },
+];
+const DEFAULT_VISIBLE_COLUMNS = LEAD_COLUMNS.map((c) => c.id);
+
 export default function LeadsList() {
   const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -37,6 +55,49 @@ export default function LeadsList() {
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [offline, setOffline] = useState(false);
+
+  // Cột hiển thị: lưu riêng theo từng user tại trình duyệt này (localStorage).
+  const colStorageKey = `tnt.leadColumns.${user?.id || 'anon'}`;
+  const [visibleCols, setVisibleCols] = useState<LeadColumnId[]>(DEFAULT_VISIBLE_COLUMNS);
+  const [showColsPanel, setShowColsPanel] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(colStorageKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as LeadColumnId[];
+        // Chỉ giữ id hợp lệ + luôn ép các cột locked hiển thị.
+        const valid = saved.filter((id) => LEAD_COLUMNS.some((c) => c.id === id));
+        const withLocked = Array.from(new Set([...LEAD_COLUMNS.filter((c) => c.locked).map((c) => c.id), ...valid]));
+        setVisibleCols(withLocked);
+      } else {
+        setVisibleCols(DEFAULT_VISIBLE_COLUMNS);
+      }
+    } catch {
+      setVisibleCols(DEFAULT_VISIBLE_COLUMNS);
+    }
+  }, [colStorageKey]);
+
+  function toggleColumn(id: LeadColumnId) {
+    const def = LEAD_COLUMNS.find((c) => c.id === id);
+    if (def?.locked) return; // không cho ẩn cột định danh
+    setVisibleCols((prev) => {
+      const next = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      try { localStorage.setItem(colStorageKey, JSON.stringify(next)); } catch { /* bỏ qua nếu trình duyệt chặn */ }
+      return next;
+    });
+  }
+
+  function resetColumns() {
+    setVisibleCols(DEFAULT_VISIBLE_COLUMNS);
+    try { localStorage.removeItem(colStorageKey); } catch { /* ignore */ }
+  }
+
+  // Cột thực sự render: theo thứ tự chuẩn, lọc theo lựa chọn + ẩn cột Sales với vai trò Sales.
+  const activeColumns = LEAD_COLUMNS.filter(
+    (c) => visibleCols.includes(c.id) && !(c.salesHidden && user?.role === 'Sales')
+  );
+  const isCol = (id: LeadColumnId) => activeColumns.some((c) => c.id === id);
 
   async function load(targetPage = page) {
     setLoading(true);
@@ -103,6 +164,34 @@ export default function LeadsList() {
           {offline && <span className="badge bg-amber-100 text-amber-700">Đang xem dữ liệu offline</span>}
         </div>
         <div className="flex gap-2">
+          <div className="relative">
+            <button onClick={() => setShowColsPanel((v) => !v)} className="btn-secondary">⚙ Cột hiển thị</button>
+            {showColsPanel && (
+              <>
+                {/* Lớp phủ để bấm ra ngoài là đóng panel */}
+                <div className="fixed inset-0 z-10" onClick={() => setShowColsPanel(false)} />
+                <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border bg-white p-3 shadow-lg">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold">Chọn cột hiển thị</span>
+                    <button onClick={resetColumns} className="text-xs text-brand-700 hover:underline">Mặc định</button>
+                  </div>
+                  <div className="max-h-72 space-y-1 overflow-auto">
+                    {LEAD_COLUMNS.filter((c) => !(c.salesHidden && user?.role === 'Sales')).map((c) => (
+                      <label key={c.id} className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${c.locked ? 'text-gray-400' : 'cursor-pointer hover:bg-gray-50'}`}>
+                        <input
+                          type="checkbox"
+                          checked={visibleCols.includes(c.id)}
+                          disabled={c.locked}
+                          onChange={() => toggleColumn(c.id)}
+                        />
+                        <span>{c.label}{c.locked && ' (luôn hiện)'}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <button onClick={() => setShowImport(true)} className="btn-secondary">Nhập từ Excel</button>
           <button onClick={() => setShowCreate(true)} className="btn-primary">+ Tạo Lead</button>
         </div>
@@ -136,38 +225,32 @@ export default function LeadsList() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="p-3">Mã KH</th>
-                  <th className="p-3">Khách hàng</th>
-                  <th className="p-3">SĐT</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3">Xe</th>
-                  <th className="p-3">Nguồn</th>
-                  <th className="p-3">Loại yêu cầu</th>
-                  <th className="p-3">Trạng thái</th>
-                  <th className="p-3">Lead Status</th>
-                  {user?.role !== 'Sales' && <th className="p-3">Sales</th>}
-                  <th className="p-3">Ngày tạo</th>
+                  {activeColumns.map((c) => <th key={c.id} className="p-3">{c.label}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {leads.map((l) => (
                   <tr key={l.id} className="border-t hover:bg-gray-50">
-                    <td className="p-3 text-xs text-gray-500">{l.customer_code || '-'}</td>
-                    <td className="p-3">
-                      <Link to={`/leads/${l.id}`} className="font-medium text-brand-700 hover:underline">{l.full_name}</Link>
-                      {!!(l as any)._pendingSync && <span className="ml-1 badge bg-blue-100 text-blue-700">chờ đồng bộ</span>}
-                    </td>
-                    <td className="p-3">{l.phone}</td>
-                    <td className="p-3">
-                      {l.email ? <span className="text-gray-600">{l.email}</span> : <span className="badge bg-amber-100 text-amber-700">Thiếu email</span>}
-                    </td>
-                    <td className="p-3">{l.car_name || '-'}</td>
-                    <td className="p-3 text-gray-500">{l.source}</td>
-                    <td className="p-3 text-gray-500">{(l as any).request_type ? <span className="badge bg-indigo-50 text-indigo-700">{(l as any).request_type}</span> : '-'}</td>
-                    <td className="p-3"><span className={`badge ${statusColor(l.status_detail)}`}>{l.status_detail}</span></td>
-                    <td className="p-3"><span className={`badge ${LEAD_STATUS_COLOR[l.lead_status || 'new']}`}>{LEAD_STATUS_LABEL[l.lead_status || 'new']}</span></td>
-                    {user?.role !== 'Sales' && <td className="p-3 text-gray-500">{l.sales_name}</td>}
-                    <td className="p-3 text-xs text-gray-400">{formatDate(l.created_at)}</td>
+                    {isCol('customer_code') && <td className="p-3 text-xs text-gray-500">{l.customer_code || '-'}</td>}
+                    {isCol('full_name') && (
+                      <td className="p-3">
+                        <Link to={`/leads/${l.id}`} className="font-medium text-brand-700 hover:underline">{l.full_name}</Link>
+                        {!!(l as any)._pendingSync && <span className="ml-1 badge bg-blue-100 text-blue-700">chờ đồng bộ</span>}
+                      </td>
+                    )}
+                    {isCol('phone') && <td className="p-3">{l.phone}</td>}
+                    {isCol('email') && (
+                      <td className="p-3">
+                        {l.email ? <span className="text-gray-600">{l.email}</span> : <span className="badge bg-amber-100 text-amber-700">Thiếu email</span>}
+                      </td>
+                    )}
+                    {isCol('car') && <td className="p-3">{l.car_name || '-'}</td>}
+                    {isCol('source') && <td className="p-3 text-gray-500">{l.source}</td>}
+                    {isCol('request_type') && <td className="p-3 text-gray-500">{(l as any).request_type ? <span className="badge bg-indigo-50 text-indigo-700">{(l as any).request_type}</span> : '-'}</td>}
+                    {isCol('status') && <td className="p-3"><span className={`badge ${statusColor(l.status_detail)}`}>{l.status_detail}</span></td>}
+                    {isCol('lead_status') && <td className="p-3"><span className={`badge ${LEAD_STATUS_COLOR[l.lead_status || 'new']}`}>{LEAD_STATUS_LABEL[l.lead_status || 'new']}</span></td>}
+                    {isCol('sales') && <td className="p-3 text-gray-500">{l.sales_name}</td>}
+                    {isCol('created_at') && <td className="p-3 text-xs text-gray-400">{formatDate(l.created_at)}</td>}
                   </tr>
                 ))}
               </tbody>
